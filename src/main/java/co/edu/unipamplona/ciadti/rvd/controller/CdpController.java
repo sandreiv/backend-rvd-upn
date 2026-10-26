@@ -1,0 +1,313 @@
+/**
+ * Aplicación: rvd
+ * Archivo: CdpController.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.controller
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 31/08/2026
+ * Modificaciones:
+ * 31/08/2026 - Daniel Arias - Creación inicial
+ * 04/09/2026 - Exclusion de once meses heredados en segundo periodo
+ * 23/10/2026 - Andrés Hernández - Aprobar y desaprobar la asociación del CDP por Vicerrectoria
+ */
+
+package co.edu.unipamplona.ciadti.rvd.controller;
+
+import java.util.List;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+
+import co.edu.unipamplona.ciadti.rvd.model.service.SolicitudCdpService;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.AprobarCdpBodyDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CdpContextDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.FileDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CdpRequestDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CdpSearchDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ResumenSolicitudCdpDTO;
+import co.edu.unipamplona.ciadti.rvd.model.service.CdpReporteService;
+import co.edu.unipamplona.ciadti.rvd.model.service.CoordinacionService;
+import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
+
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/configuration/cdp")
+public class CdpController {
+
+    private final CoordinacionService coordinacionService;
+    private final CdpReporteService cdpReporteService;
+    private final SolicitudCdpService solicitudCdpService;
+
+    @Operation(
+        summary = "Obtiene las solicitudes CDP",
+        description = """
+            Lista para el Decano las coordinaciones cuya carga
+            se encuentra en estado AVAL DESARROLLO.
+            """
+    )
+    @GetMapping("/requests")
+    public ResponseEntity<List<CoordinacionDTO>> listCdpRequests(
+        @RequestParam(required = false) Long idConvocatoria,
+        @RequestParam(required = false) Long idPeriodoUniversidad,
+        @RequestParam Long idCoordinacionFacultad) {
+
+        List<CoordinacionDTO> coordinations =
+                coordinacionService.findCdpRequests(
+                        idConvocatoria,
+                        idPeriodoUniversidad,
+                        idCoordinacionFacultad
+                );
+
+        return new ResponseEntity<>(
+                coordinations,
+                HttpStatus.OK
+        );
+    }
+
+    @Operation(
+        summary = "Obtiene las solicitudes CDP para desarollo academico o vicerrectoria academica",
+        description = """
+            Lista para Desarrollo Academico o Vicerrectoria academica las facultades que tienen
+            solicitudes CDP en estado DESARROLLO ACADEMICO o VICERRECTORIA ACADEMICA respectivamente.
+            """
+    )
+    @GetMapping("/requests-for-academics")
+    public ResponseEntity<List<ResumenSolicitudCdpDTO>> listCdpRequestsForAcademics(
+            @RequestParam(required = false) Long idPeriodoUniversidad) {
+
+        List<ResumenSolicitudCdpDTO> faculties = coordinacionService.findCdpRequestsForAcademics(idPeriodoUniversidad);
+
+        return new ResponseEntity<>(faculties, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene el contexto del Decano para solicitudes CDP",
+        description = """
+                Obtiene la Unidad Académica y Facultad asociadas
+                al Decano autenticado.
+                """
+    )
+    @GetMapping("/context")
+    public ResponseEntity<List<CdpContextDTO>> getCdpContext() {
+
+        List<CdpContextDTO> contexts =
+                coordinacionService.getCdpContexts();
+
+        return ResponseEntity.ok(contexts);
+    }
+    
+
+    @Operation(
+        summary = "Genera el reporte Excel CDP de la facultad",
+        description = """
+            Exporta, para el Decano, un libro Excel con una hoja por cada
+            coordinación de su facultad cuya carga está en Aval Desarrollo.
+            Cada hoja conserva el resumen de docentes: encabezado, valor hora,
+            valores de contratación y horas de actividades.
+            Excluye docentes con CADO_ONCEMESES = 1 si la convocatoria
+            corresponde al segundo periodo del año.
+            """
+    )
+    @GetMapping("/cdp-report")
+    public ResponseEntity<byte[]> generateCdpReport(
+            @RequestParam(required = false) Long idConvocatoria,
+            @RequestParam(required = false) Long idPeriodoUniversidad,
+            @RequestParam Long idCoordinacionFacultad) {
+
+        FileDTO file = cdpReporteService.generateCdpReport(
+                idConvocatoria,
+                idPeriodoUniversidad,
+                idCoordinacionFacultad);
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.fileName() + "\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file.content());
+    }
+
+    @Operation(
+        summary = "Genera el reporte PDF CDP de la facultad",
+        description = """
+            Exporta, para el Decano, el PDF institucional con encabezado de
+            facultad, un bloque por cada coordinación en Aval Desarrollo
+            (modalidades, docentes y total de la coordinación) y espacio
+            de firma del decano al final.
+            Excluye docentes con CADO_ONCEMESES = 1 si la convocatoria
+            corresponde al segundo periodo del año.
+            """
+    )
+    @GetMapping("/cdp-pdf-report")
+    public ResponseEntity<byte[]> generateCdpPdfReport(
+        @RequestParam(required = false) Long idConvocatoria,
+        @RequestParam(required = false) Long idPeriodoUniversidad,
+        @RequestParam Long idCoordinacionFacultad) {
+
+    FileDTO file =
+            cdpReporteService.generateCdpPdfReport(
+                    idConvocatoria,
+                    idPeriodoUniversidad,
+                    idCoordinacionFacultad
+            );
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.fileName() + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(file.content());
+    }
+
+    @Operation(
+        summary = "Crea una solicitud CDP",
+        description = """
+                Registra una solicitud CDP para la facultad
+                asociada al Decano autenticado, incluyendo
+                observación y archivos adjuntos.
+                """
+    )
+    @PostMapping(
+        value = "/requests",
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<Void> createCdpRequest(
+        @RequestPart(
+            value = "observacion",
+            required = false
+        )
+        String observacion,
+
+        @RequestPart(
+            value = "archivos",
+            required = false
+        )
+        List<MultipartFile> archivos,
+    
+        @RequestPart(
+            value = "idPeriodo",
+            required = false
+        )
+
+        String idPeriodo,
+
+        @RequestPart(
+            value = "idCoordinacionFacultad",
+            required = false
+        )
+        String idCoordinacionFacultad,
+
+        @RequestPart(
+            value = "idConvocatoria",
+            required = false
+        )
+        String idConvocatoria) {
+
+        solicitudCdpService.create(
+                observacion,
+                archivos,
+                idPeriodo,
+                idCoordinacionFacultad,
+                idConvocatoria
+        );
+
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .build();
+    }
+
+    @Operation(
+        summary = "Actualiza el estado de una solicitud CDP",
+        description = """
+                Actualiza una solicitud CDP para la facultad
+                asociada al Desarrollo academico autenticado, cambiando
+                su estado de envio a Vicerrectoria academica.
+                """
+    )
+    @PutMapping("/send-request-to-vice/{idSolicitud}")
+    public ResponseEntity<Void> sendRequestToVice(
+        @PathVariable Long idSolicitud) {
+
+        solicitudCdpService.sendRequestToVice(idSolicitud);
+
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @Operation(
+        summary = "Obtiene los CDPs generados por presupuesto",
+        description = """
+                Consulta las solicitudes CDP registradas en TESORERIAV3 para la
+                unidad regional asociada a Vicerrectoria academica autenticada.
+                """
+    )
+    @GetMapping("/search-cdps")
+        public ResponseEntity<List<CdpSearchDTO>> searchCdpsTesoreriaV3(@RequestParam String numeroCdp, @RequestParam Long idUnidad, @RequestParam Long anioVigencia) {
+        
+        List<CdpSearchDTO> results = solicitudCdpService.searchCdpsTesoreriaV3(numeroCdp, idUnidad, anioVigencia);
+        return ResponseEntity.ok(results);
+    } 
+
+    @Operation(
+        summary = "Actualiza el estado y cdp de una solicitud CDP",
+        description = """
+                Actualiza una solicitud CDP para la facultad asociada a Vicerrectoria academica autenticada,
+                cambiando su estado de envio a CDP aprobado y guardando la información del CDP desde TESORERIA V3.
+                """
+    )
+    @PutMapping("/approve-cdp-request")
+    public ResponseEntity<Void> approveCdpRequest(@RequestBody AprobarCdpBodyDTO dto) {
+        solicitudCdpService.approveCdpRequest(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Actualiza el estado y cdp de una solicitud CDP",
+        description = """
+                Actualiza una solicitud CDP para la facultad asociada a Vicerrectoria academica autenticada,
+                cambiando su estado de envio a Vicerrectoria academica y limpiando la información del CDP desde TESORERIA V3.
+                Esto permite relacionar nuevamente un CDP desde TESORERIAV3 en caso de fallo al seleccionarlo.
+                """
+    )
+    @PutMapping("/disapprove-cdp-request/{idSolicitud}")
+    public ResponseEntity<Void> disapproveCdpRequest(@PathVariable Long idSolicitud) {
+        solicitudCdpService.disapproveCdpRequest(idSolicitud);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Obtiene la solicitud CDP del Decano",
+        description = """
+                Consulta la solicitud CDP registrada para la
+                facultad asociada al Decano autenticado.
+                """
+    )
+    @GetMapping("/request")
+        public ResponseEntity<CdpRequestDTO> getCurrentCdpRequest(
+                @RequestParam Long idCoordinacionFacultad,
+                @RequestParam Long idPeriodoUniversidad) {
+
+        CdpRequestDTO request =
+                solicitudCdpService.getCurrentRequest(
+                        idCoordinacionFacultad,
+                        idPeriodoUniversidad
+                );
+
+        return ResponseEntity.ok(request);
+    }       
+
+
+}
+
+/* 31/08/2026 @:Daniel Arias */

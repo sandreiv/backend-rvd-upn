@@ -1,0 +1,28 @@
+/**
+ * Aplicación: rvd
+ * Archivo: ConvocatoriaDTO.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.model.dto
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 03/06/2026
+ * Modificaciones:
+ * 03/06/2026 - Sebastian Jaimes - Creación inicial
+ * 09/09/2026 - Sebastian Jaimes - Campo contratacion
+ */
+package co.edu.unipamplona.ciadti.rvd.model.dto;
+
+import java.util.Date;
+
+public record ConvocatoriaDTO(
+    Long id,
+    String nombre,
+    String descripcion,
+    String periodoUniversidad,
+    String nivelEducativo,
+    Date fechaInicio,
+    Date fechaFin,
+    String nombreCompleto,
+    String estado,
+    Long idRelacion,
+    String contratacion
+) {}
+/* 03/06/2026 @:Sebastian Jaimes */

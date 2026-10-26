@@ -1,0 +1,959 @@
+/**
+ * Aplicación: rvd
+ * Archivo: ProfessorPreloadController.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.controller
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 10/06/2026
+ * Modificaciones:
+ * 10/06/2026 - Sebastian Jaimes - Creación inicial
+ * 25/08/2026 - Sebastian Jaimes - Listado coordinaciones por JWT (Coordinador/Decano)
+ * 27/08/2026 - Horas de actividades por carga
+ * 31/08/2026 - Sebastian Jaimes - Columna V. Hora en reporte Excel
+ * 31/08/2026 - Sebastian Jaimes - Reporte PDF de preasignación
+ * 04/09/2026 - Exclusion de once meses heredados en segundo periodo
+ * 10/09/2026 - Sebastian Jaimes - Precarga activas solo preasignación
+ * 10/09/2026 - Sebastian Jaimes - parseNullableLong a ParseUtils
+ * 16/09/2026 - Listado de modalidades de contratación
+ * 16/09/2026 - Novedad cambio de modalidad y horas
+ * 18/09/2026 - Presupuesto efectivo de carga en novedades
+ * 18/09/2026 - save-contract-modality-professor inserta fotografía
+ * 18/09/2026 - CARG_VALOR al aprobar novedad; autorizado en preasignación
+ * 21/09/2026 - Listado desarrollo: Aprobado Decano o Aval con novedad
+ * 22/09/2026 - Novedad de actividades: FAD, CTEI e ISU
+ * 29/09/2026 - Resumen de carga con novedad vigente
+ * 29/09/2026 - Historial de novedades en el resumen
+ * 06/10/2026 - PDF comparativo de novedad por CADO_ID
+ * 15/10/2026 - Andrés Hernández - Las novedades ahora se relacionan a la modalidad de contratación
+ */
+package co.edu.unipamplona.ciadti.rvd.controller;
+
+import java.util.List;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import co.edu.unipamplona.ciadti.rvd.model.dto.ActividadHorasResumenDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ActividadModalidadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ActualizarValorContratoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CargaBudgetDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocentePlantaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CategoriaCatedraticoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoResumenDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteEfectivoCoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocentePlantaCoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocentePreasignacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.EliminarDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.FechaModalidadFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.GuardarNovedadesDetallesProyectosDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorasActividadesCargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ModalidadContratacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.NovedadAgregarProfesorDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CambioModalidadHoraCatedraticoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.NovedadListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ObservacionCargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ObservacionDecanoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.RelacionConvocatoriaCoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ResumenCargaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ResumenNovedadCargaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionProgramaHorasDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadCriterioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TotalPreasignacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.UnidadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosPrecargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.EnvioVerificacionDetalleCargaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.AsignarNombreNnDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CambioDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HistorialGeneralNovedadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.service.CargaBudgetService;
+import co.edu.unipamplona.ciadti.rvd.model.service.NovedadCargaDocenteService;
+import co.edu.unipamplona.ciadti.rvd.model.service.NovedadReporteService;
+import co.edu.unipamplona.ciadti.rvd.model.service.ConvocatoriaPrecargaService;
+import co.edu.unipamplona.ciadti.rvd.model.service.CoordinacionService;
+import co.edu.unipamplona.ciadti.rvd.model.service.ModalidadContratacionService;
+import co.edu.unipamplona.ciadti.rvd.model.service.PreasignacionReporteService;
+import co.edu.unipamplona.ciadti.rvd.model.service.PeriodoUniversidadService;
+import co.edu.unipamplona.ciadti.rvd.util.ParseUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
+import co.edu.unipamplona.ciadti.rvd.model.dto.FileDTO;
+
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/configuration/coordination")
+public class CoordinationController {
+
+    private final ConvocatoriaPrecargaService convocatoriaPrecargaService;
+    private final CoordinacionService coordinacionService;
+    private final ModalidadContratacionService modalidadContratacionService;
+    private final PreasignacionReporteService preasignacionReporteService;
+    private final PeriodoUniversidadService periodoUniversidadService;
+    private final NovedadCargaDocenteService novedadCargaDocenteService;
+    private final CargaBudgetService cargaBudgetService;
+    private final NovedadReporteService novedadReporteService;
+    
+    @Operation(
+        summary = "Obtiene las convocatorias de precarga activas",
+        description = "Obtiene las convocatorias de preasignación activas del periodo (CONV_CONTRATACION nulo o 0)"
+    )
+    @GetMapping("/list-active-preload-calls") 
+    public ResponseEntity<?> listActivePreloadCalls(@RequestParam Long idPeriodoUniversidad) throws Exception {
+        List<ConvocatoriaDTO> activePreloadCalls = convocatoriaPrecargaService.findActivePreloadCalls(idPeriodoUniversidad);
+        return new ResponseEntity<>(activePreloadCalls, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene las convocatorias activas asignables",
+        description = "Obtiene las convocatorias activas del periodo sin restricciones vigentes para asignación libre"
+    )
+    @GetMapping("/list-assignable-preload-calls")
+    public ResponseEntity<?> listAssignablePreloadCalls(@RequestParam Long idPeriodoUniversidad) throws Exception {
+        List<ConvocatoriaDTO> activePreloadCalls = convocatoriaPrecargaService.findAssignableActivePreloadCalls(idPeriodoUniversidad);
+
+        return new ResponseEntity<>(activePreloadCalls, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene la lista de periodos de universidad",
+        description = "Obtiene la lista de periodos de universidad"
+    )
+    @GetMapping("/list-university-period")
+    public ResponseEntity<List<PeriodoUniversidadDTO>> listUniversityPeriod() {
+        List<PeriodoUniversidadDTO> periods = periodoUniversidadService.findUniversityPeriodList();
+        return new ResponseEntity<>(periods, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene la lista de coordinaciones",
+        description = """
+            Identidad y roles salen del JWT (idPersona + roles del bootstrap).
+            Coordinador: sus coordinaciones en PERSONACOORDINACION.
+            Decano: coordinaciones hijas de sus facultades, carga INSCRITO.
+            Desarrollo academico: APROBADO DECANO, o AVAL DESARROLLO
+            con al menos un docente en NOVEDADCARGADOCENTE
+            (NOCD_ESTADONOVEDAD = 0).
+            Sin idConvocatoria: requiere idPeriodoUniversidad.
+            La carga incluye valor (CARG_VALOR) y valorAutorizado
+            (CARG_VALORAUTORIZADO).
+            """
+    )
+    @GetMapping("/list")
+    public ResponseEntity<?> listCoordinations(
+            @RequestParam(required = false) Long idConvocatoria,
+            @RequestParam(required = false) Long idPeriodoUniversidad) throws Exception {
+        List<CoordinacionDTO> coordinations = coordinacionService.findCoordinationsByIdConvocatoria(idConvocatoria, idPeriodoUniversidad);
+        
+        return new ResponseEntity<>(coordinations, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Guarda la relacion coordinacion-convocatoria en carga",
+        description = "Crea un registro en RVD.CARGA con COOR_ID y CONV_ID"
+    )
+    @PostMapping("/save-preload")
+    public ResponseEntity<Void> savePreload(@RequestBody RelacionConvocatoriaCoordinacionDTO dto) {
+        coordinacionService.savePreload(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Busca docentes para preasignacion",
+        description = "Busca por documento y/o fragmento de nombre o apellido y la modalidad de contratacion"
+    )
+    @GetMapping("/search-professor")
+    public ResponseEntity<List<DocentePreasignacionDTO>> searchProfessor(
+        @RequestParam(required = false) String nombre,  
+        @RequestParam(required = false) String documento, 
+        @RequestParam(required = true) Long idModalidadContratacion,
+        @RequestParam(required = false) Long idConvocatoria) {
+        List<DocentePreasignacionDTO> docentes = coordinacionService.searchProfessor(
+                nombre,
+                documento,
+                idModalidadContratacion,
+                idConvocatoria);
+        return new ResponseEntity<>(docentes, HttpStatus.OK);
+    }
+
+    @Operation(
+    summary = "Busca docentes libres para novedades",
+    description = "Busca por documento o nombre y modalidad, excluyendo docentes con carga vigente"
+    )
+    @GetMapping("/search-free-professor")
+    public ResponseEntity<List<DocentePreasignacionDTO>> searchFreeProfessor(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String documento,
+            @RequestParam(required = true) Long idModalidadContratacion) {
+
+        List<DocentePreasignacionDTO> docentes =
+                coordinacionService.searchFreeProfessor(
+                        nombre,
+                        documento,
+                        idModalidadContratacion
+                );
+
+        return new ResponseEntity<>(
+                docentes,
+                HttpStatus.OK
+        );
+    }
+
+    @Operation(
+        summary = "Busca los docentes de carrera de una coordinacion",
+        description = "Busca los docentes de carrera de una coordinacion por el id de la coordinacion"
+    )
+    @GetMapping("/list-career-professors/{idCoordinacion}")
+    public ResponseEntity<List<DocentePlantaCoordinacionDTO>> listCareerProfessors(@PathVariable Long idCoordinacion) {
+        List<DocentePlantaCoordinacionDTO> docentesCarrera = coordinacionService.listCareerProfessors(idCoordinacion);
+        return new ResponseEntity<>(docentesCarrera, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene las fechas de convocatoria por carga y modalidad de contratación",
+        description = "Retorna las fechas de la convocatoria asociada a la carga (idCarga) y la modalidad (idModalidadContratacion)"
+    )
+    @GetMapping("/work-date")
+    public ResponseEntity<List<FechaModalidadFormularioDTO>> getWorkDate(@RequestParam Long idCarga, @RequestParam Long idModalidadContratacion) {
+        List<FechaModalidadFormularioDTO> fechas =
+                coordinacionService.getWorkDate(idCarga, idModalidadContratacion);
+        return new ResponseEntity<>(fechas, HttpStatus.OK);
+    }
+
+    @GetMapping("/value-points-preload")
+    public ResponseEntity<ValorPuntosPrecargaDTO> getValuePointsPreload(
+            @RequestParam Long anio,
+            @RequestParam Long idCategoriaCatedratico,
+            @RequestParam(required = false) String idPersonaGeneral,
+            @RequestParam Long idModalidadContratacion) {
+        Long idPersona = ParseUtils.parseNullableLong(idPersonaGeneral);
+        ValorPuntosPrecargaDTO valores = coordinacionService.getValuePointsPreload(anio, idCategoriaCatedratico, idPersona, idModalidadContratacion);
+        return new ResponseEntity<>(valores, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene una lista de las categorias de catedratico",
+        description = "Obtiene una lista de las categorias de catedratico"
+    )
+    @GetMapping("/professor-category")
+    public ResponseEntity<List<CategoriaCatedraticoDTO>> listProfessorCategory(@RequestParam Long idModalidadContratacion) {
+        List<CategoriaCatedraticoDTO> categorias = coordinacionService.listProfessorCategory(idModalidadContratacion);
+        return new ResponseEntity<>(categorias, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Agrega un docente a la modalidad de contratacion de una coordinacion",
+        description = "Agrega un docente a la modalidad de contratacion de una coordinacion"
+    )
+    @PostMapping("/add-professor")
+    public ResponseEntity<Void> addProfessor(@RequestBody CargaDocenteFormularioDTO dto) {
+        coordinacionService.addProfessor(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Lista los docentes de una carga según la modalidad de contratacion",
+        description = "Solo docentes con registro en CARGADOCENTE de esa carga y modalidad."
+    )
+    @GetMapping("/list-professors-modality")
+    public ResponseEntity<List<DocenteCoordinacionDTO>> listProfessors(@RequestParam Long idCarga, @RequestParam Long idModalidadContratacion) {
+        List<DocenteCoordinacionDTO> docentes = coordinacionService.listProfessors(idCarga, idModalidadContratacion);
+        return new ResponseEntity<>(docentes, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los docentes de planta de una carga",
+        description = """
+            Docentes de DOCENTESPLANTACOORDINACION de la coordinación de la carga.
+            Los datos de CARGADOCENTE corresponden a la fila sin modalidad de contratación.
+            """
+    )
+    @GetMapping("/list-career-professor-loads")
+    public ResponseEntity<List<DocenteCoordinacionDTO>> listCareerProfessorLoads(@RequestParam Long idCarga) {
+        return new ResponseEntity<>(coordinacionService.listCareerProfessorLoads(idCarga), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los docentes de una carga según la modalidad de contratacion para la sección de novedades",
+        description = "Solo docentes con registro en CARGADOCENTE de esa carga y modalidad."
+    )
+    @GetMapping("/list-alteration-professors-modality")
+    public ResponseEntity<List<DocenteEfectivoCoordinacionDTO>> listAlterationProfessors(@RequestParam Long idCarga, @RequestParam Long idModalidadContratacion) {
+        List<DocenteEfectivoCoordinacionDTO> docentes = coordinacionService.listAlterationProfessors(idCarga, idModalidadContratacion);
+        return new ResponseEntity<>(docentes, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los docentes de planta de una carga para la sección de novedades",
+        description = """
+            Docentes de DOCENTESPLANTACOORDINACION de la coordinación de la carga,
+            con la carga aprobada sin modalidad de contratación.
+            """
+    )
+    @GetMapping("/list-career-alteration-professors")
+    public ResponseEntity<List<DocenteEfectivoCoordinacionDTO>> listCareerAlterationProfessors(@RequestParam Long idCarga) {
+        return new ResponseEntity<>(coordinacionService.listCareerAlterationProfessors(idCarga), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista el historial general de novedades de una carga",
+        description = """
+            Retorna todas las solicitudes de novedades asociadas
+            a los docentes de una carga.
+
+            Incluye docente, tipo de novedad, fecha y hora,
+            estado de la solicitud y motivo de rechazo cuando aplica.
+
+            El resultado se ordena por defecto desde la solicitud
+            más reciente hasta la más antigua.
+            """
+    )
+    @GetMapping("/list-general-novelty-history")
+    public ResponseEntity<List<HistorialGeneralNovedadDTO>>
+    listGeneralNoveltyHistory(
+            @RequestParam Long idCarga) {
+
+        return new ResponseEntity<>(
+                novedadCargaDocenteService
+                        .getGeneralNoveltyHistory(idCarga),
+                HttpStatus.OK
+        );
+    }
+
+    @Operation(
+        summary = "Edita un docente de una coordinacion por el id de la carga docente",
+        description = "Edita el registro de CARGADOCENTE"
+    )
+    @PutMapping("/update-professor/{idCargaDocente}")
+    public ResponseEntity<Void> updateProfessor(@PathVariable Long idCargaDocente, @RequestBody CargaDocenteFormularioDTO dto) {
+        coordinacionService.updateProfessor(idCargaDocente, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Elimina un docente de una coordinacion por el id de la carga docente",
+        description = "Elimina el registro de CARGADOCENTE"
+    )
+    @DeleteMapping("/delete-professor/{idCargaDocente}")
+    public ResponseEntity<Void> deleteProfessor(@PathVariable Long idCargaDocente) {
+        coordinacionService.deleteProfessor(idCargaDocente);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Lista los criterios",
+        description = "Lista los criterios, los cuales son el nivel mas bajo de un tipo actividad"
+    )
+    @GetMapping("/list-criteria")
+    public ResponseEntity<List<TipoActividadCriterioDTO>> listCriteria(@RequestParam Long idTipoActividad) {
+        List<TipoActividadCriterioDTO> criterios = coordinacionService.listCriteria(idTipoActividad);
+        return new ResponseEntity<>(criterios, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los tipos de actividad padre",
+        description = "Lista los tipos de actividad que no tienen TIAC_IDPADRE"
+    )
+    @GetMapping("/list-activity-types")
+    public ResponseEntity<List<TipoActividadDTO>> listActivityTypes() {
+        List<TipoActividadDTO> tiposActividad = coordinacionService.listActivityTypes();
+        return new ResponseEntity<>(tiposActividad, HttpStatus.OK);
+    }
+
+    
+
+    @Operation(
+        summary = "Lista las unidades regionales de una coordinación",
+        description = "Lista todas las unidades academicas marcadas como regionales de una coordinación"
+    )
+    @GetMapping("/list-regional-unit")
+    public ResponseEntity<List<UnidadDTO>> listRegionalUnits(@RequestParam Long idCoordinacion) {
+        List<UnidadDTO> unidades = coordinacionService.listRegionalUnits(idCoordinacion);
+        return new ResponseEntity<>(unidades, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los programas de una unidad regional según el nivel educativo",
+        description = "Lista los programas asociados a la coordinación en ASOCIACIONCOORDINACION, filtrados por unidad regional y nivel educativo"
+    )
+    @GetMapping("/list-program")
+    public ResponseEntity<List<ProgramaDTO>> listPrograms(@RequestParam Long idCoordinacion, @RequestParam Long idUnidadRegional, @RequestParam Long idNivelEducativo) {
+        List<ProgramaDTO> programas = coordinacionService.listProgramsByRegionalUnit(idCoordinacion, idUnidadRegional, idNivelEducativo);
+        return new ResponseEntity<>(programas, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista las materias de un programa según la coordinación",
+        description = "Lista las materias de un programa según la coordinación. (Se revisa si es transversal o no)"
+    )
+    @GetMapping("/list-subject")
+    public ResponseEntity<List<MateriaDTO>> listSubjects(@RequestParam Long idPrograma, @RequestParam Long idCoordinacion) {
+        List<MateriaDTO> materias = coordinacionService.listSubjects(idPrograma, idCoordinacion);
+        return new ResponseEntity<>(materias, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los grupos de una materia",
+        description = "Lista los grupos de una materia filtrados por el periodo universitario de la convocatoria"
+    )
+    @GetMapping("/list-subject-group")
+    public ResponseEntity<List<GrupoDTO>> listSubjectGroup(@RequestParam String codigoMateria, @RequestParam Long idPeriodoUniversidad) {
+        List<GrupoDTO> grupos = coordinacionService.listSubjectGroup(codigoMateria, idPeriodoUniversidad);
+        return new ResponseEntity<>(grupos, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista los proyectos asociados a un docente",
+        description = "Lista los proyectos asociados a un docente filtrados por la convocatoria de precarga"
+    )
+    @GetMapping("/list-projects-professor")
+    public ResponseEntity<List<ProyectoDTO>> listProjectsProfessor(
+            @RequestParam Long idPersonaGeneral,
+            @RequestParam Long idConvocatoria) {
+
+        List<ProyectoDTO> proyectos =
+                coordinacionService.listProjectsProfessor(
+                        idPersonaGeneral,
+                        idConvocatoria
+                );
+
+        return new ResponseEntity<>(
+                proyectos,
+                HttpStatus.OK
+        );
+    }
+
+    @Operation(
+        summary = "Guarda un detalle de carga docente",
+        description = "Guarda un detalle de carga docente"
+    )
+    @PostMapping("/save-detail-professor-preload")
+    public ResponseEntity<Void> saveDetailProfessorPreload(@RequestBody DetalleCargaDocenteFormularioDTO dto) {
+        coordinacionService.saveDetailProfessorPreload(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Lista el detalle de carga de un docente",
+        description = "Lista el detalle de carga por idCargaDocente"
+    )
+    @GetMapping("/list-detail-professor-preload")
+    public ResponseEntity<List<DetalleCargaDocenteDTO>> listDetailProfessorPreload(@RequestParam Long idCargaDocente) {
+        List<DetalleCargaDocenteDTO> detalle = coordinacionService.listDetailProfessorPreload(idCargaDocente);
+        return new ResponseEntity<>(detalle, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Lista el detalle novedad de carga de un docente",
+        description = "Lista el detalle novedad de carga por idCargaDocente"
+    )
+    @GetMapping("/list-novelty-detail-professor-preload")
+    public ResponseEntity<List<DetalleCargaDocenteDTO>> listNoveltyDetailProfessorPreload(@RequestParam Long idCargaDocente) {
+        List<DetalleCargaDocenteDTO> detalle = coordinacionService.listNoveltyDetailProfessorPreload(idCargaDocente);
+        return new ResponseEntity<>(detalle, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Consulta restricciones de horas por programa",
+        description = """
+            Lista los programas con máximo de horas configurado en la restricción
+            de carga de la modalidad. Si se envía idCargaDocente, incluye horas
+            ya asignadas y disponibles para validar actividades de horas directas.
+            """
+    )
+    @GetMapping("/program-hour-restriction")
+    public ResponseEntity<List<RestriccionProgramaHorasDTO>> listProgramHourRestrictions(@RequestParam Long idModalidadContratacion, @RequestParam(required = false) Long idCargaDocente) {
+        return ResponseEntity.ok(coordinacionService.listProgramHourRestrictions(idModalidadContratacion, idCargaDocente));
+    }
+
+    @Operation(
+        summary = "Edita un detalle de carga docente",
+        description = "Actualiza un detalle de carga docente usando DetalleCargaDocenteDTO"
+    )
+    @PutMapping("/update-detail-professor-preload")
+    public ResponseEntity<Void> updateDetailProfessorPreload(@RequestBody DetalleCargaDocenteDTO dto) {
+        coordinacionService.updateDetailProfessorPreload(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Guarda la carga de un docente de planta de una coordinacion",
+        description = "Guarda la carga de un docente de planta de una coordinacion"
+    )
+    @PostMapping("/save-career-professor-preload")
+    public ResponseEntity<Void> saveCareerProfessorPreload(@RequestBody CargaDocentePlantaDTO dto) {
+        coordinacionService.saveCareerProfessorPreload(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Elimina un detalle carga docente (actividad) de un docente",
+        description = "Elimina un detalle carga docente (actividad) de un docente"
+    )
+    @DeleteMapping("/delete-professor-activity/{idDetalleCargaDocente}")
+    public ResponseEntity<Void> deleteProfessorActivity(@PathVariable Long idDetalleCargaDocente) {
+        coordinacionService.deleteProfessorActivity(idDetalleCargaDocente);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Aprueba la preasignación de varios docentes",
+        description = "Actualiza el estado de la carga docente de Verificado a Aprobada segun la carga"
+    )
+    @PutMapping("/approve-professors-preassignment/{idCarga}")
+    public ResponseEntity<Void> approveProfessorsPreassignment(
+            @PathVariable Long idCarga) {
+        coordinacionService.approveProfessorsPreassignment(idCarga);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Desaprueba la distribución de actividades de un docente",
+        description = "Actualiza el estado de la carga docente a En registro"
+    )
+    @PutMapping("/disapprove-professor-preassignment/{idCargaDocente}")
+    public ResponseEntity<Void> disapproveProfessorActivityDistribution(
+            @PathVariable Long idCargaDocente) {
+        coordinacionService.disapproveProfessorActivityDistribution(idCargaDocente);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Obtiene el total de una preasignación por carga",
+        description = "Retorna totales de docentes, prestaciones, contratos y preasignación,además de las horas agrupadas por tipo de actividad y el total de horas"
+    )
+    @GetMapping("/total-preload")
+    public ResponseEntity<TotalPreasignacionDTO> getTotalPreload(@RequestParam Long idCarga) {
+        TotalPreasignacionDTO total = coordinacionService.getTotalPreload(idCarga);
+        return new ResponseEntity<>(total, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene el presupuesto efectivo de una carga",
+        description = """
+            Suma totalContrato de cada docente con el registro efectivo:
+            NOVEDADCARGADOCENTE (estado distinto de 2) o CARGADOCENTE.
+            No modifica total-preload ni value-points-preload.
+            """
+    )
+    @GetMapping("/carga-budget/{idCarga}")
+    public ResponseEntity<CargaBudgetDTO> getCargaBudget(
+            @PathVariable Long idCarga) {
+        return ResponseEntity.ok(cargaBudgetService.getBudget(idCarga));
+    }
+
+    @Operation(
+        summary = "Lista los tipos de actividad según la modalidad de contratación",
+        description = "Consulta RESTRICCIONCARGA y, según la modalidad (MOCO), obtiene los tipos de actividad desde TIPOACTIVIDADMODALIDAD"
+    )
+    @GetMapping("/list-activities-modality")
+    public ResponseEntity<ActividadModalidadDTO> listActivitiesModality(@RequestParam Long idModalidadContratacion) {
+        ActividadModalidadDTO actividad = coordinacionService.listActivitiesModality(idModalidadContratacion);
+        return new ResponseEntity<>(actividad, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene el resumen completo de una carga docente",
+        description = "Agrupa valor de contratación, horas de actividades y distribución por centros de costo."
+    )
+    @GetMapping("/professor-load-summary/{idCargaDocente}")
+    public ResponseEntity<ResumenCargaDocenteDTO> getProfessorLoadSummary(@PathVariable Long idCargaDocente) {
+        return new ResponseEntity<>(coordinacionService.getProfessorLoadSummary(idCargaDocente), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene el valor de contratación de una carga docente",
+        description = "Calcula vacaciones, cesantías, intereses, prima legal, prestaciones, valor y total de contrato."
+    )
+    @GetMapping("/contract-value/{idCargaDocente}")
+    public ResponseEntity<ValorContratacionDTO> getContractValue(@PathVariable Long idCargaDocente) {
+        return new ResponseEntity<>(coordinacionService.getContractValue(idCargaDocente), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene el resumen de horas por actividad",
+        description = "Retorna tipo, código, nombre y total de horas de las actividades de la carga docente."
+    )
+    @GetMapping("/activity-hours/{idCargaDocente}")
+    public ResponseEntity<List<ActividadHorasResumenDTO>> getActivityHours(@PathVariable Long idCargaDocente) {
+        return new ResponseEntity<>(coordinacionService.listActivityHours(idCargaDocente), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Obtiene la distribución por centros de costo",
+        description = "Retorna nombre del centro, número de actividades, porcentaje de horas y valor del contrato asignado."
+    )
+    @GetMapping("/cost-centers/{idCargaDocente}")
+    public ResponseEntity<List<CentroCostoResumenDTO>> getCostCenters(@PathVariable Long idCargaDocente) {
+        return new ResponseEntity<>(coordinacionService.listCostCenters(idCargaDocente), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Genera el reporte Excel de preasignación de una carga",
+        description = """
+            Exporta el resumen de los docentes de la carga: encabezado
+            (unidad, facultad, coordinación, periodo, convocatoria), valor hora
+            (puntos vigencia), valores de contratación y horas de actividades.
+            Excluye docentes con CADO_ONCEMESES = 1 si la convocatoria
+            corresponde al segundo periodo del año.
+            """
+    )
+    @GetMapping("/preload-report/{idCarga}")
+    public ResponseEntity<byte[]> generatePreloadReport(@PathVariable Long idCarga) {
+        FileDTO file = preasignacionReporteService.generatePreloadReport(idCarga);
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.fileName() + "\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file.content());
+    }
+
+    @Operation(
+        summary = "Obtiene las observaciones por carga",
+        description = "Retorna lista con la observación, fecha y persona quien la realizo"
+    )
+    @GetMapping("/preload-observations/{idCarga}")
+    public ResponseEntity<List<ObservacionCargaDTO>> getPreloadObservations(@PathVariable Long idCarga) {
+        return new ResponseEntity<>(coordinacionService.listPreloadObservations(idCarga), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Cambia la observacion a Vista",
+        description = "Actualiza la bandera booleana de la observación a Vista"
+    )
+    @PutMapping("/mark-seen-observations/{idCarga}")
+    public ResponseEntity<Void> markSeenObservationsByPreload(@PathVariable Long idCarga) {
+        coordinacionService.markSeenObservationsByPreload(idCarga);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Cambia el estado de la carga a inscrito",
+        description = "Actualiza el estado de la carga a inscrito"
+    )
+    @PutMapping("/send-preload-dean/{idCarga}")
+    public ResponseEntity<Void> endorsePreloadDean(@PathVariable Long idCarga) {
+        coordinacionService.endorsePreloadDean(idCarga);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Cambia el estado de la carga a registrado por devolución del decano",
+        description = "Actualiza el estado de la carga a registrado por devolución del decano"
+    )
+    @PutMapping("/decline-preload-dean/{idCarga}")
+    public ResponseEntity<Void> declinePreloadDean(@PathVariable Long idCarga, @RequestBody ObservacionDecanoDTO dto) {
+        coordinacionService.declinePreload(idCarga, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Aprueba la carga por parte del decano",
+        description = "Actualiza el estado de la carga a APROBADO DECANO"
+    )
+    @PutMapping("/approve-preload-dean/{idCarga}")
+    public ResponseEntity<Void> approvePreloadDean(@PathVariable Long idCarga) {
+        coordinacionService.approvePreloadDean(idCarga);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Devuelve la carga por parte de desarrollo académico",
+        description = "Actualiza el estado de la carga a REGISTRADO y guarda la observación"
+    )
+    @PutMapping("/decline-preload-development/{idCarga}")
+    public ResponseEntity<Void> declinePreloadDevelopment(
+            @PathVariable Long idCarga,
+            @RequestBody ObservacionDecanoDTO dto) {
+        coordinacionService.declinePreload(idCarga, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Aval de la carga por parte de desarrollo académico",
+        description = "Actualiza el estado de la carga a AVAL DESARROLLO"
+    )
+    @PutMapping("/approve-preload-development/{idCarga}")
+    public ResponseEntity<Void> approvePreloadDevelopment(@PathVariable Long idCarga) {
+        coordinacionService.approvePreloadDevelopment(idCarga);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Obtiene las horas de actividades por carga",
+        description = "Retorna las horas agrupadas por tipo de actividad padre (FAD, FAI, AC, ISU, CTEI) y el total de horas"
+    )
+    @GetMapping("/activities-hours")
+    public ResponseEntity<HorasActividadesCargaDTO> getActivitiesHours(@RequestParam Long idCarga) {
+        HorasActividadesCargaDTO horas = coordinacionService.getActivitiesHours(idCarga);
+        return new ResponseEntity<>(horas, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Genera el reporte PDF de preasignación de una carga",
+        description = """
+            Exporta el PDF institucional de preasignación: encabezado, barras de
+            contexto, tablas por modalidad, resumen de totales y espacio de firmas.
+            """
+    )
+    @GetMapping("/preload-pdf-report/{idCarga}")
+    public ResponseEntity<byte[]> generatePreloadPdfReport(@PathVariable Long idCarga) {
+        FileDTO file = preasignacionReporteService.generatePreloadPdfReport(idCarga);
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.fileName() + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(file.content());
+    }
+
+    @Operation(
+        summary = "Envía un docente para verificación",
+        description = "Guarda la distribución de actividades y cambia "
+                + "el estado del docente de En registro a Para verificar"
+    )
+    @PostMapping("/to-verify-professor")
+    public ResponseEntity<Void> sendProfessorToVerification(@RequestBody EnvioVerificacionDetalleCargaDocenteDTO dto) {
+
+        coordinacionService.sendProfessorToVerification(dto);
+
+        return ResponseEntity.ok().build();
+    }
+
+    //------------------------------------------------------------
+    // --------------------NOVEDADES------------------------------
+    // -----------------------------------------------------------
+
+    @Operation(
+        summary = "Obtiene las novedades por acción y modalidad de contratación",
+        description = "Retorna las novedades de la acción solicitada. Si no se envía acción, consulta ACTUALIZAR. "
+                + "Sin modalidad de contratación retorna las novedades de docente de planta"
+    )
+    @GetMapping("/list-novelties")
+    public ResponseEntity<List<NovedadListadoDTO>> listNovelties(
+            @RequestParam(defaultValue = "ACTUALIZAR") String accion,
+            @RequestParam(required = false) Long idModalidadContratacion) {
+        List<NovedadListadoDTO> novedades = coordinacionService.listNovelties(accion, idModalidadContratacion);
+        return new ResponseEntity<>(novedades, HttpStatus.OK
+        );
+    }
+
+    @Operation(
+        summary = "Obtiene la lista de modalidades de contratación",
+        description = "Lista los tipos de modalidad de contratación desde CONTRATOS.MODALIDADCONTRATACION"
+    )
+    @GetMapping("/list-modality")
+    public ResponseEntity<List<ModalidadContratacionDTO>> listModality() {
+        List<ModalidadContratacionDTO> modalities = modalidadContratacionService.findModalityList();
+        return new ResponseEntity<>(modalities, HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Guarda una novedad de tipo cambio de modalidad y horas catedrático",
+        description = """
+            Si el docente tiene novedad vigente es la fuente de verdad.
+            Si no, se construye desde CARGADOCENTE.
+            No modifica CARGADOCENTE.
+            """
+    )
+    @PostMapping("/save-contract-modality-professor")
+    public ResponseEntity<Void> saveContractModalityProfessor(@RequestBody CambioModalidadHoraCatedraticoDTO dto) {
+        novedadCargaDocenteService.saveContractModalityProfessor(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Aprueba una novedad en revisión de un docente",
+        description = """
+            Pasa NOCD_ESTADONOVEDAD de 0 a 1 y NOCD_VIGENTE a 1.
+            Las novedades anteriores del mismo CADO_ID quedan en 0.
+            Actualiza CARG_VALOR. No modifica CARG_VALORAUTORIZADO.
+            """
+    )
+    @PutMapping("/approve-professor-novelty/{idCargaDocente}")
+    public ResponseEntity<Void> approveProfessorNovelty(@PathVariable Long idCargaDocente) {
+        novedadCargaDocenteService.approveProfessorNovelty(idCargaDocente);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Rechaza una novedad en revisión de un docente",
+        description = """
+            Pasa NOCD_ESTADONOVEDAD de 0 a 2 y NOCD_VIGENTE a 0.
+            No modifica CARG_VALOR ni los detalles (la foto queda sin vigencia).
+            Guarda la observación. Si la novedad es Agregar docente,
+            elimina la carga docente creada y sus detalles.
+            """
+    )
+    @PutMapping("/reject-professor-novelty/{idCargaDocente}")
+    public ResponseEntity<Void> rejectProfessorNovelty(@PathVariable Long idCargaDocente, @RequestBody ObservacionDecanoDTO dto) {
+        novedadCargaDocenteService.rejectProfessorNovelty(idCargaDocente, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Actualiza el valor de puntos",
+        description = "Actualiza el valor de los puntos segun los que se almacenan en la tabla ESCALAFON siempre y cuando no supere el presupuesto y la modalidad sea TCO"
+    )
+    @PutMapping("/novelties/update-contract-value")
+    public ResponseEntity<Void> actualizarValorContratoDTO(@RequestBody ActualizarValorContratoDTO dto) {
+        novedadCargaDocenteService.updateContractValue(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Asigna nombre a una carga NN",
+        description = "Genera una novedad en revisión asignando una persona a una carga NN"
+    )
+    @PostMapping("/novelties/assign-name-nn")
+    public ResponseEntity<Void> assignNameToNn(@RequestBody AsignarNombreNnDTO dto) {
+        novedadCargaDocenteService.assignNameToNn(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/novelties/change-professor")
+    public ResponseEntity<Void> changeProfessor(@RequestBody CambioDocenteDTO dto) {
+        novedadCargaDocenteService.changeProfessor(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/novelties/delete-professor")
+    public ResponseEntity<Void> requestDeleteProfessor(@RequestBody EliminarDocenteDTO dto) {
+        novedadCargaDocenteService.requestDeleteProfessor(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Agrega un docente a la carga como novedad",
+        description = "Agrega un docente a la modalidad de contratacion de una coordinacion y crea su respectiva novedad"
+    )
+    @PostMapping("/novelties/add-professor")
+    public ResponseEntity<Void> addNoveltyProfessor(@RequestBody NovedadAgregarProfesorDTO dto) {
+        novedadCargaDocenteService.addNoveltyProfessor(dto.cargaDocente(), dto.idNovedad());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Guarda, actualiza o elimina las novedades en detalles de actividades",
+        description = """
+            Guarda, actualiza o elimina novedades de cualquier tipo de
+            actividad (FAD, CTEI, ISU u otras). Acepta las novedades
+            change-project-activities y change-direct-activities.
+            Si es la primera novedad, crea los registros en
+            DETALLENOVEDADCARGADOCENTE. Si no, crea, actualiza o elimina
+            según los cambios enviados.
+            """
+    )
+    @PostMapping("/save-novelty-detail-professor-preload")
+    public ResponseEntity<Void> saveNoveltyActivities(@RequestBody GuardarNovedadesDetallesProyectosDTO dto) {
+        novedadCargaDocenteService.saveNoveltyActivities(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Obtiene el resumen de carga docente con novedad",
+        description = """
+            Usa la última novedad no rechazada (ESTADONOVEDAD <> 2).
+            El valor de contratación sale de NOVEDADCARGADOCENTE.
+            Las horas salen de DETALLENOVEDADCARGADOCENTE si hay
+            filas; si no, de DETALLECARGADOCENTE. Los centros de
+            costo se calculan con esas horas. Si no hay novedad no
+            rechazada, usa la carga docente. Las observaciones salen
+            de RVD.OBSERVACIONES. novedades lista el historial por
+            NOVE_ID, de la más vieja a la más nueva.
+            """
+    )
+    @GetMapping("/professor-novelty-summary/{idCargaDocente}")
+    public ResponseEntity<ResumenNovedadCargaDocenteDTO>getProfessorNoveltySummary(@PathVariable Long idCargaDocente) {
+        return new ResponseEntity<>(novedadCargaDocenteService.getProfessorNoveltySummary(idCargaDocente), HttpStatus.OK);
+    }
+
+    @Operation(
+        summary = "Genera PDF con comparativa de la novedad del docente",
+        description = """
+            Compara la novedad aprobada y vigente con la aprobada anterior.
+            Si es la primera, compara contra el registro original de CARGADOCENTE.
+            Identificador: CADO_ID.
+            """
+    )
+    @GetMapping("/novelty-pdf-report/{idCargaDocente}")
+    public ResponseEntity<byte[]> generateNoveltyPdfReport(@PathVariable Long idCargaDocente) {
+        FileDTO file = novedadReporteService.generateNoveltyPdfReport(idCargaDocente);
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.fileName() + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(file.content());
+    }
+
+    @Operation(
+        summary = "Genera PDF comparativo de una novedad aprobada histórica",
+        description = """
+            Genera el mismo reporte comparativo de novedades,
+            pero tomando como registro actual una novedad
+            aprobada específica identificada por NOCD_ID.
+
+            La comparación se realiza contra la novedad
+            aprobada inmediatamente anterior.
+
+            Si la novedad seleccionada es la primera aprobación
+            de la carga docente, se compara contra el registro
+            original de CARGADOCENTE.
+
+            Identificador: NOCD_ID.
+            """
+    )
+    @GetMapping(
+        "/novelty-pdf-report/history/{idNovedadCargaDocente}"
+    )
+    public ResponseEntity<byte[]>
+    generateHistoricalNoveltyPdfReport(
+            @PathVariable Long idNovedadCargaDocente) {
+
+        FileDTO file =
+                novedadReporteService
+                        .generateHistoricalNoveltyPdfReport(
+                                idNovedadCargaDocente
+                        );
+
+        return ResponseEntity
+                .ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\""
+                                + file.fileName()
+                                + "\""
+                )
+                .contentType(
+                        MediaType.APPLICATION_PDF
+                )
+                .body(
+                        file.content()
+                );
+    }
+
+}

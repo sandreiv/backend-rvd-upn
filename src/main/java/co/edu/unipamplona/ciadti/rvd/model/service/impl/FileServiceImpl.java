@@ -1,0 +1,139 @@
+/**
+ * Aplicación: rvd
+ * Archivo: FileServiceImpl.java
+ * Paquete: Paquete: co.edu.unipamplona.ciadti.rvd.model.service.impl
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 17/07/2026
+ * Modificaciones:
+ * 17/07/2026 - Daniel Arias - Creación inicial
+ */
+
+package co.edu.unipamplona.ciadti.rvd.model.service.impl;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
+import co.edu.unipamplona.ciadti.rvd.model.service.FileService;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+public class FileServiceImpl
+                implements FileService {
+
+        @Value("${file.cdp.root-path}")
+        private String cdpRootPath;
+
+        @Override
+        public Resource getFile(
+                        String path) {
+
+                if (path == null || path.isBlank()) {
+                        throw new ApiException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "La ruta del archivo es obligatoria");
+                }
+
+                try {
+
+                        Path root = Paths.get(cdpRootPath)
+                                        .toAbsolutePath()
+                                        .normalize();
+
+                        Path filePath = root.resolve(path)
+                                        .normalize();
+
+                        /*
+                         * Impide rutas como:
+                         *
+                         * ../../archivo
+                         *
+                         * y evita salir de la carpeta permitida.
+                         */
+                        if (!filePath.startsWith(root)) {
+                                throw new ApiException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "La ruta del archivo no es válida");
+                        }
+
+                        Path relativePath = root.relativize(filePath);
+
+                        if (isPtdDirectory(relativePath)) {
+
+                                throw new ApiException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Los documentos PTD deben consultarse desde su contratación");
+                        }
+
+                        if (!Files.exists(filePath) ||
+                                        !Files.isRegularFile(filePath)) {
+                                throw new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "El archivo solicitado no existe");
+                        }
+
+                        Path rootReal = root.toRealPath();
+
+                        Path fileReal = filePath.toRealPath();
+
+                        if (!fileReal.startsWith(rootReal)) {
+
+                                throw new ApiException(
+                                                HttpStatus.FORBIDDEN,
+                                                "La ruta del archivo no está autorizada");
+                        }
+
+                        Path relativeRealPath = rootReal.relativize(fileReal);
+
+                        if (isPtdDirectory(relativeRealPath)) {
+
+                                throw new ApiException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Los documentos PTD deben consultarse desde su contratación");
+                        }
+
+                        Resource resource = new UrlResource(
+                                        filePath.toUri());
+
+                        if (!resource.isReadable()) {
+                                throw new ApiException(
+                                                HttpStatus.NOT_FOUND,
+                                                "El archivo solicitado no está disponible");
+                        }
+
+                        return resource;
+
+                } catch (ApiException ex) {
+                        throw ex;
+
+                } catch (Exception ex) {
+
+                        log.error(
+                                        "getFile ===> Error obteniendo archivo path={}",
+                                        path,
+                                        ex);
+
+                        throw new ApiException(
+                                        HttpStatus.INTERNAL_SERVER_ERROR,
+                                        "No fue posible obtener el archivo solicitado");
+                }
+        }
+
+        private boolean isPtdDirectory(Path relativePath) {
+
+                return relativePath.getNameCount() >= 2
+                                && "archivos".equalsIgnoreCase(
+                                                relativePath.getName(0).toString())
+                                && "ptd".equalsIgnoreCase(
+                                                relativePath.getName(1).toString());
+        }
+
+}

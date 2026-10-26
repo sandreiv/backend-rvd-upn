@@ -1,0 +1,60 @@
+/**
+ * Aplicación: rvd
+ * Archivo: DocentePreasignacionReporteProjection.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.model.repository.projection
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 04/08/2026
+ * Modificaciones:
+ * 04/08/2026 - Sebastian Jaimes - Creación inicial
+ * 04/08/2026 - Sebastian Jaimes - Campos de contrato y fechas para reporte batch
+ * 27708/2026 - Andrés Hernández - Manejo de fechas locales
+ * 31/08/2026 - Sebastian Jaimes - Horas de la carga docente para reporte PDF
+ * 01/09/2026 - Andrés Hernández - Corrección tipo de datos
+ * 04/09/2026 - Exclusion de docentes con once meses en reporte Excel
+ * 18/09/2026 - Sebastian Jaimes - Forma de pago para cálculo de cátedra
+ */
+package co.edu.unipamplona.ciadti.rvd.model.repository.projection;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+public interface DocentePreasignacionReporteProjection {
+
+    Long getIdCargaDocente();
+
+    Long getIdPersonaGeneral();
+
+    String getDocumento();
+
+    String getNombreCompleto();
+
+    String getEstado();
+
+    Long getIdModalidadContratacion();
+
+    String getModalidadContratacion();
+
+    Long getIdCategoriaCatedratico();
+
+    String getCategoria();
+
+    String getPuntos();
+
+    BigDecimal getValorPunto();
+
+    BigDecimal getSalario();
+
+    BigDecimal getValorHora();
+
+    LocalDate getFechaInicio();
+
+    LocalDate getFechaFin();
+
+    String getSemanas();
+
+    String getHoras();
+
+    String getOnceMeses();
+
+    String getFormaPago();
+}

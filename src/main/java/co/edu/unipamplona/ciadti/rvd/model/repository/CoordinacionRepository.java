@@ -1,0 +1,1407 @@
+package co.edu.unipamplona.ciadti.rvd.model.repository;
+
+import java.util.List;
+import java.math.BigDecimal;
+
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.query.Procedure;
+
+import co.edu.unipamplona.ciadti.rvd.model.entity.CoordinacionesEntity;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CatalogoAdministracionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionAdministracionListadoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionListadoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ResumenSolicitudCdpProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CdpContextProjection;
+
+public interface CoordinacionRepository extends JpaRepository<CoordinacionesEntity, Long> {
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+
+                CASE
+                    WHEN ESCA.ESCA_NOMBRE <> 'REGISTRADO' THEN '0'
+                    WHEN NOT EXISTS (
+                        SELECT 1
+                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ANY
+                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ANY
+                            ON FECO_ANY.FECO_ID = REXC_ANY.FECO_ID
+                        WHERE FECO_ANY.CONV_ID = CONV.CONV_ID
+                        AND REXC_ANY.REXC_ESTADO = '1'
+                        AND TRUNC(REXC_ANY.REXC_FECHAFIN) >= TRUNC(SYSDATE)
+                    ) THEN '1'
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ALLOWED
+                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ALLOWED
+                            ON FECO_ALLOWED.FECO_ID = REXC_ALLOWED.FECO_ID
+                        WHERE FECO_ALLOWED.CONV_ID = CONV.CONV_ID
+                        AND REXC_ALLOWED.COOR_ID = COOR.COOR_ID
+                        AND REXC_ALLOWED.REXC_ESTADO = '1'
+                        AND TRUNC(SYSDATE) BETWEEN TRUNC(REXC_ALLOWED.REXC_FECHAINICIO)
+                                                AND TRUNC(REXC_ALLOWED.REXC_FECHAFIN)
+                    ) THEN '1'
+                    ELSE '0'
+                END AS canEditPreassignment,
+
+                CASE
+                    WHEN ESCA.ESCA_NOMBRE <> 'REGISTRADO' THEN 'READ_ONLY'
+                    WHEN NOT EXISTS (
+                        SELECT 1
+                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ANY
+                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ANY
+                            ON FECO_ANY.FECO_ID = REXC_ANY.FECO_ID
+                        WHERE FECO_ANY.CONV_ID = CONV.CONV_ID
+                        AND REXC_ANY.REXC_ESTADO = '1'
+                        AND TRUNC(REXC_ANY.REXC_FECHAFIN) >= TRUNC(SYSDATE)
+                    ) THEN 'NORMAL_ACTIVE'
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ALLOWED
+                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ALLOWED
+                            ON FECO_ALLOWED.FECO_ID = REXC_ALLOWED.FECO_ID
+                        WHERE FECO_ALLOWED.CONV_ID = CONV.CONV_ID
+                        AND REXC_ALLOWED.COOR_ID = COOR.COOR_ID
+                        AND REXC_ALLOWED.REXC_ESTADO = '1'
+                        AND TRUNC(SYSDATE) BETWEEN TRUNC(REXC_ALLOWED.REXC_FECHAINICIO)
+                                                AND TRUNC(REXC_ALLOWED.REXC_FECHAFIN)
+                    ) THEN 'RESTRICTED_ALLOWED'
+                    ELSE 'READ_ONLY'
+                END AS editionMode,
+
+                CASE
+                    WHEN ESCA.ESCA_NOMBRE <> 'REGISTRADO' THEN 'La coordinación no está habilitada para edición en esta convocatoria.'
+                    WHEN NOT EXISTS (
+                        SELECT 1
+                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ANY
+                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ANY
+                            ON FECO_ANY.FECO_ID = REXC_ANY.FECO_ID
+                        WHERE FECO_ANY.CONV_ID = CONV.CONV_ID
+                        AND REXC_ANY.REXC_ESTADO = '1'
+                        AND TRUNC(REXC_ANY.REXC_FECHAFIN) >= TRUNC(SYSDATE)
+                    ) THEN CAST(NULL AS VARCHAR2(4000))
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ALLOWED
+                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ALLOWED
+                            ON FECO_ALLOWED.FECO_ID = REXC_ALLOWED.FECO_ID
+                        WHERE FECO_ALLOWED.CONV_ID = CONV.CONV_ID
+                        AND REXC_ALLOWED.COOR_ID = COOR.COOR_ID
+                        AND REXC_ALLOWED.REXC_ESTADO = '1'
+                        AND TRUNC(SYSDATE) BETWEEN TRUNC(REXC_ALLOWED.REXC_FECHAINICIO)
+                                                AND TRUNC(REXC_ALLOWED.REXC_FECHAFIN)
+                    ) THEN CAST(NULL AS VARCHAR2(4000))
+                    ELSE 'La convocatoria tiene restricción activa y esta coordinación no está habilitada para edición en las fechas permitidas.'
+                END AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            INNER JOIN RVD.PERSONACOORDINACION PECO
+                ON COOR.COOR_ID = PECO.COOR_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.CONV_ID = :convId
+            AND PECO.PEGE_ID = :idPersonaGeneral
+            AND CONV.CONV_ESTADO = '1'
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByConvocatoriaWithCarga(
+            @Param("convId") Long convId,
+            @Param("idPersonaGeneral") Long idPersonaGeneral);
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONTR
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CONTR.CONV_IDRELACION
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            INNER JOIN RVD.PERSONACOORDINACION PECO
+                ON COOR.COOR_ID = PECO.COOR_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONTR.CONV_ID = :convId
+            AND PECO.PEGE_ID = :idPersonaGeneral
+            AND CONTR.CONV_ESTADO = '1'
+            AND CONTR.CONV_CONTRATACION = '1'
+            AND CONV.CONV_ESTADO = '1'
+            AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByConvocatoriaForHiringCoordinator(
+            @Param("convId") Long convId,
+            @Param("idPersonaGeneral") Long idPersonaGeneral);
+    
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONTR
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CONTR.CONV_IDRELACION
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONTR.CONV_ID = :convId
+            AND CONTR.CONV_ESTADO = '1'
+            AND CONTR.CONV_CONTRATACION = '1'
+            AND CONV.CONV_ESTADO = '1'
+            AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findAllByConvocatoriaForHiring(@Param("convId") Long convId);
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONTR
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CONTR.CONV_IDRELACION
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            INNER JOIN RVD.PERSONACOORDINACION PECO
+                ON COOR.COOR_ID = PECO.COOR_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONTR.PEUN_ID = :idPeriodoUniversidad
+            AND PECO.PEGE_ID = :idPersonaGeneral
+            AND CONTR.CONV_ESTADO = '1'
+            AND CONTR.CONV_CONTRATACION = '1'
+            AND CONV.CONV_ESTADO = '1'
+            AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByPeriodoForHiringCoordinator(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
+            @Param("idPersonaGeneral") Long idPersonaGeneral);
+    
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONTR
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CONTR.CONV_IDRELACION
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONTR.PEUN_ID = :idPeriodoUniversidad
+            AND CONTR.CONV_ESTADO = '1'
+            AND CONTR.CONV_CONTRATACION = '1'
+            AND CONV.CONV_ESTADO = '1'
+            AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findAllByPeriodoForHiring(@Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+
+    @Query(value = """
+            SELECT DISTINCT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CAST(NULL AS NUMBER) AS idConvocatoria,
+                CAST(NULL AS VARCHAR2(4000)) AS nombreConvocatoria,
+                CAST(NULL AS VARCHAR2(4000)) AS descripcionConvocatoria,
+                CAST(NULL AS VARCHAR2(4000)) AS estadoConvocatoria,
+                CAST(NULL AS NUMBER) AS idNivelEducativo,
+                CAST(NULL AS VARCHAR2(4000)) AS descripcionNivelEducativo,
+                CAST(NULL AS NUMBER) AS idPeriodoUniversidad,
+                CAST(NULL AS NUMBER) AS anioPeriodo,
+                CAST(NULL AS VARCHAR2(4000)) AS descripcionPeriodo,
+                CAST(NULL AS NUMBER) AS idCarga,
+                CAST(NULL AS NUMBER) AS valor,
+                CAST(NULL AS NUMBER) AS valorAutorizado,
+                CAST(NULL AS NUMBER) AS idEstadoCarga,
+                CAST(NULL AS VARCHAR2(4000)) AS nombreEstadoCarga,
+                CAST(NULL AS VARCHAR2(4000)) AS descripcionEstadoCarga,
+                CAST(NULL AS NUMBER) AS idModalidadContratacion,
+                CAST(NULL AS VARCHAR2(4000)) AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason,
+                CAST('UNASSIGNED' AS VARCHAR2(30)) AS editionMode
+            FROM RVD.COORDINACIONES COOR
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            INNER JOIN RVD.PERSONACOORDINACION PECO
+                ON COOR.COOR_ID = PECO.COOR_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM RVD.CARGA CARG
+                INNER JOIN RVD.CONVOCATORIA CONV
+                    ON CONV.CONV_ID = CARG.CONV_ID
+                WHERE CARG.COOR_ID = COOR.COOR_ID
+                AND CONV.PEUN_ID = :idPeriodoUniversidad
+            ) AND PECO.PEGE_ID = :idPersonaGeneral
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findWithoutCarga(
+            @Param("idPersonaGeneral") Long idPersonaGeneral,
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.CONV_ID = :convId
+            AND CONV.CONV_ESTADO = '1'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'INSCRITO'
+            AND COOR.COOR_IDPADRE IN (
+                SELECT FAC.COOR_ID
+                FROM RVD.PERSONACOORDINACION PECO
+                INNER JOIN RVD.COORDINACIONES FAC
+                    ON FAC.COOR_ID = PECO.COOR_ID
+                WHERE PECO.PEGE_ID = :idPersonaGeneral
+                AND FAC.COOR_IDPADRE IS NULL
+            )
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByConvocatoriaForDean(
+            @Param("convId") Long convId,
+            @Param("idPersonaGeneral") Long idPersonaGeneral);
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.CONV_ID = :convId
+            AND CONV.CONV_ESTADO = '1'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+            AND COOR.COOR_IDPADRE = :idCoordinacionFacultad
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByConvocatoriaForCdpDean(
+            @Param("convId") Long convId,
+            @Param("idCoordinacionFacultad") Long idCoordinacionFacultad
+    );     
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.PEUN_ID = :idPeriodoUniversidad
+            AND CONV.CONV_ESTADO = '1'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'INSCRITO'
+            AND COOR.COOR_IDPADRE IN (
+                SELECT FAC.COOR_ID
+                FROM RVD.PERSONACOORDINACION PECO
+                INNER JOIN RVD.COORDINACIONES FAC
+                    ON FAC.COOR_ID = PECO.COOR_ID
+                WHERE PECO.PEGE_ID = :idPersonaGeneral
+                AND FAC.COOR_IDPADRE IS NULL
+            )
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByPeriodoForDean(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
+            @Param("idPersonaGeneral") Long idPersonaGeneral);
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.PEUN_ID = :idPeriodoUniversidad
+            AND CONV.CONV_ESTADO = '1'
+            AND UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+            AND COOR.COOR_IDPADRE = :idCoordinacionFacultad
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByPeriodoForCdpDean(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
+            @Param("idCoordinacionFacultad") Long idCoordinacionFacultad
+    );     
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.CONV_ID = :convId
+            AND CONV.CONV_ESTADO = '1'
+            AND (
+                UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'APROBADO DECANO'
+                OR (
+                    UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM RVD.NOVEDADCARGADOCENTE NOCD
+                        WHERE NOCD.CARG_ID = CARG.CARG_ID
+                          AND NOCD.NOCD_ESTADONOVEDAD = '0'
+                    )
+                )
+            )
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByConvocatoriaForDevelopment(
+            @Param("convId") Long convId); 
+            
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                CONV.CONV_ID AS idConvocatoria,
+                CONV.CONV_NOMBRE AS nombreConvocatoria,
+                CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
+                CONV.CONV_ESTADO AS estadoConvocatoria,
+                NIED.NIED_ID AS idNivelEducativo,
+                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+                CARG.CARG_ID AS idCarga,
+                CARG.CARG_VALOR AS valor,
+                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
+                ESCA.ESCA_ID AS idEstadoCarga,
+                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
+                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
+                MOCO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                CAST('0' AS VARCHAR2(1)) AS canEditPreassignment,
+                CAST('READ_ONLY' AS VARCHAR2(30)) AS editionMode,
+                CAST(NULL AS VARCHAR2(4000)) AS editBlockReason
+            FROM RVD.CONVOCATORIA CONV
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
+                ON COTC.CONV_ID = CONV.CONV_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COTC.MOCO_ID
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CONV_ID = CONV.CONV_ID
+            INNER JOIN RVD.ESTADOCARGA ESCA
+                ON ESCA.ESCA_ID = CARG.ESCA_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE CONV.PEUN_ID = :idPeriodoUniversidad
+            AND CONV.CONV_ESTADO = '1'
+            AND (
+                UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'APROBADO DECANO'
+                OR (
+                    UPPER(TRIM(ESCA.ESCA_NOMBRE)) = 'AVAL DESARROLLO'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM RVD.NOVEDADCARGADOCENTE NOCD
+                        WHERE NOCD.CARG_ID = CARG.CARG_ID
+                          AND NOCD.NOCD_ESTADONOVEDAD = '0'
+                    )
+                )
+            )
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionListadoProjection> findByPeriodoForDevelopment(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+        
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion,
+                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica,
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
+                UNID_AREA.UNID_ID AS idUnidadArea,
+                UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS descripcionMetodologia,
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                SOCD.SOCD_ID AS idSolicitud,
+                SOCD.SOCD_ESTADO AS estadoSolicitud,
+                SOCD.SOCD_OBSERVACION AS observacionSolicitud,
+                SOCD.SOCD_ADJUNTO AS adjuntoSolicitud,
+                SOCD.SOCD_FECHACAMBIO AS fechaCambioSolicitud,
+                SOCD.SOCD_NUMERO AS numeroCdpSolicitud,
+                PEUN.PEUN_ID AS idPeriodoUniversidad,
+                PEUN.PEUN_ANO AS anioPeriodo,
+                PEUN.PEUN_PERIODO AS descripcionPeriodo,
+
+                -- Info CDP del esquema TESORERIA
+                TES.idRubro AS idRubroTesoreria,
+                TES.idCdp AS idCdpTesoreria,
+                TES.numero AS numeroCdpTesoreria,
+                TES.fecha AS fechaCdpTesoreria,
+                TES.vigencia AS vigenciaCdpTesoreria,
+                TES.articulo AS articuloCdpTesoreria,
+                TES.descripcion AS descripcionCdpTesoreria
+            FROM RVD.COORDINACIONES COOR
+            INNER JOIN RVD.SOLICITUDCDP SOCD
+                ON SOCD.COOR_ID = COOR.COOR_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = :idPeriodoUniversidad
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            INNER JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            
+            -- Busqueda CDP en esquema TESORERIA
+            LEFT JOIN (
+                SELECT
+                    UNID_ID,
+                    idRubro,
+                    idCdp,
+                    numero,
+                    fecha,
+                    vigencia,
+                    articulo,
+                    descripcion
+                FROM (
+                    SELECT
+                        CDP.UNID_ID,
+                        CDP.CDP_NUMERO AS numero,
+                        CDP.CDP_FECHAEXPEDICION AS fecha,
+                        CDP.CDP_VIGENCIA AS vigencia,
+                        CDP.CDP_CONCEPTO AS descripcion,
+                        RUVI.RUVI_CODIGORUBRO AS articulo,
+                        RUBR.RUBR_ID AS idRubro,
+                        CDP.CDP_ID AS idCdp,
+
+                        ROW_NUMBER() OVER (
+                            PARTITION BY
+                                CDP.CDP_NUMERO,
+                                CDP.CDP_VIGENCIA,
+                                CDP.UNID_ID
+                            ORDER BY RUBR.RUBR_ID ASC
+                        ) AS rn
+
+                    FROM TESORERIAV3.CDP CDP
+
+                    INNER JOIN TESORERIAV3.CDPRUBRO CDRU
+                        ON CDRU.CDP_ID = CDP.CDP_ID
+
+                    INNER JOIN TESORERIAV3.PRESUPUESTOEGRESOINVERSION PREI
+                        ON PREI.PREI_ID = CDRU.PREI_ID
+
+                    INNER JOIN TESORERIAV3.RUBROVIGENCIA RUVI
+                        ON RUVI.RUVI_ID = PREI.RUVI_ID
+
+                    INNER JOIN TESORERIAV3.RUBRO RUBR
+                        ON RUBR.RUBR_ID = RUVI.RUBR_ID
+                )
+                WHERE rn = 1
+            ) TES
+                ON TES.numero = SOCD.SOCD_NUMERO
+                AND TES.vigencia = PEUN.PEUN_ANO
+                AND TES.UNID_ID = UNID_REG.UNID_ID
+            
+            WHERE COOR.COOR_IDPADRE IS NULL
+                AND UPPER(TRIM(SOCD.SOCD_ESTADO)) IN (:estadosSolicitud)
+                AND SOCD.PEUN_ID = PEUN.PEUN_ID
+            ORDER BY
+                UNID_REG.UNID_NOMBRE,
+                UNID_AREA.UNID_NOMBRE,
+                COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<ResumenSolicitudCdpProjection> findByPeriodoForCdpAcademics(
+        @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
+        @Param("estadosSolicitud") List<String> estadosSolicitud); 
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS id,
+                COALESCE(COOR.COOR_NOMBRE, COOR.COOR_DESCRIPCION) AS label,
+                COOR.COOR_CODIGO AS codigo
+            FROM RVD.COORDINACIONES COOR
+            ORDER BY COALESCE(COOR.COOR_NOMBRE, COOR.COOR_DESCRIPCION)
+            """, nativeQuery = true)
+    List<CatalogoAdministracionProjection> findAdministrationOptions();
+
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS id,
+                COOR.COOR_IDPADRE AS idCoordinacionPadre,
+                COOR.COOR_NOMBRE AS nombre,
+                COOR.COOR_DESCRIPCION AS descripcion,
+
+                UNID_PADRE.UNID_ID AS idUnidadPadre,
+                UNID_PADRE.UNID_NOMBRE AS unidadPadre,
+
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS unidadRegional,
+
+                UNID_AREA.UNID_ID AS idUnidad,
+                UNID_AREA.UNID_NOMBRE AS unidad,
+
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS modalidad,
+
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS metodologia,
+
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS centroCosto,
+
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica
+            FROM RVD.COORDINACIONES COOR
+            LEFT JOIN ACADEMICO.UNIDAD UNID_PADRE
+                ON UNID_PADRE.UNID_ID = COOR.UNID_IDPADRE
+            LEFT JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE COOR.COOR_IDPADRE IS NULL
+            ORDER BY COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionAdministracionListadoProjection> findAdministrationParentCoordinations();
+
+    @Query(value = """
+            SELECT
+                COOR.COOR_ID AS id,
+                COOR.COOR_IDPADRE AS idCoordinacionPadre,
+                COOR.COOR_NOMBRE AS nombre,
+                COOR.COOR_DESCRIPCION AS descripcion,
+
+                UNID_PADRE.UNID_ID AS idUnidadPadre,
+                UNID_PADRE.UNID_NOMBRE AS unidadPadre,
+
+                UNID_REG.UNID_ID AS idUnidadRegional,
+                UNID_REG.UNID_NOMBRE AS unidadRegional,
+
+                UNID_AREA.UNID_ID AS idUnidad,
+                UNID_AREA.UNID_NOMBRE AS unidad,
+
+                MODA.MODA_ID AS idModalidad,
+                MODA.MODA_DESCRIPCION AS modalidad,
+
+                METO.METO_ID AS idMetodologia,
+                METO.METO_DESCRIPCION AS metodologia,
+
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS centroCosto,
+
+                COOR.COOR_CODIGO AS codigo,
+                COOR.COOR_ESACADEMICA AS esAcademica
+            FROM RVD.COORDINACIONES COOR
+            LEFT JOIN ACADEMICO.UNIDAD UNID_PADRE
+                ON UNID_PADRE.UNID_ID = COOR.UNID_IDPADRE
+            LEFT JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN ACADEMICO.MODALIDAD MODA
+                ON MODA.MODA_ID = COOR.MODA_ID
+            LEFT JOIN ACADEMICO.METODOLOGIA METO
+                ON METO.METO_ID = COOR.METO_ID
+            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
+                ON ASCC.COOR_ID = COOR.COOR_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = ASCC.CECO_ID
+            WHERE COOR.COOR_IDPADRE = :idPadre
+            ORDER BY COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionAdministracionListadoProjection> findAdministrationChildCoordinations(
+            @Param("idPadre") Long idPadre
+    );
+
+    boolean existsByIdCoordinacionPadre(Long idCoordinacionPadre);
+
+    @Query(value = """
+            SELECT DISTINCT
+                COOR.*
+            FROM RVD.COORDINACIONES COOR
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.COOR_ID = COOR.COOR_ID
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CARG.CONV_ID
+            WHERE COOR.COOR_IDPADRE IS NOT NULL
+                AND TRIM(COOR.COOR_ESACADEMICA) = '1'
+                AND CARG.CONV_ID = :idConvocatoria
+                AND CONV.PEUN_ID = :idPeriodoUniversidad
+                AND EXISTS (
+                    SELECT 1
+                    FROM RVD.CARGADOCENTE CADO
+                    WHERE CADO.CARG_ID = CARG.CARG_ID
+                        AND CADO.CADO_ESTADO = '1'
+                        AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+                )
+            ORDER BY COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionesEntity> findAcademicChildCoordinations(
+            @Param("idConvocatoria") Long idConvocatoria,
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+
+
+    @Procedure(name = "CoordinacionesEntity.deleteByProcedure")
+    BigDecimal deleteByProcedure(
+            @Param("P_COOR_ID") Long id,
+            @Param("P_COOR_REGISTRADOPOR") String registradoPor
+    );
+
+
+    @Query(value = """
+            SELECT
+                COOR.*
+            FROM RVD.COORDINACIONES COOR
+            WHERE UPPER(COOR.COOR_NOMBRE) LIKE UPPER('%' || :nombre || '%')
+            ORDER BY COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionesEntity> searchCoordination(String nombre);
+
+    @Query(value = """
+            SELECT
+                COOR.*
+            FROM RVD.COORDINACIONES COOR
+            WHERE UPPER(COOR.COOR_NOMBRE) LIKE UPPER('%' || :nombre || '%')
+            AND NOT EXISTS (
+                SELECT 1
+                FROM RVD.CARGA CARG_OTHER
+                INNER JOIN RVD.CONVOCATORIA CONV_OTHER
+                    ON CONV_OTHER.CONV_ID = CARG_OTHER.CONV_ID
+                INNER JOIN RVD.CONVOCATORIA CONV_TARGET
+                    ON CONV_TARGET.CONV_ID = :idConvocatoria
+                WHERE CARG_OTHER.COOR_ID = COOR.COOR_ID
+                AND CARG_OTHER.CONV_ID IS NOT NULL
+                AND CARG_OTHER.CONV_ID <> :idConvocatoria
+                AND CONV_OTHER.PEUN_ID = CONV_TARGET.PEUN_ID
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM RVD.RESTRICCIONXCOORDINACION REXC
+                INNER JOIN RVD.FECHASCONVOCATORIA FECO
+                    ON FECO.FECO_ID = REXC.FECO_ID
+                WHERE REXC.COOR_ID = COOR.COOR_ID
+                AND FECO.CONV_ID = :idConvocatoria
+            )
+            ORDER BY COOR.COOR_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionesEntity> searchCoordinationAvailableForRestriction(
+            @Param("nombre") String nombre,
+            @Param("idConvocatoria") Long idConvocatoria
+    );
+
+    @Query(value = """
+            SELECT DISTINCT
+                FAC.COOR_ID AS idCoordinacionFacultad,
+                UNID_REG.UNID_ID AS idUnidadAcademica,
+                UNID_REG.UNID_NOMBRE AS unidadAcademica,
+                UNID_AREA.UNID_ID AS idFacultad,
+                UNID_AREA.UNID_NOMBRE AS facultad
+            FROM RVD.PERSONACOORDINACION PECO
+            INNER JOIN RVD.COORDINACIONES FAC
+                ON FAC.COOR_ID = PECO.COOR_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_IDPADRE = FAC.COOR_ID
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            WHERE PECO.PEGE_ID = :idPersonaGeneral
+            AND FAC.COOR_IDPADRE IS NULL
+            ORDER BY
+                UNID_AREA.UNID_NOMBRE,
+                UNID_REG.UNID_NOMBRE,
+                FAC.COOR_ID
+            """, nativeQuery = true)
+    List<CdpContextProjection> findCdpContextByPersona(
+            @Param("idPersonaGeneral") Long idPersonaGeneral
+    );
+
+    @Query(value = """
+            SELECT FAC.COOR_ID
+            FROM RVD.PERSONACOORDINACION PECO
+            INNER JOIN RVD.COORDINACIONES FAC
+                ON FAC.COOR_ID = PECO.COOR_ID
+            WHERE PECO.PEGE_ID = :idPersonaGeneral
+            AND FAC.COOR_ID = :idCoordinacionFacultad
+            AND FAC.COOR_IDPADRE IS NULL
+            FETCH FIRST 1 ROW ONLY
+            """, nativeQuery = true)
+    Long findCdpFacultyCoordinationIdByPersonaAndId(
+            @Param("idPersonaGeneral") Long idPersonaGeneral,
+            @Param("idCoordinacionFacultad") Long idCoordinacionFacultad
+    );
+
+}

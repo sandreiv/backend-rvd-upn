@@ -1,0 +1,49 @@
+/**
+ * Aplicación: rvd
+ * Archivo: ConvocatoriaPrecargaService.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.model.service
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 02/06/2026
+ * Modificaciones:
+ * 02/06/2026 - Sebastian Jaimes - Creación inicial
+ * 09/09/2026 - Sebastian Jaimes - Relación contratación-preasignación
+ */
+package co.edu.unipamplona.ciadti.rvd.model.service;
+
+import java.util.List;
+
+import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaAutorizaConvocatoriaDTO;
+
+public interface ConvocatoriaPrecargaService {
+
+    List<ConvocatoriaDTO> findCallListWithDates(Long idPeriodoUniversidad);
+
+    List<ConvocatoriaDTO> findCallListByFirstPeriodByYear(Long year);
+
+    List<ConvocatoriaDTO> findPreassignmentCallListByPeriod(Long idPeriodoUniversidad);
+
+    List<ConvocatoriaDTO> findHiringCallListByPeriod(Long idPeriodoUniversidad);
+
+    List<PersonaAutorizaConvocatoriaDTO> searchGeneralPerson(String nombre, String documento);
+
+    void save(ConvocatoriaFormularioDTO dto);
+
+    void update(Long id, ConvocatoriaFormularioDTO dto);
+
+    ConvocatoriaFormularioDTO findCallDetail(Long id);
+
+    void delete(Long id, ConvocatoriaFormularioDTO dto);
+
+    void bulkDelete(List<ConvocatoriaFormularioDTO> listaConvocatorias);
+
+    List<ConvocatoriaDTO> findActivePreloadCalls(Long idPeriodoUniversidad);
+
+    List<ConvocatoriaDTO> findAssignableActivePreloadCalls(Long idPeriodoUniversidad);
+
+    void updateRelation(Long idConvocatoria, Long idRelacion);
+
+    void updatePreassignmentRelation(Long idConvocatoria, Long idRelacion);
+}
+/* 02/06/2026 @:Sebastian Jaimes */

@@ -1,0 +1,1429 @@
+/**
+ * Aplicación: rvd
+ * Archivo: CargaDocenteRepository.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.model.repository
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 10/06/2026
+ * Modificaciones:
+ * 10/06/2026 - Sebastian Jaimes - Creación inicial
+ * 21/08/2026 - Andrés Hernández - Comprobación de actividades en la carga docente
+ * 31/08/2026 - Sebastian Jaimes - Horas en consulta de reporte de preasignación
+ * 04/09/2026 - Once meses en consulta de reporte de preasignación
+ * 07/09/2026 - Sebastian Jaimes - Listado docentes por periodo, convocatoria y coordinación
+ * 07/09/2026 - Sebastian Jaimes - Filtro CADO_ESTADO = 1 en verificación
+ * 07/09/2026 - Sebastian Jaimes - Pendientes de verificación para header
+ * 10/09/2026 - Sebastian Jaimes - Docentes aprobados (CADO_ESTADO = 4) para contratación
+ * 17/09/2026 - Sebastian Jaimes - Listado de docentes por carga para totales
+ * 18/09/2026 - Sebastian Jaimes - Forma de pago en reporte de preasignación
+ * 30/09/2026 - Andrés Hernández - Ajuste para no traer docentes agregados como novedad
+ * 06/10/2026 - Andrés Hernández - Uso de docentes efectivos para generar el CDP
+ * 07/10/2026 - Andrés Hernández - Adición de docentes efectivos como método general
+ * 07/10/2026 - Andrés Hernández - Eliminación de métodos para consultar docentes aprobados
+ * 07/10/2026 - Sebastian Jaimes - Información del docente para contratación
+ * 08/10/2026 - Andrés Hernández - Uso de docentes aprobados para generar el CDP
+ */
+package co.edu.unipamplona.ciadti.rvd.model.repository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.query.Procedure;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Modifying;
+
+import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteCargaCoordinacionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteEfectivoCoordinacionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.InformacionDocenteContratacionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionReporteProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteVerificacionPendienteProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PublicHiringRecordProjection;
+
+public interface CargaDocenteRepository extends JpaRepository<CargaDocenteEntity, Long> {
+
+    @Query(value = """
+                SELECT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                TRIM(
+                TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                || ' ' ||
+                TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                ) AS nombreCompleto,
+                CADO.CADO_ID AS idCargaDocente,
+                CADO.CADO_ESTADO AS estado,
+                CADO.CARG_ID AS idCarga,
+                CADO.MOCO_ID AS idModalidadContratacion,
+                CADO.CACA_ID AS idCategoriaCatedratico,
+                CADO.CADO_FECHAINICIO AS cargaFechaInicio,
+                CADO.CADO_FECHAFIN AS cargaFechaFin,
+                CADO.CADO_VALORCONTRATO AS valorContrato,
+                CADO.CADO_VALORPRESTACIONES AS valorPrestaciones,
+                CADO.CADO_SALARIO AS asignacionSalarial,
+                CADO.CADO_TOTALCONTRATO AS totalContrato,
+                CADO.CADO_VALORHORA AS valorHora,
+                CADO.CADO_PUNTOS AS puntos,
+                CADO.CADO_VALORPUNTO AS valorPunto,
+                CADO.CADO_SEMANAS AS semanas,
+                CADO.CADO_ONCEMESES AS onceMeses,
+                CADO.CADO_HORASDEEXCEPCION AS horasDeExcepcion,
+                FECO.FECO_ID AS idFechasConvocatoria,
+                FECO.FECO_CODIGO AS fechaConvocatoriaCodigo,
+                FECO.FECO_FECHAINICIO AS fechaConvocatoriaInicio,
+                FECO.FECO_FECHAFIN AS fechaConvocatoriaFin,
+
+                CASE
+                    WHEN CADO.CADO_ID IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLECARGADOCENTE DECD
+                            WHERE DECD.CADO_ID = CADO.CADO_ID
+                        )
+                    THEN 1
+                    ELSE 0
+                END AS tieneActividades
+
+                FROM RVD.CARGADOCENTE CADO
+                INNER JOIN RVD.CARGA CARG
+                ON CARG.CARG_ID = CADO.CARG_ID
+                LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = CADO.PEGE_ID
+                LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+                LEFT JOIN RVD.FECHASCONVOCATORIA FECO
+                ON FECO.FECO_ID = CADO.FECO_ID
+                WHERE CADO.CARG_ID = :idCarga
+                    AND CADO.MOCO_ID = :idModalidadContratacion
+                    AND CADO.CADO_CREADOENNOVEDAD IS NULL
+                ORDER BY
+                CASE
+                    WHEN PEGE.PEGE_ID IS NULL THEN 1
+                    WHEN TRIM(
+                        TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                        || ' ' ||
+                        TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                    ) IS NULL THEN 1
+                    ELSE 0
+                END,
+                UPPER(TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                )) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteCargaCoordinacionProjection> findProfessorsByCargaAndModality(
+            @Param("idCarga") Long idCarga,
+            @Param("idModalidadContratacion") Long idModalidadContratacion);
+
+    @Query(value = """
+                SELECT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                TRIM(
+                TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                || ' ' ||
+                TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                ) AS nombreCompleto,
+                CADO.CADO_ID AS idCargaDocente,
+                CADO.CADO_ESTADO AS estado,
+                CADO.CARG_ID AS idCarga,
+                CADO.MOCO_ID AS idModalidadContratacion,
+                CADO.CACA_ID AS idCategoriaCatedratico,
+                CADO.CADO_FECHAINICIO AS cargaFechaInicio,
+                CADO.CADO_FECHAFIN AS cargaFechaFin,
+                CADO.CADO_VALORCONTRATO AS valorContrato,
+                CADO.CADO_VALORPRESTACIONES AS valorPrestaciones,
+                CADO.CADO_SALARIO AS asignacionSalarial,
+                CADO.CADO_TOTALCONTRATO AS totalContrato,
+                CADO.CADO_VALORHORA AS valorHora,
+                CADO.CADO_PUNTOS AS puntos,
+                CADO.CADO_VALORPUNTO AS valorPunto,
+                CADO.CADO_SEMANAS AS semanas,
+                CADO.CADO_ONCEMESES AS onceMeses,
+                CADO.CADO_HORASDEEXCEPCION AS horasDeExcepcion,
+                FECO.FECO_ID AS idFechasConvocatoria,
+                FECO.FECO_CODIGO AS fechaConvocatoriaCodigo,
+                FECO.FECO_FECHAINICIO AS fechaConvocatoriaInicio,
+                FECO.FECO_FECHAFIN AS fechaConvocatoriaFin,
+
+                CASE
+                    WHEN CADO.CADO_ID IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLECARGADOCENTE DECD
+                            WHERE DECD.CADO_ID = CADO.CADO_ID
+                        )
+                    THEN 1
+                    ELSE 0
+                END AS tieneActividades
+
+                FROM RVD.CARGA CARG
+                INNER JOIN RVD.DOCENTESPLANTACOORDINACION DOPC
+                ON DOPC.COOR_ID = CARG.COOR_ID
+                INNER JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = DOPC.PEGE_ID
+                INNER JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+                LEFT JOIN RVD.CARGADOCENTE CADO
+                ON CADO.PEGE_ID = DOPC.PEGE_ID
+                AND CADO.CARG_ID = CARG.CARG_ID
+                AND CADO.MOCO_ID IS NULL
+                LEFT JOIN RVD.FECHASCONVOCATORIA FECO
+                ON FECO.FECO_ID = CADO.FECO_ID
+                WHERE CARG.CARG_ID = :idCarga
+                    AND CADO.CADO_CREADOENNOVEDAD IS NULL
+                ORDER BY
+                UPPER(TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                )) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteCargaCoordinacionProjection> findPlantProfessorsByCarga(
+            @Param("idCarga") Long idCarga);
+
+    @Procedure(name = "CargaDocenteEntity.deleteByProcedure")
+    BigDecimal deleteByProcedure(
+            @Param("P_CADO_ID") Long id,
+            @Param("P_CADO_REGISTRADOPOR") String registradoPor);
+
+    boolean existsByIdPersonaGeneralAndIdCargaAndIdModalidadContratacionAndIdFechasConvocatoria(
+            Long idPersonaGeneral, Long idCarga, Long idModalidadContratacion, Long idFechasConvocatoria);
+
+    boolean existsByIdCarga(Long idCarga);    
+
+
+
+    boolean existsByIdPersonaGeneralAndIdCargaAndIdModalidadContratacion(
+            Long idPersonaGeneral, Long idCarga, Long idModalidadContratacion);
+
+    List<CargaDocenteEntity> findByIdCargaAndOnceMeses(Long idCarga, String onceMeses);
+
+    List<CargaDocenteEntity> findByIdCarga(Long idCarga);
+
+    @Query(value = """
+            SELECT CADO.*
+            FROM RVD.CARGADOCENTE CADO
+            WHERE CADO.CARG_ID = :idCarga
+                AND CADO.CADO_CREADOENNOVEDAD IS NULL
+            """, nativeQuery = true)
+    List<CargaDocenteEntity> findByIdCargaWithoutNoveltyProfessors(@Param("idCarga") Long idCarga);
+
+    @Query(value = """
+            SELECT
+                COUNT(DISTINCT CADO.PEGE_ID)
+                + SUM(
+                    CASE
+                        WHEN CADO.PEGE_ID IS NULL THEN 1
+                        ELSE 0
+                    END
+                ),
+                SUM(NVL(CADO.CADO_VALORPRESTACIONES, 0)),
+                SUM(NVL(CADO.CADO_VALORCONTRATO, 0)),
+                SUM(
+                    NVL(CADO.CADO_VALORPRESTACIONES, 0)
+                    + NVL(CADO.CADO_VALORCONTRATO, 0)
+                )
+            FROM RVD.CARGA CARG
+            INNER JOIN RVD.CARGADOCENTE CADO
+                ON CADO.CARG_ID = CARG.CARG_ID
+            WHERE CARG.CARG_ID = :cargId
+                AND CADO.CADO_CREADOENNOVEDAD IS NULL
+            """, nativeQuery = true)
+    List<Object[]> findTotalPreasignacionByCargaId(@Param("cargId") Long cargId);
+
+    @Modifying
+    @Query(value = """
+            UPDATE RVD.CARGADOCENTE CADO
+            SET CADO.CADO_HORASDEEXCEPCION = NULL,
+                CADO.CADO_REGISTRADOPOR = :registradoPor,
+                CADO.CADO_FECHACAMBIO = SYSDATE
+            WHERE CADO.MOCO_ID = :idModalidadContratacion
+            AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+            AND CADO.CADO_HORASDEEXCEPCION IS NOT NULL
+            """, nativeQuery = true)
+    int clearHorasDeExcepcionByModalidad(
+            @Param("idModalidadContratacion") Long idModalidadContratacion,
+            @Param("registradoPor") String registradoPor);
+
+    @Modifying
+    @Query(value = """
+            UPDATE RVD.CARGADOCENTE CADO
+            SET CADO.CADO_HORASDEEXCEPCION = :horasDeExcepcion,
+                CADO.CADO_REGISTRADOPOR = :registradoPor,
+                CADO.CADO_FECHACAMBIO = SYSDATE
+            WHERE CADO.MOCO_ID = :idModalidadContratacion
+            AND CADO.PEGE_ID = :idPersonaGeneral
+            AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+            """, nativeQuery = true)
+    int updateHorasDeExcepcionByModalidadAndPersona(
+            @Param("idModalidadContratacion") Long idModalidadContratacion,
+            @Param("idPersonaGeneral") Long idPersonaGeneral,
+            @Param("horasDeExcepcion") String horasDeExcepcion,
+            @Param("registradoPor") String registradoPor);
+    
+    @Query(value = """
+            SELECT CADO.CADO_ID
+            FROM RVD.CARGADOCENTE CADO
+            WHERE CADO.CARG_ID = :idCarga
+                AND CADO.CADO_ESTADO = '2'
+            """, nativeQuery = true)
+    List<Long> findIdsPreassignmentsByIdCarga(@Param("idCarga") Long idCarga);
+
+    @Modifying
+    @Query(value = """
+            UPDATE RVD.CARGADOCENTE CADO
+            SET CADO.CADO_ESTADO = '4',
+                CADO.CADO_REGISTRADOPOR = :registradoPor,
+                CADO.CADO_FECHACAMBIO = SYSDATE
+            WHERE CADO.CADO_ID IN (:ids)
+            """, nativeQuery = true)
+    int approvePreassignmentByIds(
+            @Param("ids") List<Long> ids,
+            @Param("registradoPor") String registradoPor);
+
+    @Query(value = """
+            SELECT
+                CADO.CADO_ID AS idCargaDocente,
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                PEGE.PEGE_DOCUMENTOIDENTIDAD AS documento,
+                TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                ) AS nombreCompleto,
+                CADO.CADO_ESTADO AS estado,
+                CADO.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS modalidadContratacion,
+                CADO.CACA_ID AS idCategoriaCatedratico,
+                CACA.CACA_DESCRIPCION AS categoria,
+                CADO.CADO_PUNTOS AS puntos,
+                CADO.CADO_VALORPUNTO AS valorPunto,
+                CADO.CADO_SALARIO AS salario,
+                CADO.CADO_VALORHORA AS valorHora,
+                CADO.CADO_FECHAINICIO AS fechaInicio,
+                CADO.CADO_FECHAFIN AS fechaFin,
+                CADO.CADO_SEMANAS AS semanas,
+                CADO.CADO_HORAS AS horas,
+                CADO.CADO_ONCEMESES AS onceMeses,
+                RECA.RECA_FORMAPAGO AS formaPago
+            FROM RVD.CARGADOCENTE CADO
+            LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = CADO.PEGE_ID
+            LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = CADO.MOCO_ID
+            LEFT JOIN TALENTOV3.CATEGORIACATEDRATICO CACA
+                ON CACA.CACA_ID = CADO.CACA_ID
+            LEFT JOIN RVD.RESTRICCIONCARGA RECA
+                ON RECA.MOCO_ID = CADO.MOCO_ID
+            WHERE CADO.CARG_ID = :idCarga
+                AND CADO.CADO_CREADOENNOVEDAD IS NULL
+            ORDER BY
+                UPPER(NVL(MOCO.MOCO_NOMBRE, ' ')),
+                UPPER(TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                )) NULLS LAST
+            """, nativeQuery = true)
+    List<DocentePreasignacionReporteProjection> findReportProfessorsByCarga(
+            @Param("idCarga") Long idCarga);
+
+    @Query(value = """
+            SELECT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                ) AS nombreCompleto,
+                CADO.CADO_ID AS idCargaDocente,
+                CADO.CADO_ESTADO AS estado,
+                CADO.CARG_ID AS idCarga,
+                CADO.MOCO_ID AS idModalidadContratacion,
+                CADO.CACA_ID AS idCategoriaCatedratico,
+                CADO.CADO_FECHAINICIO AS cargaFechaInicio,
+                CADO.CADO_FECHAFIN AS cargaFechaFin,
+                CADO.CADO_VALORCONTRATO AS valorContrato,
+                CADO.CADO_VALORPRESTACIONES AS valorPrestaciones,
+                CADO.CADO_SALARIO AS asignacionSalarial,
+                CADO.CADO_TOTALCONTRATO AS totalContrato,
+                CADO.CADO_VALORHORA AS valorHora,
+                CADO.CADO_PUNTOS AS puntos,
+                CADO.CADO_VALORPUNTO AS valorPunto,
+                CADO.CADO_SEMANAS AS semanas,
+                CADO.CADO_ONCEMESES AS onceMeses,
+                CADO.CADO_HORASDEEXCEPCION AS horasDeExcepcion,
+                FECO.FECO_ID AS idFechasConvocatoria,
+                FECO.FECO_CODIGO AS fechaConvocatoriaCodigo,
+                FECO.FECO_FECHAINICIO AS fechaConvocatoriaInicio,
+                FECO.FECO_FECHAFIN AS fechaConvocatoriaFin,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.DETALLECARGADOCENTE DECD
+                        WHERE DECD.CADO_ID = CADO.CADO_ID
+                    )
+                    THEN 1
+                    ELSE 0
+                END AS tieneActividades
+            FROM RVD.CARGADOCENTE CADO
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CARG_ID = CADO.CARG_ID
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CARG.CONV_ID
+            LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = CADO.PEGE_ID
+            LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            LEFT JOIN RVD.FECHASCONVOCATORIA FECO
+                ON FECO.FECO_ID = CADO.FECO_ID
+            WHERE CARG.COOR_ID = :idCoordinacion
+                AND CARG.CONV_ID = :idConvocatoria
+                AND CONV.PEUN_ID = :idPeriodoUniversidad
+                AND CADO.CADO_ESTADO = '1'
+                AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+            ORDER BY
+                CASE
+                    WHEN PEGE.PEGE_ID IS NULL THEN 1
+                    WHEN TRIM(
+                        TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                        || ' ' ||
+                        TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                    ) IS NULL THEN 1
+                    ELSE 0
+                END,
+                UPPER(TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                )) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteCargaCoordinacionProjection>
+            findProfessorsByCoordinationCallAndPeriod(
+                    @Param("idCoordinacion") Long idCoordinacion,
+                    @Param("idConvocatoria") Long idConvocatoria,
+                    @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+
+    @Modifying
+    @Query(value = """
+            UPDATE RVD.CARGADOCENTE
+            SET CADO_ESTADO = '1',
+                CADO_REGISTRADOPOR = :registradoPor,
+                CADO_FECHACAMBIO = SYSDATE
+            WHERE CADO_ID = :idCargaDocente
+            AND CADO_ESTADO IN ('0', '3')
+            """, nativeQuery = true)
+    int sendProfessorToVerificationById(
+            @Param("idCargaDocente") Long idCargaDocente,
+            @Param("registradoPor") String registradoPor
+    );        
+
+    @Query(value = """
+            SELECT
+                CADO.CADO_ID AS idCargaDocente,
+                TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                ) AS nombreCompleto,
+                CONV.PEUN_ID AS idPeriodoUniversidad,
+                CONV.CONV_ID AS idConvocatoria,
+                COOR.COOR_ID AS idCoordinacion,
+                COOR.COOR_NOMBRE AS nombreCoordinacion
+            FROM RVD.CARGADOCENTE CADO
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CARG_ID = CADO.CARG_ID
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CARG.CONV_ID
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
+                ON PEUN.PEUN_ID = CONV.PEUN_ID
+            LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = CADO.PEGE_ID
+            LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            WHERE CADO.CADO_ESTADO = '1'
+                AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+                AND COOR.COOR_IDPADRE IS NOT NULL
+                AND TRIM(COOR.COOR_ESACADEMICA) = '1'
+                AND CONV.CONV_ESTADO = '1'
+                AND PEUN.PEUN_ID IN (
+                    SELECT P.PEUN_ID
+                    FROM ACADEMICO.PERIODOUNIVERSIDAD P
+                    WHERE TRIM(P.PEUN_ACTUAL) = '1'
+                    UNION ALL
+                    SELECT P.PEUN_ID
+                    FROM ACADEMICO.PERIODOUNIVERSIDAD P
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM ACADEMICO.PERIODOUNIVERSIDAD X
+                        WHERE TRIM(X.PEUN_ACTUAL) = '1'
+                    )
+                    AND TRUNC(SYSDATE) BETWEEN
+                        TRUNC(P.PEUN_FECHAINICIO)
+                        AND TRUNC(NVL(P.PEUN_FECHAFIN, SYSDATE))
+                )
+            ORDER BY
+                UPPER(COOR.COOR_NOMBRE),
+                UPPER(TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                )) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteVerificacionPendienteProjection>
+            findPendingProfessorsForVerification();
+
+    @Query(value = """
+            WITH NOVEDADES_VALIDAS AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY NOCD.NOCD_FECHACAMBIO DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+                WHERE NOCD.NOCD_ESTADONOVEDAD = '1'
+            ),
+            CARGAS_RESUELTAS AS (
+                SELECT
+                    CADO.CADO_ID,
+
+                    COALESCE(NOCD.PEGE_ID, CADO.PEGE_ID) AS PEGE_ID,
+                    COALESCE(NOCD.MOCO_ID, CADO.MOCO_ID) AS MOCO_ID,
+                    COALESCE(NOCD.CACA_ID, CADO.CACA_ID) AS CACA_ID,
+
+                    COALESCE(NOCD.NOCD_FECHAINICIO, CADO.CADO_FECHAINICIO) AS CADO_FECHAINICIO,
+                    COALESCE(NOCD.NOCD_FECHAFIN, CADO.CADO_FECHAFIN) AS CADO_FECHAFIN,
+                    COALESCE(NOCD.NOCD_SALARIO, CADO.CADO_SALARIO) AS CADO_SALARIO,
+                    COALESCE(NOCD.NOCD_VALORHORA, CADO.CADO_VALORHORA) AS CADO_VALORHORA,
+                    COALESCE(NOCD.NOCD_PUNTOS, CADO.CADO_PUNTOS) AS CADO_PUNTOS,
+                    COALESCE(NOCD.NOCD_VALORPUNTO, CADO.CADO_VALORPUNTO) AS CADO_VALORPUNTO,
+                    COALESCE(NOCD.NOCD_SEMANAS, CADO.CADO_SEMANAS) AS CADO_SEMANAS,
+                    COALESCE(NOCD.NOCD_HORAS, CADO.CADO_HORAS) AS CADO_HORAS,
+                    COALESCE(NOCD.NOCD_ONCEMESES, CADO.CADO_ONCEMESES) AS CADO_ONCEMESES,
+
+                    CADO.CADO_ESTADO AS CADO_ESTADO,
+                    NOCD.NOCD_ID
+
+                FROM RVD.CARGADOCENTE CADO
+
+                LEFT JOIN NOVEDADES_VALIDAS NOCD
+                    ON NOCD.CADO_ID = CADO.CADO_ID
+                    AND NOCD.RN = 1
+
+                WHERE CADO.CARG_ID = :idCarga
+                    AND NVL(
+                        NOCD.NOCD_ESTADOELIMINADO,
+                        '0'
+                    ) = '0'
+                
+                AND CADO.CADO_ESTADO = '4'
+            )
+            
+            SELECT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                PEGE.PEGE_DOCUMENTOIDENTIDAD AS documento,
+                TRIM(
+                    TRIM(
+                        PENG.PENG_PRIMERNOMBRE
+                        || ' '
+                        || PENG.PENG_SEGUNDONOMBRE
+                    )
+                    || ' ' ||
+                    TRIM(
+                        PENG.PENG_PRIMERAPELLIDO
+                        || ' '
+                        || PENG.PENG_SEGUNDOAPELLIDO
+                    )
+                ) AS nombreCompleto,
+
+                CR.CADO_ID AS idCargaDocente,
+                CR.CADO_ESTADO AS estado,
+                CR.MOCO_ID AS idModalidadContratacion,
+                MOCO.MOCO_NOMBRE AS modalidadContratacion,
+                CR.CACA_ID AS idCategoriaCatedratico,
+                CACA.CACA_DESCRIPCION AS categoria,
+                CR.CADO_PUNTOS AS puntos,
+                CR.CADO_VALORPUNTO AS valorPunto,
+                CR.CADO_SALARIO AS salario,
+                CR.CADO_VALORHORA AS valorHora,
+                CR.CADO_FECHAINICIO AS fechaInicio,
+                CR.CADO_FECHAFIN AS fechaFin,
+                CR.CADO_SEMANAS AS semanas,
+                CR.CADO_HORAS AS horas,
+                CR.CADO_ONCEMESES AS onceMeses,
+                RECA.RECA_FORMAPAGO AS formaPago,
+
+                CASE
+                    -- Hay novedad valida y tiene detalles esa novedad
+                    WHEN CR.NOCD_ID IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                            WHERE DNCD.NOCD_ID = CR.NOCD_ID
+                        )
+                    THEN 1
+
+                    -- Hay novedad valida, no tiene detalles esa novedad, pero tiene vigentes de otra novedad de la misma carga
+                    WHEN CR.NOCD_ID IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                            INNER JOIN RVD.NOVEDADCARGADOCENTE NOCD
+                                ON NOCD.NOCD_ID = DNCD.NOCD_ID
+                            WHERE NOCD.CADO_ID = CR.CADO_ID
+                                AND NOCD.NOCD_ID <> CR.NOCD_ID
+                                AND DNCD.DNCD_VIGENTE = '1'
+                        )
+                    THEN 1
+
+                    -- Finalmente comprueba si hay detalles en la carga docente original
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.DETALLECARGADOCENTE DECD
+                        WHERE DECD.CADO_ID = CR.CADO_ID
+                    )
+                    THEN 1
+                    ELSE 0
+                END AS tieneActividades
+
+            FROM CARGAS_RESUELTAS CR
+
+            LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = CR.PEGE_ID
+
+            LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = CR.MOCO_ID
+
+            LEFT JOIN TALENTOV3.CATEGORIACATEDRATICO CACA
+                ON CACA.CACA_ID = CR.CACA_ID
+
+            LEFT JOIN RVD.RESTRICCIONCARGA RECA
+                ON RECA.MOCO_ID = CR.MOCO_ID
+
+            ORDER BY
+                CASE
+                    WHEN PEGE.PEGE_ID IS NULL THEN 1
+                    WHEN TRIM(
+                        TRIM(
+                            PENG.PENG_PRIMERNOMBRE
+                            || ' '
+                            || PENG.PENG_SEGUNDONOMBRE
+                        )
+                        || ' ' ||
+                        TRIM(
+                            PENG.PENG_PRIMERAPELLIDO
+                            || ' '
+                            || PENG.PENG_SEGUNDOAPELLIDO
+                        )
+                    ) IS NULL
+                    THEN 1
+                    ELSE 0
+                END,
+
+                UPPER(
+                    TRIM(
+                        TRIM(
+                            PENG.PENG_PRIMERNOMBRE
+                            || ' '
+                            || PENG.PENG_SEGUNDONOMBRE
+                        )
+                        || ' ' ||
+                        TRIM(
+                            PENG.PENG_PRIMERAPELLIDO
+                            || ' '
+                            || PENG.PENG_SEGUNDOAPELLIDO
+                        )
+                    )
+                ) NULLS LAST
+            """, nativeQuery = true)
+    List<DocentePreasignacionReporteProjection> findCdpProfessorsByCarga(
+        @Param("idCarga") Long idCarga
+    );
+
+    @Query(value = """
+            WITH NOVEDADES_VALIDAS AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY NOCD.NOCD_FECHACAMBIO DESC, NOCD.NOCD_ID DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+                WHERE NOCD.NOCD_ESTADONOVEDAD <> '2'
+            ),
+            ULTIMA_NOVEDAD AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY NOCD.NOCD_FECHACAMBIO DESC, NOCD.NOCD_ID DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+            ),
+            CARGAS_RESUELTAS AS (
+                SELECT
+                    CADO.CADO_ID,
+
+                    COALESCE(DATOS.PEGE_ID, CADO.PEGE_ID) AS PEGE_ID,
+                    COALESCE(DATOS.CARG_ID, CADO.CARG_ID) AS CARG_ID,
+                    COALESCE(DATOS.MOCO_ID, CADO.MOCO_ID) AS MOCO_ID,
+                    COALESCE(DATOS.CACA_ID, CADO.CACA_ID) AS CACA_ID,
+                    COALESCE(DATOS.FECO_ID, CADO.FECO_ID) AS FECO_ID,
+
+                    COALESCE(DATOS.NOCD_FECHAINICIO, CADO.CADO_FECHAINICIO) AS CADO_FECHAINICIO,
+                    COALESCE(DATOS.NOCD_FECHAFIN, CADO.CADO_FECHAFIN) AS CADO_FECHAFIN,
+                    COALESCE(DATOS.NOCD_VALORCONTRATO, CADO.CADO_VALORCONTRATO) AS CADO_VALORCONTRATO,
+                    COALESCE(DATOS.NOCD_VALORPRESTACIONES, CADO.CADO_VALORPRESTACIONES) AS CADO_VALORPRESTACIONES,
+                    COALESCE(DATOS.NOCD_SALARIO, CADO.CADO_SALARIO) AS CADO_SALARIO,
+                    COALESCE(DATOS.NOCD_VALORHORA, CADO.CADO_VALORHORA) AS CADO_VALORHORA,
+                    COALESCE(DATOS.NOCD_PUNTOS, CADO.CADO_PUNTOS) AS CADO_PUNTOS,
+                    COALESCE(DATOS.NOCD_VALORPUNTO, CADO.CADO_VALORPUNTO) AS CADO_VALORPUNTO,
+                    COALESCE(DATOS.NOCD_TOTALCONTRATO, CADO.CADO_TOTALCONTRATO) AS CADO_TOTALCONTRATO,
+                    COALESCE(DATOS.NOCD_SEMANAS, CADO.CADO_SEMANAS) AS CADO_SEMANAS,
+                    COALESCE(DATOS.NOCD_ONCEMESES, CADO.CADO_ONCEMESES) AS CADO_ONCEMESES,
+                    COALESCE(DATOS.NOCD_HORASDEEXCEPCION, CADO.CADO_HORASDEEXCEPCION) AS CADO_HORASDEEXCEPCION,
+
+                    CADO.CADO_ESTADO,
+
+                    -- Estado/tipo VISUAL:
+                    -- toma incluso una novedad rechazada.
+                    VISUAL.NOCD_ID,
+                    VISUAL.NOVE_ID,
+                    VISUAL.NOCD_ESTADONOVEDAD,
+
+                    -- Fotografía utilizada para datos/preview:
+                    -- únicamente estados 0 o 1.
+                    DATOS.NOCD_ID AS NOCD_ID_DATOS
+
+                FROM RVD.CARGADOCENTE CADO
+
+                LEFT JOIN NOVEDADES_VALIDAS DATOS
+                    ON DATOS.CADO_ID = CADO.CADO_ID
+                    AND DATOS.RN = 1
+
+                LEFT JOIN ULTIMA_NOVEDAD VISUAL
+                    ON VISUAL.CADO_ID = CADO.CADO_ID
+                    AND VISUAL.RN = 1
+
+                WHERE CADO.CARG_ID = :idCarga
+
+                AND COALESCE(
+                    DATOS.MOCO_ID,
+                    CADO.MOCO_ID
+                ) = :idModalidadContratacion
+
+                AND NVL(
+                    DATOS.NOCD_ESTADOELIMINADO,
+                    '0'
+                ) = '0'
+                
+                AND CADO.CADO_ESTADO = '4'
+            )
+
+            SELECT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+
+                TRIM(
+                    TRIM(
+                        PENG.PENG_PRIMERNOMBRE
+                        || ' '
+                        || PENG.PENG_SEGUNDONOMBRE
+                    )
+                    || ' ' ||
+                    TRIM(
+                        PENG.PENG_PRIMERAPELLIDO
+                        || ' '
+                        || PENG.PENG_SEGUNDOAPELLIDO
+                    )
+                ) AS nombreCompleto,
+
+                CR.CADO_ID AS idCargaDocente,
+                CR.CADO_ESTADO AS estado,
+                CR.CARG_ID AS idCarga,
+                CR.MOCO_ID AS idModalidadContratacion,
+                CR.CACA_ID AS idCategoriaCatedratico,
+
+                -- Estos son VISUALES
+                CR.NOCD_ID AS idNovedadCargaDocente,
+                CR.NOVE_ID AS idNovedadCatalogo,
+                CR.NOCD_ESTADONOVEDAD AS estadoNovedad,
+                NOVE.NOVE_TIPO AS tipoNovedad,
+
+                CASE
+                    WHEN CR.NOCD_ESTADONOVEDAD = '2'
+                    THEN (
+                        SELECT OBS.OBSE_TEXTO
+                        FROM RVD.OBSERVACIONES OBS
+                        WHERE OBS.NOCD_ID = CR.NOCD_ID
+                        ORDER BY
+                            OBS.OBSE_FECHA DESC,
+                            OBS.OBSE_ID DESC
+                        FETCH FIRST 1 ROW ONLY
+                    )
+                    ELSE NULL
+                END AS motivoRechazo,
+
+                -- Estos son DATOS/preview
+                CR.CADO_FECHAINICIO AS cargaFechaInicio,
+                CR.CADO_FECHAFIN AS cargaFechaFin,
+                CR.CADO_VALORCONTRATO AS valorContrato,
+                CR.CADO_VALORPRESTACIONES AS valorPrestaciones,
+                CR.CADO_SALARIO AS asignacionSalarial,
+                CR.CADO_TOTALCONTRATO AS totalContrato,
+                CR.CADO_VALORHORA AS valorHora,
+                CR.CADO_PUNTOS AS puntos,
+                CR.CADO_VALORPUNTO AS valorPunto,
+                CR.CADO_SEMANAS AS semanas,
+                CR.CADO_ONCEMESES AS onceMeses,
+                CR.CADO_HORASDEEXCEPCION AS horasDeExcepcion,
+
+                FECO.FECO_ID AS idFechasConvocatoria,
+                FECO.FECO_CODIGO AS fechaConvocatoriaCodigo,
+                FECO.FECO_FECHAINICIO AS fechaConvocatoriaInicio,
+                FECO.FECO_FECHAFIN AS fechaConvocatoriaFin,
+
+                CASE
+                    -- La fotografía válida actual (0 o 1)
+                    -- tiene sus propios detalles.
+                    WHEN CR.NOCD_ID_DATOS IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                            WHERE DNCD.NOCD_ID = CR.NOCD_ID_DATOS
+                        )
+                    THEN 1
+
+                    -- La fotografía actual no tiene detalles propios,
+                    -- pero existen detalles vigentes de otra novedad.
+                    WHEN CR.NOCD_ID_DATOS IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                            INNER JOIN RVD.NOVEDADCARGADOCENTE NOCD
+                                ON NOCD.NOCD_ID = DNCD.NOCD_ID
+                            WHERE NOCD.CADO_ID = CR.CADO_ID
+                                AND NOCD.NOCD_ID <> CR.NOCD_ID_DATOS
+                                AND DNCD.DNCD_VIGENTE = '1'
+                        )
+                    THEN 1
+
+                    -- Finalmente comprueba la carga original.
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.DETALLECARGADOCENTE DECD
+                        WHERE DECD.CADO_ID = CR.CADO_ID
+                    )
+                    THEN 1
+
+                    ELSE 0
+                END AS tieneActividades
+
+            FROM CARGAS_RESUELTAS CR
+
+            LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = CR.PEGE_ID
+
+            LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+
+            LEFT JOIN RVD.FECHASCONVOCATORIA FECO
+                ON FECO.FECO_ID = CR.FECO_ID
+
+            -- NOVE utiliza la novedad VISUAL.
+            LEFT JOIN RVD.NOVEDADES NOVE
+                ON NOVE.NOVE_ID = CR.NOVE_ID
+
+            ORDER BY
+                CASE
+                    WHEN PEGE.PEGE_ID IS NULL THEN 1
+                    WHEN TRIM(
+                        TRIM(
+                            PENG.PENG_PRIMERNOMBRE
+                            || ' '
+                            || PENG.PENG_SEGUNDONOMBRE
+                        )
+                        || ' ' ||
+                        TRIM(
+                            PENG.PENG_PRIMERAPELLIDO
+                            || ' '
+                            || PENG.PENG_SEGUNDOAPELLIDO
+                        )
+                    ) IS NULL
+                    THEN 1
+                    ELSE 0
+                END,
+
+                UPPER(
+                    TRIM(
+                        TRIM(
+                            PENG.PENG_PRIMERNOMBRE
+                            || ' '
+                            || PENG.PENG_SEGUNDONOMBRE
+                        )
+                        || ' ' ||
+                        TRIM(
+                            PENG.PENG_PRIMERAPELLIDO
+                            || ' '
+                            || PENG.PENG_SEGUNDOAPELLIDO
+                        )
+                    )
+                ) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteEfectivoCoordinacionProjection>
+    findEffectiveProfessorsByCargaAndModality(
+            @Param("idCarga") Long idCarga,
+            @Param("idModalidadContratacion")
+            Long idModalidadContratacion
+    );
+
+    @Query(value = """
+            WITH NOVEDADES_VALIDAS AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY NOCD.NOCD_FECHACAMBIO DESC, NOCD.NOCD_ID DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+                WHERE NOCD.NOCD_ESTADONOVEDAD <> '2'
+            ),
+            ULTIMA_NOVEDAD AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY NOCD.NOCD_FECHACAMBIO DESC, NOCD.NOCD_ID DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+            ),
+            CARGAS_RESUELTAS AS (
+                SELECT
+                    CADO.CADO_ID,
+
+                    COALESCE(DATOS.PEGE_ID, CADO.PEGE_ID) AS PEGE_ID,
+                    COALESCE(DATOS.CARG_ID, CADO.CARG_ID) AS CARG_ID,
+                    COALESCE(DATOS.MOCO_ID, CADO.MOCO_ID) AS MOCO_ID,
+                    COALESCE(DATOS.CACA_ID, CADO.CACA_ID) AS CACA_ID,
+                    COALESCE(DATOS.FECO_ID, CADO.FECO_ID) AS FECO_ID,
+
+                    COALESCE(DATOS.NOCD_FECHAINICIO, CADO.CADO_FECHAINICIO) AS CADO_FECHAINICIO,
+                    COALESCE(DATOS.NOCD_FECHAFIN, CADO.CADO_FECHAFIN) AS CADO_FECHAFIN,
+                    COALESCE(DATOS.NOCD_VALORCONTRATO, CADO.CADO_VALORCONTRATO) AS CADO_VALORCONTRATO,
+                    COALESCE(DATOS.NOCD_VALORPRESTACIONES, CADO.CADO_VALORPRESTACIONES) AS CADO_VALORPRESTACIONES,
+                    COALESCE(DATOS.NOCD_SALARIO, CADO.CADO_SALARIO) AS CADO_SALARIO,
+                    COALESCE(DATOS.NOCD_VALORHORA, CADO.CADO_VALORHORA) AS CADO_VALORHORA,
+                    COALESCE(DATOS.NOCD_PUNTOS, CADO.CADO_PUNTOS) AS CADO_PUNTOS,
+                    COALESCE(DATOS.NOCD_VALORPUNTO, CADO.CADO_VALORPUNTO) AS CADO_VALORPUNTO,
+                    COALESCE(DATOS.NOCD_TOTALCONTRATO, CADO.CADO_TOTALCONTRATO) AS CADO_TOTALCONTRATO,
+                    COALESCE(DATOS.NOCD_SEMANAS, CADO.CADO_SEMANAS) AS CADO_SEMANAS,
+                    COALESCE(DATOS.NOCD_ONCEMESES, CADO.CADO_ONCEMESES) AS CADO_ONCEMESES,
+                    COALESCE(DATOS.NOCD_HORASDEEXCEPCION, CADO.CADO_HORASDEEXCEPCION) AS CADO_HORASDEEXCEPCION,
+
+                    CADO.CADO_ESTADO,
+
+                    -- Última novedad para estado/tipo visual.
+                    VISUAL.NOCD_ID,
+                    VISUAL.NOVE_ID,
+                    VISUAL.NOCD_ESTADONOVEDAD,
+
+                    -- Última novedad NO rechazada para datos/preview.
+                    DATOS.NOCD_ID AS NOCD_ID_DATOS
+
+                FROM RVD.CARGADOCENTE CADO
+
+                LEFT JOIN NOVEDADES_VALIDAS DATOS
+                    ON DATOS.CADO_ID = CADO.CADO_ID
+                    AND DATOS.RN = 1
+
+                LEFT JOIN ULTIMA_NOVEDAD VISUAL
+                    ON VISUAL.CADO_ID = CADO.CADO_ID
+                    AND VISUAL.RN = 1
+
+                WHERE NVL(
+                    DATOS.NOCD_ESTADOELIMINADO,
+                    '0'
+                ) = '0'
+                
+                AND CADO.CADO_ESTADO = '4'
+            )
+
+            SELECT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+
+                TRIM(
+                    TRIM(
+                        PENG.PENG_PRIMERNOMBRE
+                        || ' '
+                        || PENG.PENG_SEGUNDONOMBRE
+                    )
+                    || ' ' ||
+                    TRIM(
+                        PENG.PENG_PRIMERAPELLIDO
+                        || ' '
+                        || PENG.PENG_SEGUNDOAPELLIDO
+                    )
+                ) AS nombreCompleto,
+
+                CR.CADO_ID AS idCargaDocente,
+                CR.CADO_ESTADO AS estado,
+                CR.CARG_ID AS idCarga,
+                CR.MOCO_ID AS idModalidadContratacion,
+                CR.CACA_ID AS idCategoriaCatedratico,
+
+                CR.NOCD_ID AS idNovedadCargaDocente,
+                CR.NOVE_ID AS idNovedadCatalogo,
+                CR.NOCD_ESTADONOVEDAD AS estadoNovedad,
+                NOVE.NOVE_TIPO AS tipoNovedad,
+
+                CASE
+                    WHEN CR.NOCD_ESTADONOVEDAD = '2'
+                    THEN (
+                        SELECT OBS.OBSE_TEXTO
+                        FROM RVD.OBSERVACIONES OBS
+                        WHERE OBS.NOCD_ID = CR.NOCD_ID
+                        ORDER BY
+                            OBS.OBSE_FECHA DESC,
+                            OBS.OBSE_ID DESC
+                        FETCH FIRST 1 ROW ONLY
+                    )
+                    ELSE NULL
+                END AS motivoRechazo,
+
+                CR.CADO_FECHAINICIO AS cargaFechaInicio,
+                CR.CADO_FECHAFIN AS cargaFechaFin,
+                CR.CADO_VALORCONTRATO AS valorContrato,
+                CR.CADO_VALORPRESTACIONES AS valorPrestaciones,
+                CR.CADO_SALARIO AS asignacionSalarial,
+                CR.CADO_TOTALCONTRATO AS totalContrato,
+                CR.CADO_VALORHORA AS valorHora,
+                CR.CADO_PUNTOS AS puntos,
+                CR.CADO_VALORPUNTO AS valorPunto,
+                CR.CADO_SEMANAS AS semanas,
+                CR.CADO_ONCEMESES AS onceMeses,
+                CR.CADO_HORASDEEXCEPCION AS horasDeExcepcion,
+
+                FECO.FECO_ID AS idFechasConvocatoria,
+                FECO.FECO_CODIGO AS fechaConvocatoriaCodigo,
+                FECO.FECO_FECHAINICIO AS fechaConvocatoriaInicio,
+                FECO.FECO_FECHAFIN AS fechaConvocatoriaFin,
+
+                CASE
+                    WHEN CR.NOCD_ID_DATOS IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                            WHERE DNCD.NOCD_ID = CR.NOCD_ID_DATOS
+                        )
+                    THEN 1
+
+                    WHEN CR.NOCD_ID_DATOS IS NOT NULL
+                        AND EXISTS (
+                            SELECT 1
+                            FROM RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                            INNER JOIN RVD.NOVEDADCARGADOCENTE NOCD
+                                ON NOCD.NOCD_ID = DNCD.NOCD_ID
+                            WHERE NOCD.CADO_ID = CR.CADO_ID
+                                AND NOCD.NOCD_ID <> CR.NOCD_ID_DATOS
+                                AND DNCD.DNCD_VIGENTE = '1'
+                        )
+                    THEN 1
+
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVD.DETALLECARGADOCENTE DECD
+                        WHERE DECD.CADO_ID = CR.CADO_ID
+                    )
+                    THEN 1
+
+                    ELSE 0
+                END AS tieneActividades
+
+            FROM RVD.CARGA CARG
+
+            INNER JOIN RVD.DOCENTESPLANTACOORDINACION DOPC
+                ON DOPC.COOR_ID = CARG.COOR_ID
+
+            INNER JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = DOPC.PEGE_ID
+
+            INNER JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+
+            INNER JOIN CARGAS_RESUELTAS CR
+                ON CR.PEGE_ID = DOPC.PEGE_ID
+                AND CR.CARG_ID = CARG.CARG_ID
+                AND CR.MOCO_ID IS NULL
+
+            LEFT JOIN RVD.FECHASCONVOCATORIA FECO
+                ON FECO.FECO_ID = CR.FECO_ID
+
+            LEFT JOIN RVD.NOVEDADES NOVE
+                ON NOVE.NOVE_ID = CR.NOVE_ID
+
+            WHERE CARG.CARG_ID = :idCarga
+
+            ORDER BY
+                UPPER(
+                    TRIM(
+                        TRIM(
+                            PENG.PENG_PRIMERNOMBRE
+                            || ' '
+                            || PENG.PENG_SEGUNDONOMBRE
+                        )
+                        || ' ' ||
+                        TRIM(
+                            PENG.PENG_PRIMERAPELLIDO
+                            || ' '
+                            || PENG.PENG_SEGUNDOAPELLIDO
+                        )
+                    )
+                ) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteEfectivoCoordinacionProjection>
+    findEffectivePlantProfessorsByCarga(
+            @Param("idCarga") Long idCarga
+    );
+
+    boolean existsByIdPersonaGeneralAndIdCargaAndIdModalidadContratacionIsNull(
+            Long idPersonaGeneral,
+            Long idCarga);
+
+    @Query(value = """
+            WITH NOVEDADES_VALIDAS AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY NOCD.NOCD_FECHACAMBIO DESC, NOCD.NOCD_ID DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+                WHERE NOCD.CADO_ID = :idCargaDocente
+                    AND NOCD.NOCD_ESTADONOVEDAD <> '2'
+                    AND NVL(NOCD.NOCD_ESTADOELIMINADO, '0') = '0'
+            )
+            SELECT
+                COALESCE(DATOS.PEGE_ID, CADO.PEGE_ID) AS idPersonaGeneral,
+                TRIM(
+                    TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                    || ' ' ||
+                    TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                ) AS nombreCompleto,
+                PEGE.PEGE_DOCUMENTOIDENTIDAD AS documentoIdentidad,
+                PEGE.PEGE_DIRECCION AS direccionDomicilio,
+                PEGE.PEGE_MAIL AS correoPersonal,
+                PENG.PENG_EMAILINSTITUCIONAL AS correoInstitucional,
+                MOCO.MOCO_NOMBRE AS modalidadContratacion,
+                COALESCE(DATOS.NOCD_FECHAINICIO, CADO.CADO_FECHAINICIO) AS fechaInicio,
+                COALESCE(DATOS.NOCD_FECHAFIN, CADO.CADO_FECHAFIN) AS fechaFin,
+                CACA.CACA_DESCRIPCION AS categoriaDocente,
+                CASE
+                    WHEN DATOS.NOCD_ID IS NOT NULL THEN DATOS.NOCD_PUNTOS
+                    ELSE CADO.CADO_PUNTOS
+                END AS puntos
+            FROM RVD.CARGADOCENTE CADO
+            LEFT JOIN NOVEDADES_VALIDAS DATOS
+                ON DATOS.CADO_ID = CADO.CADO_ID
+                AND DATOS.RN = 1
+            LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                ON PEGE.PEGE_ID = COALESCE(DATOS.PEGE_ID, CADO.PEGE_ID)
+            LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = COALESCE(DATOS.MOCO_ID, CADO.MOCO_ID)
+            LEFT JOIN TALENTOV3.CATEGORIACATEDRATICO CACA
+                ON CACA.CACA_ID = COALESCE(DATOS.CACA_ID, CADO.CACA_ID)
+            WHERE CADO.CADO_ID = :idCargaDocente
+            """, nativeQuery = true)
+    Optional<InformacionDocenteContratacionProjection> findProfessorInformationByCargaDocente(
+            @Param("idCargaDocente") Long idCargaDocente);
+
+    @Query(value = """
+            WITH NOVEDADES_VALIDAS AS (
+                SELECT
+                    NOCD.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY NOCD.CADO_ID
+                        ORDER BY
+                            NOCD.NOCD_FECHACAMBIO DESC,
+                            NOCD.NOCD_ID DESC
+                    ) AS RN
+                FROM RVD.NOVEDADCARGADOCENTE NOCD
+                WHERE NOCD.NOCD_ESTADONOVEDAD <> '2'
+            ),
+
+            CARGAS_RESUELTAS AS (
+                SELECT
+                    CADO.CADO_ID,
+
+                    COALESCE(
+                        DATOS.PEGE_ID,
+                        CADO.PEGE_ID
+                    ) AS PEGE_ID,
+
+                    COALESCE(
+                        DATOS.CARG_ID,
+                        CADO.CARG_ID
+                    ) AS CARG_ID,
+
+                    COALESCE(
+                        DATOS.MOCO_ID,
+                        CADO.MOCO_ID
+                    ) AS MOCO_ID,
+
+                    COALESCE(
+                        DATOS.FECO_ID,
+                        CADO.FECO_ID
+                    ) AS FECO_ID,
+
+                    COALESCE(
+                        DATOS.NOCD_FECHAINICIO,
+                        CADO.CADO_FECHAINICIO
+                    ) AS CADO_FECHAINICIO,
+
+                    COALESCE(
+                        DATOS.NOCD_FECHAFIN,
+                        CADO.CADO_FECHAFIN
+                    ) AS CADO_FECHAFIN
+
+                FROM RVD.CARGADOCENTE CADO
+
+                LEFT JOIN NOVEDADES_VALIDAS DATOS
+                    ON DATOS.CADO_ID = CADO.CADO_ID
+                    AND DATOS.RN = 1
+
+                WHERE CADO.CADO_ESTADO = '4'
+
+                AND NVL(
+                    DATOS.NOCD_ESTADOELIMINADO,
+                    '0'
+                ) = '0'
+            ),
+
+            ESCALAFON_ACTUAL AS (
+                SELECT
+                    ESC.ESCA_ID,
+                    ESC.PEGE_ID,
+                    ESC.MOCO_ID,
+                    ESC.CACA_ID,
+                    ESC.ESCA_PUNTOS,
+
+                    ROW_NUMBER() OVER (
+                        PARTITION BY
+                            ESC.PEGE_ID,
+                            ESC.MOCO_ID
+                        ORDER BY
+                            ESC.ESCA_FECHACAMBIO DESC NULLS LAST,
+                            ESC.ESCA_ID DESC
+                    ) AS RN
+
+                FROM COMITES.ESCALAFON ESC
+            ),
+
+            PTD_ACTUAL AS (
+                SELECT
+                    PTD_BASE.CADO_ID,
+                    PTD_BASE.PEGE_ID,
+                    PTD_BASE.PTDI_ESTADO,
+
+                    ROW_NUMBER() OVER (
+                        PARTITION BY
+                            PTD_BASE.CADO_ID,
+                            PTD_BASE.PEGE_ID
+                        ORDER BY
+                            PTD_BASE.PTDI_FECHACAMBIO DESC NULLS LAST,
+                            PTD_BASE.PTDI_ID DESC
+                    ) AS RN
+
+                FROM (
+                    /* PTD generado desde el detalle original de la carga */
+                    SELECT
+                        DECD.CADO_ID,
+                        PTDI.PEGE_ID,
+                        PTDI.PTDI_ID,
+                        PTDI.PTDI_ESTADO,
+                        PTDI.PTDI_FECHACAMBIO
+
+                    FROM RVD.PLANTRABAJODIGITAL PTDI
+
+                    INNER JOIN RVD.DETALLECARGADOCENTE DECD
+                        ON DECD.DECD_ID = PTDI.DECD_ID
+
+                    WHERE PTDI.DECD_ID IS NOT NULL
+
+                    UNION ALL
+
+                    /* PTD generado desde el detalle de una novedad */
+                    SELECT
+                        NOCD.CADO_ID,
+                        PTDI.PEGE_ID,
+                        PTDI.PTDI_ID,
+                        PTDI.PTDI_ESTADO,
+                        PTDI.PTDI_FECHACAMBIO
+
+                    FROM RVD.PLANTRABAJODIGITAL PTDI
+
+                    INNER JOIN RVD.DETALLENOVEDADCARGADOCENTE DNCD
+                        ON DNCD.DNCD_ID = PTDI.DNCD_ID
+
+                    INNER JOIN RVD.NOVEDADCARGADOCENTE NOCD
+                        ON NOCD.NOCD_ID = DNCD.NOCD_ID
+
+                    WHERE PTDI.DNCD_ID IS NOT NULL
+
+                    AND NOCD.NOCD_ESTADONOVEDAD <> '2'
+
+                    AND NVL(
+                        NOCD.NOCD_ESTADOELIMINADO,
+                        '0'
+                    ) = '0'
+                ) PTD_BASE
+            )
+
+            SELECT DISTINCT
+
+                CARG.CARG_ID
+                    AS idCarga,
+
+                CR.CADO_ID
+                    AS idCargaDocente,
+
+                CONV.PEUN_ID
+                    AS idPeriodoUniversitario,    
+
+                CONV.CONV_ID
+                    AS idConvocatoriaPreasignacion,
+
+                CONTR.CONV_ID
+                    AS idConvocatoriaContratacion,
+
+                COOR.COOR_ID
+                    AS idCoordinacion,
+
+                UNID_REG.UNID_ID
+                    AS idUnidadRegional,
+
+                NIED.NIED_ID
+                    AS idNivelEducativo,
+
+                CR.MOCO_ID
+                    AS idModalidadContratacion,
+
+                CONTR.CONV_NOMBRE
+                    AS convocatoria,
+
+                NIED.NIED_DESCRIPCION
+                    AS nivelEducativo,
+
+                UNID_REG.UNID_NOMBRE
+                    AS unidadRegional,
+
+                COOR.COOR_NOMBRE
+                    AS coordinacion,
+
+                MOCO.MOCO_NOMBRE
+                    AS modalidadContratacion,
+
+                COALESCE(
+                    CR.CADO_FECHAINICIO,
+                    FECO.FECO_FECHAINICIO
+                ) AS fechaInicio,
+
+                COALESCE(
+                    CR.CADO_FECHAFIN,
+                    FECO.FECO_FECHAFIN
+                ) AS fechaFin,
+
+                CASE
+                    WHEN ESC.CACA_ID IS NOT NULL
+                        THEN 'Categorizado'
+                    ELSE 'No categorizado'
+                END AS estadoCategorizacion,
+
+                CASE PTD.PTDI_ESTADO
+                    WHEN '0' THEN 'Estipulado'
+                    WHEN '1' THEN 'Aceptado'
+                    WHEN '2' THEN 'Rechazado'
+                    ELSE NULL
+                END AS estadoPlanTrabajo
+
+            FROM CARGAS_RESUELTAS CR
+
+            INNER JOIN RVD.CARGA CARG
+                ON CARG.CARG_ID = CR.CARG_ID
+
+            INNER JOIN RVD.CONVOCATORIA CONV
+                ON CONV.CONV_ID = CARG.CONV_ID
+
+            INNER JOIN RVD.CONVOCATORIA CONTR
+                ON CONTR.CONV_IDRELACION = CONV.CONV_ID
+
+            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
+                ON NIED.NIED_ID = CONV.NIED_ID
+
+            INNER JOIN RVD.ESTADOCARGA ECAR
+                ON ECAR.ESCA_ID = CARG.ESCA_ID
+
+            INNER JOIN RVD.COORDINACIONES COOR
+                ON COOR.COOR_ID = CARG.COOR_ID
+
+            INNER JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+
+            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
+                ON MOCO.MOCO_ID = CR.MOCO_ID
+
+            LEFT JOIN RVD.FECHASCONVOCATORIA FECO
+                ON FECO.FECO_ID = CR.FECO_ID
+
+            LEFT JOIN ESCALAFON_ACTUAL ESC
+                ON ESC.PEGE_ID = CR.PEGE_ID
+                AND ESC.MOCO_ID = CR.MOCO_ID
+                AND ESC.RN = 1
+
+            LEFT JOIN PTD_ACTUAL PTD
+                ON PTD.CADO_ID = CR.CADO_ID
+                AND PTD.PEGE_ID = CR.PEGE_ID
+                AND PTD.RN = 1
+
+            WHERE CR.PEGE_ID = :idPersonaGeneral
+
+            AND CONTR.CONV_ESTADO = '1'
+
+            AND CONTR.CONV_CONTRATACION = '1'
+
+            AND CONV.CONV_ESTADO = '1'
+
+            AND NVL(
+                CONV.CONV_CONTRATACION,
+                '0'
+            ) = '0'
+
+            AND UPPER(
+                TRIM(ECAR.ESCA_NOMBRE)
+            ) = 'AVAL DESARROLLO'
+
+            ORDER BY
+                CONTR.CONV_NOMBRE,
+                UNID_REG.UNID_NOMBRE,
+                COOR.COOR_NOMBRE,
+                MOCO.MOCO_NOMBRE,
+                fechaInicio DESC
+            """, nativeQuery = true)
+    List<PublicHiringRecordProjection>
+    findPublicHiringRecordsByProfessor(
+            @Param("idPersonaGeneral")
+            Long idPersonaGeneral
+    );
+
+
+}

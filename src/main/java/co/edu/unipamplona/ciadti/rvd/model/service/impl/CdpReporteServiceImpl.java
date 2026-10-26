@@ -1,0 +1,545 @@
+/**
+ * Aplicación: rvd
+ * Archivo: CdpReporteServiceImpl.java
+ * Paquete: co.edu.unipamplona.ciadti.rvd.model.service.impl
+ * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
+ * Fecha de creación: 01/09/2026
+ * Modificaciones:
+ * 01/09/2026 - Sebastian Jaimes - Creación inicial
+ * 01/09/2026 - Andrés Hernández - Corrección en el Excel de la preasignación
+ * 04/09/2026 - Exclusion de once meses heredados solo en segundo periodo
+ * 17/09/2026 - Sebastian Jaimes - Valor de contrato con rango de fechas inclusivo
+ * 18/09/2026 - Sebastian Jaimes - Contrato cátedra según forma de pago
+ * 06/10/2026 - Andrés Hernández - Uso de docentes y detalles efectivos para generar el CDP
+ */
+package co.edu.unipamplona.ciadti.rvd.model.service.impl;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocentePreasignacionReporteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.EncabezadoCargaReporteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.FileDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ModalidadPreasignacionReporteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ReportePreasignacionCargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TotalesPreasignacionReporteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.entity.PuntosVigenciaEntity;
+import co.edu.unipamplona.ciadti.rvd.model.repository.CargaDocenteRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.CargaRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.DetalleCargaDocenteRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.PuntosVigenciaRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetallesCdpReporteProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionReporteProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.EncabezadoPreasignacionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.service.CdpReporteService;
+import co.edu.unipamplona.ciadti.rvd.model.service.CoordinacionService;
+import co.edu.unipamplona.ciadti.rvd.report.CdpExcelExporter;
+import co.edu.unipamplona.ciadti.rvd.report.CdpPdfExporter;
+import co.edu.unipamplona.ciadti.rvd.util.OnceMesesReporteFilter;
+import co.edu.unipamplona.ciadti.rvd.util.ValorContratacionCalculator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CdpReporteServiceImpl implements CdpReporteService {
+    
+    private static final int ESCALA_MONETARIA = 2;
+    private static final BigDecimal PUNTOS_DOCENTE_DEFAULT = new BigDecimal("100");
+
+    private final CargaRepository cargaRepository;
+    private final CargaDocenteRepository cargaDocenteRepository;
+    private final DetalleCargaDocenteRepository detalleCargaDocenteRepository;
+    private final PuntosVigenciaRepository puntosVigenciaRepository;
+    private final CoordinacionService coordinacionService;
+    private final CdpExcelExporter excelExporter;
+    private final CdpPdfExporter pdfExporter;
+
+    @Override
+    @Transactional(readOnly = true)
+    public FileDTO generateCdpReport(
+            Long idConvocatoria,
+            Long idPeriodoUniversidad,
+            Long idCoordinacionFacultad) {
+
+        List<ReportePreasignacionCargaDTO> reportes =
+                loadFacultyReports(
+                        idConvocatoria,
+                        idPeriodoUniversidad,
+                        idCoordinacionFacultad
+                );
+
+        byte[] content =
+                excelExporter.export(reportes);
+
+        String fileName =
+                buildCdpFileName(
+                        reportes.getFirst().encabezado(),
+                        "xlsx"
+                );
+
+        return new FileDTO(
+                fileName,
+                content
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FileDTO generateCdpPdfReport(
+            Long idConvocatoria,
+            Long idPeriodoUniversidad,
+            Long idCoordinacionFacultad) {
+
+        List<ReportePreasignacionCargaDTO> reportes =
+                loadFacultyReports(
+                        idConvocatoria,
+                        idPeriodoUniversidad,
+                        idCoordinacionFacultad
+                );
+
+        byte[] content =
+                pdfExporter.export(reportes);
+
+        String fileName =
+                buildCdpFileName(
+                        reportes.getFirst().encabezado(),
+                        "pdf"
+                );
+
+        return new FileDTO(
+                fileName,
+                content
+        );
+    }
+
+    private List<ReportePreasignacionCargaDTO> loadFacultyReports(
+            Long idConvocatoria,
+            Long idPeriodoUniversidad,
+            Long idCoordinacionFacultad) {
+
+        List<CoordinacionDTO> solicitudes =
+                coordinacionService.findCdpRequests(
+                        idConvocatoria,
+                        idPeriodoUniversidad,
+                        idCoordinacionFacultad
+                );
+
+        List<Long> idsCarga =
+                resolveCargaIds(solicitudes);
+
+        if (idsCarga.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "No es posible generar el reporte porque no hay coordinaciones "
+                            + "con carga en Aval Desarrollo para el periodo "
+                            + "y la convocatoria seleccionados"
+            );
+        }
+
+        List<ReportePreasignacionCargaDTO> reportes =
+                new ArrayList<>();
+
+        for (Long idCarga : idsCarga) {
+            reportes.add(
+                    buildReport(idCarga)
+            );
+        }
+
+        return reportes;
+    }
+
+    private ReportePreasignacionCargaDTO buildReport(Long idCarga) {
+        if (idCarga == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El id de la carga es obligatorio");
+        }
+        EncabezadoPreasignacionProjection encabezadoProjection = cargaRepository
+                .findEncabezadoReporteByIdCarga(idCarga)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "No existe la carga con id " + idCarga));
+        EncabezadoCargaReporteDTO encabezado = toEncabezado(encabezadoProjection);
+        BigDecimal valorHoraVigencia = resolveValorHoraVigencia(encabezado.anio());
+
+        List<DocentePreasignacionReporteProjection> docentes =
+                cargaDocenteRepository.findCdpProfessorsByCarga(idCarga)
+                        .stream()
+                        .filter(d -> !OnceMesesReporteFilter.excludeInheritedInSecondPeriod(
+                                d.getOnceMeses(),
+                                encabezadoProjection.getPeriodo()))
+                        .toList();
+        List<DetallesCdpReporteProjection> detalles = detalleCargaDocenteRepository.findCdpDetailsByCarga(idCarga);
+
+        Map<Long, Map<String, BigDecimal>> horasByDocente = loadHorasPorDocente(detalles);
+        Map<Long, GrupoCupos> grupoCuposByDocente = loadGrupoCuposPorDocente(detalles);
+        List<ModalidadPreasignacionReporteDTO> modalidades = buildModalidades(
+                docentes,
+                horasByDocente,
+                grupoCuposByDocente,
+                valorHoraVigencia);
+        TotalesPreasignacionReporteDTO resumen = sumModalidades(modalidades);
+
+        return new ReportePreasignacionCargaDTO(encabezado, modalidades, resumen);
+    }
+
+    private EncabezadoCargaReporteDTO toEncabezado(
+            EncabezadoPreasignacionProjection projection) {
+        return new EncabezadoCargaReporteDTO(
+                projection.getIdCarga(),
+                projection.getIdCoordinacion(),
+                projection.getUnidad(),
+                projection.getFacultad(),
+                projection.getCoordinacion(),
+                projection.getIdPeriodoUniversidad(),
+                projection.getPeriodoAcademico(),
+                projection.getAnio(),
+                projection.getIdConvocatoria(),
+                projection.getConvocatoria());
+    }
+
+    private BigDecimal resolveValorHoraVigencia(Long anio) {
+        if (anio == null) {
+           
+            return null;
+        }
+        return puntosVigenciaRepository.findByAnio(anio)
+                .map(this::parseValorPuntoVigencia)
+                .orElseGet(() -> {
+                    
+                    return null;
+                });
+    }
+
+    private BigDecimal parseValorPuntoVigencia(PuntosVigenciaEntity vigencia) {
+        if (vigencia == null || !StringUtils.hasText(vigencia.getValorPunto())) {
+            return null;
+        }
+        try {
+            return new BigDecimal(vigencia.getValorPunto().trim())
+                    .setScale(ESCALA_MONETARIA, RoundingMode.HALF_UP);
+        } catch (NumberFormatException ex) {
+            
+            return null;
+        }
+    }
+
+    private Map<Long, Map<String, BigDecimal>> loadHorasPorDocente(List<DetallesCdpReporteProjection> detalles) {
+        return detalles.stream()
+            .filter(detalle -> detalle.getIdCargaDocente() != null && StringUtils.hasText(detalle.getCodigoPadre()))
+            .collect(Collectors.groupingBy(
+                    DetallesCdpReporteProjection::getIdCargaDocente,
+                    Collectors.groupingBy(
+                            detalle -> detalle.getCodigoPadre().trim().toUpperCase(),
+                            Collectors.reducing(
+                                    BigDecimal.ZERO,
+                                    detalle -> detalle.getHoras() != null
+                                        ? detalle.getHoras()
+                                        : BigDecimal.ZERO,
+                                    BigDecimal::add
+                            )
+                    )
+            ));
+    }
+
+    private Map<Long, GrupoCupos> loadGrupoCuposPorDocente(List<DetallesCdpReporteProjection> detalles) {
+        return detalles.stream()
+            .filter(detalle -> detalle.getIdCargaDocente() != null && detalle.getIdGrupo() != null)
+            .collect(Collectors.groupingBy(
+                    DetallesCdpReporteProjection::getIdCargaDocente,
+                    Collectors.collectingAndThen(
+                            Collectors.toMap(
+                                    DetallesCdpReporteProjection::getIdGrupo,
+                                    DetallesCdpReporteProjection::getCupos,
+                                    (cupos1, cupos2) -> cupos1
+                            ),
+                            grupos -> new GrupoCupos(
+                                    grupos.size(),
+                                    grupos.values().stream()
+                                            .filter(Objects::nonNull)
+                                            .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            )
+                    )
+            ));
+    }
+
+    private List<ModalidadPreasignacionReporteDTO> buildModalidades(
+            List<DocentePreasignacionReporteProjection> docentes,
+            Map<Long, Map<String, BigDecimal>> horasByDocente,
+            Map<Long, GrupoCupos> grupoCuposByDocente,
+            BigDecimal valorHoraVigencia) {
+        Map<Long, ModalidadBucket> buckets = new LinkedHashMap<>();
+        for (DocentePreasignacionReporteProjection projection : docentes) {
+            Long idModalidad = projection.getIdModalidadContratacion();
+            String nombre = StringUtils.hasText(projection.getModalidadContratacion())
+                    ? projection.getModalidadContratacion()
+                    : "Sin modalidad";
+            Long key = idModalidad != null ? idModalidad : -1L;
+            ModalidadBucket bucket = buckets.computeIfAbsent(
+                    key, k -> new ModalidadBucket(idModalidad, nombre));
+            Long idCargaDocente = projection.getIdCargaDocente();
+            bucket.docentes.add(toDocenteReporte(
+                    projection,
+                    horasByDocente.getOrDefault(idCargaDocente, Map.of()),
+                    valorHoraVigencia,
+                    grupoCuposByDocente.get(idCargaDocente)));
+        }
+        List<ModalidadPreasignacionReporteDTO> result = new ArrayList<>();
+        for (ModalidadBucket bucket : buckets.values()) {
+            List<DocentePreasignacionReporteDTO> docentesModalidad =
+                    List.copyOf(bucket.docentes);
+            result.add(new ModalidadPreasignacionReporteDTO(
+                    bucket.idModalidad,
+                    bucket.nombre,
+                    docentesModalidad,
+                    sumDocentes(docentesModalidad)));
+        }
+        return result;
+    }
+
+    private DocentePreasignacionReporteDTO toDocenteReporte(
+            DocentePreasignacionReporteProjection projection,
+            Map<String, BigDecimal> horasPorCodigo,
+            BigDecimal valorHoraVigencia,
+            GrupoCupos grupoCupos) {
+        BigDecimal asignacion = null;
+        ValorContratacionDTO valor = null;
+        String error = null;
+        BigDecimal horas = resolveHoras(projection.getHoras(), horasPorCodigo);
+        try {
+            if (ValorContratacionCalculator.isCatedra(projection.getFormaPago())) {
+                valor = calculateCatedraContractValue(projection, horas);
+            } else {
+                asignacion = resolveAsignacionSalarial(projection);
+                valor = calculateContractValue(projection, asignacion);
+            }
+        } catch (ApiException ex) {
+            error = ex.getMessage();
+        }
+        BigDecimal valorPunto = valorHoraVigencia != null
+                ? valorHoraVigencia
+                : projection.getValorPunto();
+        Integer grupos = grupoCupos != null ? grupoCupos.cantidad() : 0;
+        BigDecimal cupos = grupoCupos != null ? grupoCupos.cupos() : null;
+        return new DocentePreasignacionReporteDTO(
+                projection.getIdCargaDocente(),
+                projection.getNombreCompleto(),
+                projection.getDocumento(),
+                projection.getPuntos(),
+                valorPunto,
+                projection.getCategoria(),
+                projection.getFechaInicio(),
+                projection.getFechaFin(),
+                projection.getSemanas(),
+                horas,
+                grupos,
+                cupos,
+                asignacion,
+                projection.getValorHora(),
+                valor,
+                Map.copyOf(horasPorCodigo),
+                error);
+    }
+
+    private BigDecimal resolveHoras(
+            String horasCarga,
+            Map<String, BigDecimal> horasPorCodigo) {
+        BigDecimal parsed = parseDecimal(horasCarga);
+        if (parsed != null) {
+            return parsed;
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (BigDecimal valor : horasPorCodigo.values()) {
+            if (valor != null) {
+                total = total.add(valor);
+            }
+        }
+        return total;
+    }
+
+    private TotalesPreasignacionReporteDTO sumDocentes(List<DocentePreasignacionReporteDTO> docentes) {
+        int totalDocentes = docentes.size();
+        BigDecimal totalHoras = BigDecimal.ZERO;
+        BigDecimal totalPrestaciones = BigDecimal.ZERO;
+        BigDecimal totalContratos = BigDecimal.ZERO;
+        for (DocentePreasignacionReporteDTO docente : docentes) {
+            totalHoras = totalHoras.add(nvl(docente.horas()));
+            ValorContratacionDTO valor = docente.valorContratacion();
+            if (valor != null) {
+                totalPrestaciones = totalPrestaciones.add(
+                        nvl(valor.totalPrestaciones()));
+                totalContratos = totalContratos.add(nvl(valor.valorContrato()));
+            }
+        }
+        return new TotalesPreasignacionReporteDTO(
+                totalDocentes,
+                totalHoras,
+                totalPrestaciones,
+                totalContratos,
+                totalPrestaciones.add(totalContratos)
+                        .setScale(ESCALA_MONETARIA, RoundingMode.HALF_UP));
+    }
+
+    private TotalesPreasignacionReporteDTO sumModalidades(List<ModalidadPreasignacionReporteDTO> modalidades) {
+        int totalDocentes = 0;
+        BigDecimal totalHoras = BigDecimal.ZERO;
+        BigDecimal totalPrestaciones = BigDecimal.ZERO;
+        BigDecimal totalContratos = BigDecimal.ZERO;
+        for (ModalidadPreasignacionReporteDTO modalidad : modalidades) {
+            TotalesPreasignacionReporteDTO t = modalidad.totales();
+            if (t == null) {
+                continue;
+            }
+            totalDocentes += t.totalDocentes();
+            totalHoras = totalHoras.add(nvl(t.totalHoras()));
+            totalPrestaciones = totalPrestaciones.add(nvl(t.totalPrestaciones()));
+            totalContratos = totalContratos.add(nvl(t.totalContratos()));
+        }
+        return new TotalesPreasignacionReporteDTO(
+                totalDocentes,
+                totalHoras,
+                totalPrestaciones,
+                totalContratos,
+                totalPrestaciones.add(totalContratos)
+                        .setScale(ESCALA_MONETARIA, RoundingMode.HALF_UP));
+    }
+
+    private ValorContratacionDTO calculateContractValue(
+            DocentePreasignacionReporteProjection projection,
+            BigDecimal asignacionSalarial) {
+        return ValorContratacionCalculator.calculate(
+                asignacionSalarial,
+                projection.getFechaInicio(),
+                projection.getFechaFin());
+    }
+
+    private ValorContratacionDTO calculateCatedraContractValue(
+            DocentePreasignacionReporteProjection projection,
+            BigDecimal horas) {
+        BigDecimal semanas = parseDecimal(projection.getSemanas());
+        if (horas == null
+                || horas.compareTo(BigDecimal.ZERO) <= 0
+                || semanas == null
+                || projection.getValorHora() == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "La carga docente no tiene horas, semanas o valor hora");
+        }
+        return ValorContratacionCalculator.calculateCatedra(
+                horas,
+                semanas,
+                projection.getValorHora(),
+                projection.getFechaInicio(),
+                projection.getFechaFin());
+    }
+
+    private BigDecimal resolveAsignacionSalarial(DocentePreasignacionReporteProjection projection) {
+        if (projection.getSalario() != null) {
+            return projection.getSalario();
+        }
+        BigDecimal valorPunto = projection.getValorPunto();
+        if (valorPunto == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "La carga docente no tiene asignacion salarial ni valor del punto");
+        }
+        return resolvePuntos(projection.getPuntos())
+                .multiply(valorPunto)
+                .setScale(ESCALA_MONETARIA, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolvePuntos(String puntos) {
+        BigDecimal parsed = parseDecimal(puntos);
+        return parsed != null ? parsed : PUNTOS_DOCENTE_DEFAULT;
+    }
+
+    private BigDecimal parseDecimal(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        try {
+            return new BigDecimal(value.trim().replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private BigDecimal nvl(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private List<Long> resolveCargaIds(List<CoordinacionDTO> solicitudes) {
+        Set<Long> ids = new LinkedHashSet<>();
+        if (solicitudes == null) {
+            return List.of();
+        }
+        for (CoordinacionDTO coordinacion : solicitudes) {
+            if (coordinacion == null || coordinacion.carga() == null) {
+                continue;
+            }
+            Long idCarga = coordinacion.carga().id();
+            if (idCarga != null) {
+                ids.add(idCarga);
+            }
+        }
+        return List.copyOf(ids);
+    }
+
+    private String buildCdpFileName(
+            EncabezadoCargaReporteDTO encabezado,
+            String extension) {
+        String facultad = sanitizeFilePart(
+                encabezado != null ? encabezado.facultad() : null);
+        String periodo = sanitizeFilePart(
+                encabezado != null ? encabezado.periodoAcademico() : null);
+        String base = "preasignacion";
+        if (StringUtils.hasText(facultad)) {
+            base += "-" + facultad;
+        }
+        if (StringUtils.hasText(periodo)) {
+            base += "-" + periodo;
+        }
+        return base + "." + extension;
+    }
+
+    private String sanitizeFilePart(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        return value.trim()
+                .replaceAll("[\\\\/:*?\"<>|]", "")
+                .replaceAll("\\s+", "-")
+                .toLowerCase();
+    }
+
+    private static final class ModalidadBucket {
+        private final Long idModalidad;
+        private final String nombre;
+        private final List<DocentePreasignacionReporteDTO> docentes =
+                new ArrayList<>();
+
+        private ModalidadBucket(Long idModalidad, String nombre) {
+            this.idModalidad = idModalidad;
+            this.nombre = nombre;
+        }
+    }
+
+    private record GrupoCupos(Integer cantidad, BigDecimal cupos) {}
+}
