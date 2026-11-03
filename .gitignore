@@ -43,3 +43,7 @@ application.properties
 
 # TDAD - archivos locales de la extensión
 .tdad/
+
+.specify/
+.cursor/
+StrategyExample/
