@@ -103,8 +103,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.FileDTO;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/configuration/coordination")
-public class CoordinationController {
+@RequestMapping("/configuration/load")
+public class LoadController {
 
     private final ConvocatoriaPrecargaService convocatoriaPrecargaService;
     private final CoordinacionService coordinacionService;
