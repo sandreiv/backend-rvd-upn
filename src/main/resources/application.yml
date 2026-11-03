@@ -42,7 +42,7 @@ springdoc:
 
 # JWT SecurityAuth: RVD solo entra desde Vortal (sin login local).
 # - jwk-set-uri / issuer: deben coincidir con el AS.
-# - application-id: 55100 (RVD Nuevo en Vortal) -- pruebas --
+# - application-id: 55200 (RVD Nuevo en Vortal) -- pruebas --
 # - base-url: para resolver permisos METHOD:URL por rol.
 # - enforce-funcionalidad: false = endpoints sin catálogo pasan si hay JWT válido;
 #   true = solo METHOD:URL autorizados (403 si falta permiso).
@@ -53,7 +53,7 @@ rvd:
       jwk-set-uri: http://127.0.0.1:8171/oauth2/jwks
       issuer: http://127.0.0.1:8171
       base-url: http://127.0.0.1:8171
-      application-id: 55100 #### NO ES EL ID REAL.
+      application-id: 55200 #### NO ES EL ID REAL.
       enforce-funcionalidad: true
       public-key-pem: |
         -----BEGIN PUBLIC KEY-----
