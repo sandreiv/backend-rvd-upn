@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.unipamplona.ciadti.rvd.model.entity.ConvocatoriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.FechasConvocatoriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ConvocatoriaRepository;
-import co.edu.unipamplona.ciadti.rvd.model.repository.RestriccionPorCoordinacionRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.FechasConvocatoriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.service.ConvocatoriaEstadoService;
 import co.edu.unipamplona.ciadti.rvd.util.FechasConvocatoriaCalculator;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ConvocatoriaEstadoServiceImpl implements ConvocatoriaEstadoService {
 
     private final ConvocatoriaRepository convocatoriaRepository;
-    private final RestriccionPorCoordinacionRepository restriccionPorCoordinacionRepository;
+    private final FechasConvocatoriaRepository fechasConvocatoriaRepository;
 
     @Override
     @Transactional
@@ -31,52 +31,28 @@ public class ConvocatoriaEstadoServiceImpl implements ConvocatoriaEstadoService 
         }
 
         ConvocatoriaEntity convocatoria = convocatoriaRepository.findById(idConvocatoria).orElse(null);
-
         if (convocatoria == null) {
             log.warn("syncEstadoConvocatoria ===> Convocatoria no encontrada. idConvocatoria={}", idConvocatoria);
             return;
         }
 
         FechasConvocatoriaEntity fechaConvocatoria = convocatoriaRepository.findFechaCnvByConvocatoriaId(idConvocatoria);
-
-        boolean convocatoriaVencida = fechaConvocatoria != null && FechasConvocatoriaCalculator.isVencida(fechaConvocatoria.getFechaFin());
-
-        Long totalRestricciones = restriccionPorCoordinacionRepository.countActiveNonExpiredRestrictionsByConvocatoria(idConvocatoria);
-
-        boolean tieneRestriccionesNoVencidas = totalRestricciones != null && totalRestricciones > 0;
-
-        String nuevoEstado = null;
-        String motivo = null;
-
-        if (tieneRestriccionesNoVencidas) {
-            nuevoEstado = "1";
-            motivo = "restricciones activas no vencidas";
-        } else if (convocatoriaVencida) {
-            nuevoEstado = "0";
-            motivo = "convocatoria vencida sin restricciones activas no vencidas";
-        }
-
-        if (nuevoEstado == null) {
-            log.debug("syncEstadoConvocatoria ===> No requiere cambio de estado. idConvocatoria={}, estadoActual={}",
-                    idConvocatoria, convocatoria.getEstado());
+        boolean convocatoriaVencida = fechaConvocatoria != null
+                && FechasConvocatoriaCalculator.isVencida(fechaConvocatoria.getFechaFin());
+        if (!convocatoriaVencida) {
             return;
         }
 
+        String nuevoEstado = "0";
         if (Objects.equals(convocatoria.getEstado(), nuevoEstado)) {
-            log.debug("syncEstadoConvocatoria ===> Estado ya sincronizado. idConvocatoria={}, estado={}",
-                    idConvocatoria, nuevoEstado);
             return;
         }
 
         Date ahora = new Date();
-
         convocatoriaRepository.updateEstado(nuevoEstado, ahora, idConvocatoria);
-
         convocatoria.setEstado(nuevoEstado);
         convocatoria.setFechaCambio(ahora);
-
-        log.info("syncEstadoConvocatoria ===> Estado de convocatoria sincronizado. idConvocatoria={}, estado={}, motivo={}",
-                idConvocatoria, nuevoEstado, motivo);
+        log.info("syncEstadoConvocatoria ===> Convocatoria vencida. idConvocatoria={}", idConvocatoria);
     }
 
     @Override
@@ -85,16 +61,14 @@ public class ConvocatoriaEstadoServiceImpl implements ConvocatoriaEstadoService 
         if (idFechasConvocatoria == null) {
             return;
         }
-
-        restriccionPorCoordinacionRepository
-                .findConvocatoriaIdByFechaId(idFechasConvocatoria)
+        fechasConvocatoriaRepository.findById(idFechasConvocatoria)
+                .map(FechasConvocatoriaEntity::getIdConvocatoria)
                 .ifPresent(this::syncEstadoConvocatoria);
     }
 
     @Override
     @Transactional
     public void syncEstadosConvocatoriasConRestricciones() {
-        restriccionPorCoordinacionRepository.findConvocatoriaIdsWithRestrictions()
-                .forEach(this::syncEstadoConvocatoria);
+        log.debug("syncEstadosConvocatoriasConRestricciones ===> Sin restricciones por coordinación en RVDIES");
     }
 }

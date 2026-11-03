@@ -158,8 +158,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 convocatoriaRepository.findNivelEntityByConvocatoriaId(
                         convocatoria.getId()),
                 fechaCnv,
-                personaGeneralRepository.findGeneralPersonById(
-                                convocatoria.getIdPersonaGeneral())
+                personaGeneralRepository.findGeneralPersonById(null)
                         .orElse(null));
     }
 
@@ -192,10 +191,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         ConvocatoriaEntity convocatoria = new ConvocatoriaEntity();
         convocatoria.setNombre(datos.nombre().trim());
         convocatoria.setDescripcion(datos.descripcion().trim());
-        convocatoria.setIdPersonaGeneral(datos.autoriza().id());
         convocatoria.setIdPeriodoUniversidad(datos.periodo().id());
-        convocatoria.setIdNivelEducativo(datos.nivelEducativo().id());
-        convocatoria.setContratacion(normalizeParam(datos.contratacion()));
         convocatoria.setEstado("1");
         convocatoria.setFechaCambio(new Date());
         convocatoria.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
@@ -386,8 +382,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         return new ConvocatoriaFormularioDTO(
                 convocatoriaDatosInsertarMapper.toDto(
                         convocatoria,
-                        personaGeneralRepository.findGeneralPersonById(
-                                        convocatoria.getIdPersonaGeneral())
+                        personaGeneralRepository.findGeneralPersonById(null)
                                 .orElse(null),
                         convocatoriaRepository.findPeriodoEntityByConvocatoriaId(id),
                         convocatoriaRepository.findNivelEntityByConvocatoriaId(id)),
@@ -487,8 +482,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                         convocatoria.getId()),
                 convocatoriaRepository.findFechaCnvByConvocatoriaId(
                         convocatoria.getId()),
-                personaGeneralRepository.findGeneralPersonById(
-                                convocatoria.getIdPersonaGeneral())
+                personaGeneralRepository.findGeneralPersonById(null)
                         .orElse(null)
         );
     }
@@ -537,12 +531,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Convocatoria no encontrada"));
-
-        if (!isConvocatoriaContratacion(convocatoria.getContratacion())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Solo se puede relacionar una convocatoria de contratación");
-        }
 
         Long idRelacionResuelto = resolveIdRelacionPreasignacion(idRelacion, convocatoria);
         int updated = convocatoriaRepository.updateIdRelacion(
@@ -600,11 +588,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                         HttpStatus.NOT_FOUND,
                         "No existe la convocatoria relacionada con id " + idRelacion));
 
-        if (!isConvocatoriaPreasignacion(relacionada.getContratacion())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "La convocatoria relacionada debe ser de preasignación");
-        }
         if (!Objects.equals(
                 convocatoriaActual.getIdPeriodoUniversidad(),
                 relacionada.getIdPeriodoUniversidad())) {

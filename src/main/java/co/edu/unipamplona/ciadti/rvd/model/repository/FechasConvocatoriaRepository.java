@@ -23,8 +23,6 @@ import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.FechasConvocatoriaEntity;
-import co.edu.unipamplona.ciadti.rvd.model.repository.projection.FechaModalidadProjection;
-
 public interface FechasConvocatoriaRepository
         extends JpaRepository<FechasConvocatoriaEntity, Long> {
 
@@ -82,57 +80,6 @@ public interface FechasConvocatoriaRepository
     @Procedure(name = "FechasConvocatoriaEntity.deleteByProcedure")
     BigDecimal deleteByProcedure(@Param("P_FECO_ID") Long id, @Param("P_FECO_REGISTRADOPOR") String registradoPor);
 
-
-    /**
-     * Busca las fechas de convocatoria por carga y modalidad de contratación.
-     * Revisa que el tipo de restricción de la carga sea semanal.
-     */
-    @Query("""
-            SELECT
-                feco.id AS id,
-                feco.vacaciones AS vacaciones,
-                feco.fechaInicio AS fechaInicio,
-                feco.fechaFin AS fechaFin,
-                feco.semanas AS semanas,
-                reca.minimo AS minimo,
-                reca.maximo AS maximo
-            FROM CargaEntity carg
-            JOIN ConvocatoriaTipoContratacionEntity cotc
-                ON cotc.idConvocatoria = carg.idConvocatoria
-            JOIN RestriccionCargaEntity reca
-                ON reca.idModalidadContratacion = cotc.idModalidadContratacion
-            JOIN FechasConvocatoriaEntity feco
-                ON feco.idConvocatoriaTipoContratacion = cotc.id
-            WHERE carg.id = :idCarga
-                AND cotc.idModalidadContratacion = :mocoId
-                AND reca.tipoHoras = 'SEMANAL'
-            """)
-    List<FechaModalidadProjection> findByCargaAndModalityAndRestrictionSemanal(
-            @Param("idCarga") Long idCarga,
-            @Param("mocoId") Long mocoId);
-
-     @Query("""
-        SELECT
-            feco.id AS id,
-            feco.vacaciones AS vacaciones,
-            feco.fechaInicio AS fechaInicio,
-            feco.fechaFin AS fechaFin,
-            feco.semanas AS semanas,
-            reca.minimo AS minimo,
-            reca.maximo AS maximo
-        FROM CargaEntity carg
-        JOIN RestriccionCargaEntity reca
-            ON reca.idModalidadContratacion = :mocoId
-        JOIN FechasConvocatoriaEntity feco
-            ON feco.idConvocatoria = carg.idConvocatoria
-            AND feco.codigo = 'CNV'
-        WHERE carg.id = :idCarga
-            AND reca.tipoHoras = 'SEMANAL'
-        """)
-        List<FechaModalidadProjection>
-        findPlantByCargaAndModalityAndRestrictionSemanal(
-                @Param("idCarga") Long idCarga,
-                @Param("mocoId") Long mocoId);       
 
     @Query("""
             SELECT feco

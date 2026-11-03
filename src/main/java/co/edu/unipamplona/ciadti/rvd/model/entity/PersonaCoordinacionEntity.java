@@ -6,65 +6,50 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
+ * 03/11/2026 - Alineación con RVDIES.PERSONACOORDINACION
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.math.BigDecimal;
 
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.NamedStoredProcedureQuery;
-import jakarta.persistence.ParameterMode;
-import jakarta.persistence.StoredProcedureParameter;
 import lombok.Getter;
 import lombok.Setter;
-
-@NamedStoredProcedureQuery(
-    name = "PersonaCoordinacionEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_PERSONACOORDINACION",
-    parameters = {
-        @StoredProcedureParameter(name = "P_PEGE_ID", mode = ParameterMode.IN, type = Long.class),
-        @StoredProcedureParameter(name = "P_COOR_ID", mode = ParameterMode.IN, type = Long.class),
-        @StoredProcedureParameter(name = "P_COOR_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
-        @StoredProcedureParameter(name = "P_EXITO", mode = ParameterMode.OUT, type = BigDecimal.class)
-    }
-)
 
 @Getter
 @Setter
 @Entity
-@IdClass(PersonaCoordinacionEntityId.class)
-@Table(name = "PERSONACOORDINACION", schema = "RVD")
+@Table(name = "PERSONACOORDINACION", schema = "RVDIES")
 public class PersonaCoordinacionEntity implements Serializable, Cloneable {
 
     @Id
-    @Column(name = "PEGE_ID", nullable = false)
-    private Long idPersonaGeneral;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "PECO_ID", nullable = false)
+    private Long id;
 
-    @Id
     @Column(name = "COOR_ID", nullable = false)
     private Long idCoordinacion;
 
-    @Column(name = "PECO_ESTADO")
-    private Long estado;
+    @Column(name = "PEGE_ID", nullable = false)
+    private Long idPersonaGeneral;
 
-    @Column(name = "COOR_REGISTRADOPOR")
+    @Column(name = "PECO_ESTADO")
+    private String estado;
+
+    @Column(name = "PRCO_REGISTRADOPOR")
     private String registradoPor;
 
-    @Column(name = "COOR_FECHACAMBIO")
+    @Column(name = "PRCO_FECHACAMBIO")
     private Date fechaCambio;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PEGE_ID", insertable = false, updatable = false)
-    private PersonaGeneralEntity personaGeneral;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "COOR_ID", insertable = false, updatable = false)
@@ -77,12 +62,11 @@ public class PersonaCoordinacionEntity implements Serializable, Cloneable {
 
     @Override
     public String toString() {
-        return "PersonaCoordinacionEntity{" +
-                "idPersonaGeneral=" + idPersonaGeneral +
-                ", idCoordinacion=" + idCoordinacion +
-                ", estado=" + estado +
-                ", registradoPor=" + registradoPor +
-                ", fechaCambio=" + fechaCambio +
-                '}';
+        return "PersonaCoordinacionEntity{"
+                + "id=" + id
+                + ", idCoordinacion=" + idCoordinacion
+                + ", idPersonaGeneral=" + idPersonaGeneral
+                + ", estado=" + estado
+                + '}';
     }
 }

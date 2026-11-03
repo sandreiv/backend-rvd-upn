@@ -6,23 +6,21 @@
  * Fecha de creación: 02/06/2026
  * Modificaciones:
  * 02/06/2026 - Sebastian Jaimes - Creación inicial
- * 09/09/2026 - Sebastian Jaimes - Campo CONV_CONTRATACION
+ * 03/11/2026 - Alineación con RVDIES.CONVOCATORIA
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.NamedStoredProcedureQuery;
 import jakarta.persistence.StoredProcedureParameter;
@@ -33,7 +31,7 @@ import lombok.Setter;
 
 @NamedStoredProcedureQuery(
     name = "ConvocatoriaEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_CONVOCATORIA",
+    procedureName = "RVDIES.PR_RVDIES_D_CONVOCATORIA",
     parameters = {
         @StoredProcedureParameter(name = "P_CONV_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_CONV_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -43,8 +41,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "CONVOCATORIA", schema = "RVD")
-public class ConvocatoriaEntity implements Serializable, Cloneable{
+@Table(name = "CONVOCATORIA", schema = "RVDIES")
+public class ConvocatoriaEntity implements Serializable, Cloneable {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "CONV_ID", nullable = false)
@@ -53,11 +52,8 @@ public class ConvocatoriaEntity implements Serializable, Cloneable{
     @Column(name = "PEUN_ID", nullable = false)
     private Long idPeriodoUniversidad;
 
-    @Column(name = "NIED_ID", nullable = false)
-    private Long idNivelEducativo;
-
-    @Column(name = "PEGE_IDAUTORIZA", nullable = false)
-    private Long idPersonaGeneral;
+    @Column(name = "CONV_IDRELACION")
+    private Long idRelacion;
 
     @Column(name = "CONV_NOMBRE")
     private String nombre;
@@ -68,33 +64,28 @@ public class ConvocatoriaEntity implements Serializable, Cloneable{
     @Column(name = "CONV_ESTADO")
     private String estado;
 
+    @Column(name = "CONV_FECHAINICIO")
+    private Date fechaInicio;
+
+    @Column(name = "CONV_FECHAFIN")
+    private Date fechaFin;
+
+    @Column(name = "CONV_ESINTERSEMESTRAL")
+    private String esIntersemestral;
+
     @Column(name = "CONV_REGISTRADOPOR")
     private String registradoPor;
 
     @Column(name = "CONV_FECHACAMBIO")
     private Date fechaCambio;
 
-    @Column(name = "CONV_IDRELACION")
-    private Long idRelacion;
-
-    @Column(name = "CONV_CONTRATACION")
-    private String contratacion;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CONV_IDRELACION", insertable = false, updatable = false)
-    private ConvocatoriaEntity relacion;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PEUN_ID", insertable = false, updatable = false)
     private PeriodoUniversidadEntity periodoUniversidad;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "NIED_ID", insertable = false, updatable = false)
-    private NivelEducativoEntity nivelEducativo;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PEGE_IDAUTORIZA", insertable = false, updatable = false)
-    private PersonaGeneralEntity personaAutoriza;
+    @JoinColumn(name = "CONV_IDRELACION", insertable = false, updatable = false)
+    private ConvocatoriaEntity relacion;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -103,18 +94,18 @@ public class ConvocatoriaEntity implements Serializable, Cloneable{
 
     @Override
     public String toString() {
-        return "ConvocatoriaEntity{" +
-                "id=" + id +
-                ", idPeriodoUniversidad=" + idPeriodoUniversidad +
-                ", idNivelEducativo=" + idNivelEducativo +
-                ", idPersonaGeneral=" + idPersonaGeneral +
-                ", nombre=" + nombre +
-                ", descripcion=" + descripcion +
-                ", estado=" + estado +
-                ", idRelacion=" + idRelacion +
-                ", contratacion=" + contratacion +
-                '}';
+        return "ConvocatoriaEntity{"
+                + "id=" + id
+                + ", idPeriodoUniversidad=" + idPeriodoUniversidad
+                + ", idRelacion=" + idRelacion
+                + ", nombre=" + nombre
+                + ", descripcion=" + descripcion
+                + ", estado=" + estado
+                + ", fechaInicio=" + fechaInicio
+                + ", fechaFin=" + fechaFin
+                + ", esIntersemestral=" + esIntersemestral
+                + '}';
     }
-
 }
-/* 02/06/2026 @:Sebastian Jaimes */
+
+/* 03/11/2026 @:Sebastian Jaimes */

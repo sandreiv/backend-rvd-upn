@@ -47,10 +47,8 @@ public interface DetalleCargaDocenteMapper {
     @Mapping(target = "registradoPor", ignore = true)
     @Mapping(target = "fechaCambio", ignore = true)
     @Mapping(target = "cargaDocente", ignore = true)
-    @Mapping(target = "programa", ignore = true)
-    @Mapping(target = "grupo", ignore = true)
-    @Mapping(target = "tipoActividad", ignore = true)
-    @Mapping(target = "centroCosto", ignore = true)
+    @Mapping(target = "personaProyecto", ignore = true)
+    @Mapping(target = "coordinacion", ignore = true)
     DetalleCargaDocenteEntity toEntity(
             Long idCargaDocente,
             DetalleCargaDocenteItemDTO detalle,

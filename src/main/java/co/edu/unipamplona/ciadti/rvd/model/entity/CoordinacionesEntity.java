@@ -6,33 +6,32 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
+ * 03/11/2026 - Alineación con RVDIES.COORDINACIONES
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
-import java.math.BigDecimal;
 
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.NamedStoredProcedureQuery;
 import jakarta.persistence.ParameterMode;
 import jakarta.persistence.StoredProcedureParameter;
 import lombok.Getter;
 import lombok.Setter;
+import java.math.BigDecimal;
 
 @NamedStoredProcedureQuery(
     name = "CoordinacionesEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_COORDINACIONES",
+    procedureName = "RVDIES.PR_RVDIES_D_COORDINACIONES",
     parameters = {
         @StoredProcedureParameter(name = "P_COOR_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_COOR_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -43,7 +42,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "COORDINACIONES", schema = "RVD")
+@Table(name = "COORDINACIONES", schema = "RVDIES")
 public class CoordinacionesEntity implements Serializable, Cloneable {
 
     @Id
@@ -51,35 +50,17 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     @Column(name = "COOR_ID", nullable = false)
     private Long id;
 
-    @Column(name = "COOR_IDPADRE")
-    private Long idCoordinacionPadre;
-
     @Column(name = "UNID_IDPADRE")
     private Long idUnidadPadre;
 
-    @Column(name = "UNID_IDREGIONAL")
-    private Long idRegional;
+    @Column(name = "UNID_IDREGIONAL", nullable = false)
+    private Long idUnidadRegional;
 
-    @Column(name = "UNID_IDAREA")
-    private Long idArea;
-
-    @Column(name = "METO_ID")
-    private Long idMetodologia;
-
-    @Column(name = "MODA_ID")
-    private Long idModalidad;
-
-    @Column(name = "COOR_NOMBRE")
-    private String nombre;
-
-    @Column(name = "COOR_DESCRIPCION")
-    private String descripcion;
+    @Column(name = "UNID_IDAREA", nullable = false)
+    private Long idUnidadArea;
 
     @Column(name = "COOR_ESACADEMICA")
     private String esAcademica;
-
-    @Column(name = "COOR_CODIGO")
-    private String codigo;
 
     @Column(name = "COOR_REGISTRADOPOR")
     private String registradoPor;
@@ -87,13 +68,18 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     @Column(name = "COOR_FECHACAMBIO")
     private Date fechaCambio;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "COOR_IDPADRE", referencedColumnName = "COOR_ID", insertable = false, updatable = false)
-    private CoordinacionesEntity coordinacionPadre;
+    @Column(name = "COOR_NOMBRE")
+    private String nombre;
+
+    @Column(name = "COOR_DESCRIPCION")
+    private String descripcion;
+
+    @Column(name = "COOR_IDPADRE")
+    private Long idCoordinacionPadre;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "UNID_IDPADRE", insertable = false, updatable = false)
-    private UnidadEntity unidadPadre;
+    @JoinColumn(name = "COOR_IDPADRE", insertable = false, updatable = false)
+    private CoordinacionesEntity coordinacionPadre;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "UNID_IDREGIONAL", insertable = false, updatable = false)
@@ -104,12 +90,8 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     private UnidadEntity unidadArea;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "METO_ID", insertable = false, updatable = false)
-    private MetodologiaEntity metodologia;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MODA_ID", insertable = false, updatable = false)
-    private ModalidadEntity modalidad;
+    @JoinColumn(name = "UNID_IDPADRE", insertable = false, updatable = false)
+    private UnidadEntity unidadPadre;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -118,21 +100,15 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
 
     @Override
     public String toString() {
-        return "CoordinacionesEntity{" +
-                "id=" + id +
-                ", idCoordinacionPadre=" + idCoordinacionPadre +
-                ", idUnidadPadre=" + idUnidadPadre +
-                ", idRegional=" + idRegional +
-                ", idArea=" + idArea +
-                ", idMetodologia=" + idMetodologia +
-                ", idModalidad=" + idModalidad +
-                ", nombre=" + nombre +
-                ", descripcion=" + descripcion +
-                ", esAcademica=" + esAcademica +
-                ", codigo=" + codigo +
-                ", registradoPor=" + registradoPor +
-                ", fechaCambio=" + fechaCambio +
-                '}';
+        return "CoordinacionesEntity{"
+                + "id=" + id
+                + ", idUnidadPadre=" + idUnidadPadre
+                + ", idUnidadRegional=" + idUnidadRegional
+                + ", idUnidadArea=" + idUnidadArea
+                + ", esAcademica=" + esAcademica
+                + ", nombre=" + nombre
+                + ", descripcion=" + descripcion
+                + ", idCoordinacionPadre=" + idCoordinacionPadre
+                + '}';
     }
-
 }

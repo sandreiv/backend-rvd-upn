@@ -6,20 +6,17 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
- * 20/07/2026 - Sebastian Jaimes - Campos monetarios a BigDecimal
- * 27/08/2026 - Andrés Hernández - Manejo de fechas locales
+ * 03/11/2026 - Alineación con RVDIES.CARGADOCENTE
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Date;
 
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,10 +27,11 @@ import jakarta.persistence.StoredProcedureParameter;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import jakarta.persistence.ManyToOne;
 
 @NamedStoredProcedureQuery(
     name = "CargaDocenteEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_CARGADOCENTE",
+    procedureName = "RVDIES.PR_RVDIES_D_CARGADOCENTE",
     parameters = {
         @StoredProcedureParameter(name = "P_CADO_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_CADO_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -43,7 +41,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "CARGADOCENTE", schema = "RVD")
+@Table(name = "CARGADOCENTE", schema = "RVDIES")
 public class CargaDocenteEntity implements Serializable, Cloneable {
 
     @Id
@@ -51,32 +49,23 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "CADO_ID", nullable = false)
     private Long id;
 
-    @Column(name = "CARG_ID")
-    private Long idCarga;
-
     @Column(name = "PEGE_ID")
     private Long idPersonaGeneral;
 
-    @Column(name = "MOCO_ID")
-    private Long idModalidadContratacion;
+    @Column(name = "TIVC_ID", nullable = false)
+    private Long idTipoVinculacionConvocatoria;
 
-    @Column(name = "CACA_ID")
+    @Column(name = "CACA_ID", nullable = false)
     private Long idCategoriaCatedratico;
 
-    @Column(name = "FECO_ID")
-    private Long idFechasConvocatoria;
-
-    @Column(name = "CADO_FECHANOVEDAD")
-    private Date fechaNovedad;
-
-    @Column(name = "CADO_OBSERVACIONNOVEDAD")
-    private String observacionNovedad;
+    @Column(name = "COOR_ID")
+    private Long idCoordinacion;
 
     @Column(name = "CADO_FECHAINICIO")
-    private LocalDate fechaInicio;
+    private Date fechaInicio;
 
     @Column(name = "CADO_FECHAFIN")
-    private LocalDate fechaFin;
+    private Date fechaFin;
 
     @Column(name = "CADO_VALORCONTRATO")
     private BigDecimal valorContrato;
@@ -96,9 +85,6 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "CADO_HORAS")
     private String horas;
 
-    @Column(name = "CADO_HORASDEEXCEPCION")
-    private String horasDeExcepcion;
-
     @Column(name = "CADO_VALORHORA")
     private BigDecimal valorHora;
 
@@ -108,23 +94,8 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "CADO_VALORPUNTO")
     private BigDecimal valorPunto;
 
-    @Column(name = "CADO_TOTALCONTRATO")
-    private BigDecimal totalContrato;
-
     @Column(name = "CADO_SEMANAS")
     private String semanas;
-
-    @Column(name = "CADO_NIVELFORMACION")
-    private String nivelFormacion;
-
-    @Column(name = "CADO_MOMENTO")
-    private String momento;
-
-    @Column(name = "CADO_ONCEMESES")
-    private String onceMeses;
-
-    @Column(name = "CADO_CREADOENNOVEDAD")
-    private String creadoEnNovedad;
 
     @Column(name = "CADO_REGISTRADOPOR")
     private String registradoPor;
@@ -132,25 +103,32 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "CADO_FECHACAMBIO")
     private Date fechaCambio;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CARG_ID", insertable = false, updatable = false)
-    private CargaEntity carga;
+    @Column(name = "CADO_TOTALCONTRATO")
+    private BigDecimal totalContrato;
+
+    @Column(name = "CADO_ONCEMESES")
+    private String onceMeses;
+
+    @Column(name = "CADO_ESNOVEDAD")
+    private String esNovedad;
+
+    @Column(name = "NOVE_ID")
+    private Long idNovedad;
+
+    @Column(name = "CADO_OBSERVACION")
+    private String observacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PEGE_ID", insertable = false, updatable = false)
-    private PersonaGeneralEntity personaGeneral;
+    @JoinColumn(name = "TIVC_ID", insertable = false, updatable = false)
+    private TipoVinculacionConvocatoriaEntity tipoVinculacionConvocatoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MOCO_ID", insertable = false, updatable = false)
-    private ModalidadContratacionEntity modalidadContratacion;
+    @JoinColumn(name = "COOR_ID", insertable = false, updatable = false)
+    private CoordinacionesEntity coordinacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CACA_ID", insertable = false, updatable = false)
-    private CategoriaCatedraticoEntity categoriaCatedratico;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "FECO_ID", insertable = false, updatable = false)
-    private FechasConvocatoriaEntity fechaConvocatoria;
+    @JoinColumn(name = "NOVE_ID", insertable = false, updatable = false)
+    private NovedadEntity novedad;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -159,35 +137,16 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
 
     @Override
     public String toString() {
-        return "CargaDocenteEntity{" +
-                "id=" + id +
-                ", idCarga=" + idCarga +
-                ", idPersonaGeneral=" + idPersonaGeneral +
-                ", idModalidadContratacion=" + idModalidadContratacion +
-                ", idCategoriaCatedratico=" + idCategoriaCatedratico +
-                ", idFechasConvocatoria=" + idFechasConvocatoria +
-                ", fechaNovedad=" + fechaNovedad +
-                ", observacionNovedad=" + observacionNovedad +
-                ", fechaInicio=" + fechaInicio +
-                ", fechaFin=" + fechaFin +
-                ", valorContrato=" + valorContrato +
-                ", valorPrestaciones=" + valorPrestaciones +
-                ", totalContrato=" + totalContrato +
-                ", salario=" + salario +
-                ", estado=" + estado +
-                ", vigente=" + vigente +
-                ", horas=" + horas +
-                ", horasDeExcepcion='" + horasDeExcepcion + '\'' +
-                ", valorHora=" + valorHora +
-                ", puntos=" + puntos +
-                ", valorPunto=" + valorPunto +
-                ", semanas=" + semanas +
-                ", nivelFormacion=" + nivelFormacion +
-                ", momento=" + momento +
-                ", onceMeses=" + onceMeses +
-                ", creadoEnNovedad=" + creadoEnNovedad +
-                ", registradoPor=" + registradoPor +
-                ", fechaCambio=" + fechaCambio +
-                '}';
+        return "CargaDocenteEntity{"
+                + "id=" + id
+                + ", idPersonaGeneral=" + idPersonaGeneral
+                + ", idTipoVinculacionConvocatoria=" + idTipoVinculacionConvocatoria
+                + ", idCategoriaCatedratico=" + idCategoriaCatedratico
+                + ", idCoordinacion=" + idCoordinacion
+                + ", estado=" + estado
+                + ", vigente=" + vigente
+                + ", esNovedad=" + esNovedad
+                + ", idNovedad=" + idNovedad
+                + '}';
     }
 }

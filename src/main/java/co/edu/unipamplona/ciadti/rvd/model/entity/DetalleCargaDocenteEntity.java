@@ -6,22 +6,21 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
+ * 03/11/2026 - Alineación con RVDIES.DETALLECARGADOCENTE
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.util.Date;
 
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,10 +28,11 @@ import lombok.Setter;
 import jakarta.persistence.NamedStoredProcedureQuery;
 import jakarta.persistence.ParameterMode;
 import jakarta.persistence.StoredProcedureParameter;
+import java.math.BigDecimal;
 
 @NamedStoredProcedureQuery(
     name = "DetalleCargaDocenteEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_DETALLECARGADOCENTE",
+    procedureName = "RVDIES.PR_RVDIES_D_DETALLECARGADOCENTE",
     parameters = {
         @StoredProcedureParameter(name = "P_DECD_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_DECD_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -42,7 +42,7 @@ import jakarta.persistence.StoredProcedureParameter;
 @Getter
 @Setter
 @Entity
-@Table(name = "DETALLECARGADOCENTE", schema = "RVD")
+@Table(name = "DETALLECARGADOCENTE", schema = "RVDIES")
 public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
 
     @Id
@@ -50,7 +50,7 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "DECD_ID", nullable = false)
     private Long id;
 
-    @Column(name = "CADO_ID")
+    @Column(name = "CADO_ID", nullable = false)
     private Long idCargaDocente;
 
     @Column(name = "PROG_ID")
@@ -59,14 +59,26 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "GRUP_ID")
     private Long idGrupo;
 
-    @Column(name = "TIAC_ID")
+    @Column(name = "TIAC_ID", nullable = false)
     private Long idTipoActividad;
 
     @Column(name = "CECO_ID")
     private Long idCentroCosto;
 
+    @Column(name = "PEPR_ID")
+    private Long idPersonaProyecto;
+
+    @Column(name = "MATE_CODIGOMATERIA")
+    private Long codigoMateria;
+
+    @Column(name = "COOR_ID")
+    private Long idCoordinacion;
+
     @Column(name = "DECD_HORAS")
     private String horas;
+
+    @Column(name = "DECD_DESCRIPCION")
+    private String descripcion;
 
     @Column(name = "DECD_REGISTRADOPOR")
     private String registradoPor;
@@ -79,20 +91,12 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
     private CargaDocenteEntity cargaDocente;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "PROG_ID", insertable = false, updatable = false)
-    private ProgramaEntity programa;
+    @JoinColumn(name = "PEPR_ID", insertable = false, updatable = false)
+    private PersonaProyectoEntity personaProyecto;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "GRUP_ID", insertable = false, updatable = false)
-    private GrupoEntity grupo;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "TIAC_ID", insertable = false, updatable = false)
-    private TipoActividadesEntity tipoActividad;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CECO_ID", insertable = false, updatable = false)
-    private CentroCostoEntity centroCosto;
+    @JoinColumn(name = "COOR_ID", insertable = false, updatable = false)
+    private CoordinacionesEntity coordinacion;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -101,16 +105,18 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
 
     @Override
     public String toString() {
-        return "DetalleCargaDocenteEntity{" +
-                "id=" + id +
-                ", idCargaDocente=" + idCargaDocente +
-                ", idPrograma=" + idPrograma +
-                ", idGrupo=" + idGrupo +
-                ", idTipoActividad=" + idTipoActividad +
-                ", idCentroCosto=" + idCentroCosto +
-                ", horas=" + horas +
-                ", registradoPor=" + registradoPor +
-                ", fechaCambio=" + fechaCambio +
-                '}';
+        return "DetalleCargaDocenteEntity{"
+                + "id=" + id
+                + ", idCargaDocente=" + idCargaDocente
+                + ", idPrograma=" + idPrograma
+                + ", idGrupo=" + idGrupo
+                + ", idTipoActividad=" + idTipoActividad
+                + ", idCentroCosto=" + idCentroCosto
+                + ", idPersonaProyecto=" + idPersonaProyecto
+                + ", codigoMateria=" + codigoMateria
+                + ", idCoordinacion=" + idCoordinacion
+                + ", horas=" + horas
+                + ", descripcion=" + descripcion
+                + '}';
     }
 }
