@@ -236,10 +236,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         int updated = convocatoriaRepository.update(
                 datos.nombre().trim(),
                 datos.descripcion().trim(),
-                datos.autoriza().id(),
                 datos.periodo().id(),
-                datos.nivelEducativo().id(),
-                normalizeParam(datos.contratacion()),
                 new Date(),
                 id);
         if (updated == 0) {

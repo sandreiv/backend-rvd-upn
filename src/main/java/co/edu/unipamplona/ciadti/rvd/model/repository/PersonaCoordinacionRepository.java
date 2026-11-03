@@ -10,20 +10,16 @@
 
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
-import org.springframework.data.repository.query.Param;
 
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.PersonaCoordinacionEntity;
-import co.edu.unipamplona.ciadti.rvd.model.entity.PersonaCoordinacionEntityId;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaCoordinacionListadoProjection;
 
-public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoordinacionEntity, PersonaCoordinacionEntityId> {
+public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoordinacionEntity, Long> {
 
     @Query(value = """
             SELECT
@@ -51,15 +47,6 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
             ORDER BY PECO.PEGE_ID, COOR.COOR_ID
             """, nativeQuery = true)
     List<PersonaCoordinacionListadoProjection> findAdministrationList();
-
-
-
-    @Procedure(name = "PersonaCoordinacionEntity.deleteByProcedure")
-    BigDecimal deleteByProcedure(
-            @Param("P_PEGE_ID") Long idPersonaGeneral,
-            @Param("P_COOR_ID") Long idCoordinacion,
-            @Param("P_COOR_REGISTRADOPOR") String registradoPor
-    );
 }
 
 /* 17/07/2026 @:Daniel Arias */

@@ -1,11 +1,9 @@
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.PersonaProyectoEntity;
@@ -98,10 +96,4 @@ public interface PersonaProyectoRepository
     boolean existsByIdAndIdProyecto(Long id, Long idProyecto);
 
     boolean existsByIdProyecto(Long idProyecto);
-
-    @Procedure(name = "PersonaProyectoEntity.deleteByProcedure")
-    BigDecimal deleteByProcedure(
-            @Param("P_PEPR_ID") Long id,
-            @Param("P_PEPR_REGISTRADOPOR") String registradoPor
-    );
 }

@@ -250,20 +250,14 @@ public interface ConvocatoriaRepository extends JpaRepository<ConvocatoriaEntity
             update ConvocatoriaEntity c set
             c.nombre = :nombre,
             c.descripcion = :descripcion,
-            c.idPersonaGeneral = :idPersonaGeneral,
             c.idPeriodoUniversidad = :idPeriodoUniversidad,
-            c.idNivelEducativo = :idNivelEducativo,
-            c.contratacion = :contratacion,
             c.fechaCambio = :fechaCambio
             where c.id = :id
             """)
     int update(
             @Param("nombre") String nombre,
             @Param("descripcion") String descripcion,
-            @Param("idPersonaGeneral") Long idPersonaGeneral,
             @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
-            @Param("idNivelEducativo") Long idNivelEducativo,
-            @Param("contratacion") String contratacion,
             @Param("fechaCambio") Date fechaCambio,
             @Param("id") Long id);
 

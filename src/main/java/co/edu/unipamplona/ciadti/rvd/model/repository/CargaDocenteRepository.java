@@ -188,20 +188,6 @@ public interface CargaDocenteRepository extends JpaRepository<CargaDocenteEntity
             @Param("P_CADO_ID") Long id,
             @Param("P_CADO_REGISTRADOPOR") String registradoPor);
 
-    boolean existsByIdPersonaGeneralAndIdCargaAndIdModalidadContratacionAndIdFechasConvocatoria(
-            Long idPersonaGeneral, Long idCarga, Long idModalidadContratacion, Long idFechasConvocatoria);
-
-    boolean existsByIdCarga(Long idCarga);    
-
-
-
-    boolean existsByIdPersonaGeneralAndIdCargaAndIdModalidadContratacion(
-            Long idPersonaGeneral, Long idCarga, Long idModalidadContratacion);
-
-    List<CargaDocenteEntity> findByIdCargaAndOnceMeses(Long idCarga, String onceMeses);
-
-    List<CargaDocenteEntity> findByIdCarga(Long idCarga);
-
     @Query(value = """
             SELECT CADO.*
             FROM RVD.CARGADOCENTE CADO
@@ -1093,10 +1079,6 @@ public interface CargaDocenteRepository extends JpaRepository<CargaDocenteEntity
     findEffectivePlantProfessorsByCarga(
             @Param("idCarga") Long idCarga
     );
-
-    boolean existsByIdPersonaGeneralAndIdCargaAndIdModalidadContratacionIsNull(
-            Long idPersonaGeneral,
-            Long idCarga);
 
     @Query(value = """
             WITH NOVEDADES_VALIDAS AS (

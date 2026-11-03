@@ -9,12 +9,10 @@
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.ProyectosEntity;
@@ -77,15 +75,5 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
     List<ProyectosListaProjection> findProductsByParentProjectId(
             @Param("idProyecto") Long idProyecto);
 
-    boolean existsByIdTipoProyecto(Long idTipoProyecto);
-
-    boolean existsByIdConvocatoriaProyectos(Long idConvocatoriaProyectos);
-
     boolean existsByIdProyectoPadre(Long idProyectoPadre);
-
-    @Procedure(name = "ProyectosEntity.deleteByProcedure")
-    BigDecimal deleteByProcedure(
-            @Param("P_PROY_ID") Long id,
-            @Param("P_PROY_REGISTRADOPOR") String registradoPor
-    );
 }

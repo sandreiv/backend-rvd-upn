@@ -23,7 +23,7 @@ public interface UnidadRepository extends JpaRepository<UnidadEntity, Long> {
 
     @Query("""
             SELECT u FROM UnidadEntity u
-            INNER JOIN CoordinacionesEntity c ON u.id = c.idRegional
+            INNER JOIN CoordinacionesEntity c ON u.id = c.idUnidadRegional
             WHERE c.id = :idCoordinacion
                 AND u.regional = '1'
             ORDER BY u.nombre
