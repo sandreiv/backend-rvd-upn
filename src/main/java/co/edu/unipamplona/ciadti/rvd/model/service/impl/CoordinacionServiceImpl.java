@@ -97,15 +97,7 @@ public class CoordinacionServiceImpl implements CoordinacionService {
         boolean coordinador = hasRole(user, ROL_COORDINADOR);
         boolean decano = hasRole(user, ROL_DECANO);
         boolean desarrollo = hasRole(user, ROL_DESARROLLO);
-        log.debug(
-                "findCoordinationsByIdConvocatoria ===> Listando coordinaciones. idConvocatoria={}, idPeriodoUniversidad={}, idPersona={}, coordinador={}, decano={}, desarrollo={}",
-                idConvocatoria,
-                idPeriodoUniversidad,
-                idPersona,
-                coordinador,
-                decano,
-                desarrollo
-        );
+
 
         validateListadoFiltros(idConvocatoria, idPeriodoUniversidad);
         List<CoordinacionListadoProjection> projections = new ArrayList<>();
@@ -114,9 +106,7 @@ public class CoordinacionServiceImpl implements CoordinacionService {
         }
 
         List<CoordinacionDTO> result = coordinacionMapper.toDtoList(projections);
-        log.info(
-                "findCoordinationsByIdConvocatoria ===> Coordinaciones listadas. idConvocatoria={}, idPeriodoUniversidad={}, total={}",
-                idConvocatoria, idPeriodoUniversidad, result.size());
+
         return result;
     }
 

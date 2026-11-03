@@ -75,8 +75,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
     @Override
     @Transactional
     public List<ConvocatoriaDTO> findCallListWithDates(Long idPeriodoUniversidad) {
-        log.debug("Listando convocatorias con fechas. idPeriodoUniversidad={}",
-                idPeriodoUniversidad);
 
         convocatoriaEstadoService.syncEstadosConvocatoriasConRestricciones();
 
@@ -86,33 +84,25 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 .map(this::toListDtoAndSyncEstado)
                 .collect(Collectors.toList());
 
-        log.info("Convocatorias listadas. periodo={}, total={}",
-                idPeriodoUniversidad, result.size());
+
         return result;
     }
 
     @Override
     @Transactional
     public List<ConvocatoriaDTO> findCallListByFirstPeriodByYear(Long year) {
-        log.debug("findCallListByFirstPeriodByYear ===> Listando convocatorias. year={}, periodo=1", year);
-
         convocatoriaEstadoService.syncEstadosConvocatoriasConRestricciones();
-
         List<ConvocatoriaDTO> result = convocatoriaRepository
                 .findCallListByFirstPeriodByYear(year)
                 .stream()
                 .map(this::toListDtoAndSyncEstado)
                 .collect(Collectors.toList());
-
-        log.info("findCallListByFirstPeriodByYear ===> Convocatorias listadas. year={}, total={}", year, result.size());
         return result;
     }
 
     @Override
     @Transactional
     public List<ConvocatoriaDTO> findPreassignmentCallListByPeriod(Long idPeriodoUniversidad) {
-        log.debug("findPreassignmentCallListByPeriod ===> Listando preasignaciones. idPeriodoUniversidad={}",
-                idPeriodoUniversidad);
 
         convocatoriaEstadoService.syncEstadosConvocatoriasConRestricciones();
 
@@ -122,16 +112,13 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 .map(this::toListDtoAndSyncEstado)
                 .collect(Collectors.toList());
 
-        log.info("findPreassignmentCallListByPeriod ===> Preasignaciones listadas. periodo={}, total={}",
-                idPeriodoUniversidad, result.size());
         return result;
     }
 
     @Override
     @Transactional
     public List<ConvocatoriaDTO> findHiringCallListByPeriod(Long idPeriodoUniversidad) {
-        log.debug("findHiringCallListByPeriod ===> Listando convocatorias de contratación. idPeriodoUniversidad={}",
-                idPeriodoUniversidad);
+
 
         convocatoriaEstadoService.syncEstadosConvocatoriasConRestricciones();
 
@@ -141,8 +128,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 .map(this::toListDtoAndSyncEstado)
                 .collect(Collectors.toList());
 
-        log.info("findHiringCallListByPeriod ===> Convocatorias de contratación listadas. periodo={}, total={}",
-                idPeriodoUniversidad, result.size());
         return result;
     }
 
@@ -164,17 +149,15 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
 
     @Override
     public List<PersonaAutorizaConvocatoriaDTO> searchGeneralPerson(String nombre, String documento) {
-        log.debug("Buscando persona autoriza. nombre={}, documento={}", nombre, documento);
+
         String nombreParam = normalizeParam(nombre);
         String documentoParam = normalizeParam(documento);
         if (nombreParam == null && documentoParam == null) {
-            log.debug("Búsqueda de persona sin criterios. Se retorna lista vacía");
             return Collections.emptyList();
         }
         List<PersonaAutorizaConvocatoriaDTO> result = personaAutorizaConvocatoriaMapper.toDtoList(
                         personaGeneralRepository.searchGeneralPerson(
                                 nombreParam, documentoParam));
-        log.info("Personas autoriza encontradas. total={}", result.size());
         return result;
     }
 
@@ -182,8 +165,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
     @Transactional
     public void save(ConvocatoriaFormularioDTO dto) {
         ConvocatoriaDatosInsertarDTO datos = dto.convocatoriaDatosInsertar();
-        log.info("Creando convocatoria. nombre={}, periodoId={}",
-                datos.nombre(), datos.periodo().id());
+        
         if (datos.id() != null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La convocatoria no debe incluir id al crear");
         }
@@ -196,7 +178,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         convocatoria.setFechaCambio(new Date());
         convocatoria.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
         Long convId = convocatoriaRepository.save(convocatoria).getId();
-        log.info("Convocatoria creada. id={}", convId);
+        
 
         if (dto.fechas() != null) {
             for (FechasConvocatoriaFormularioDTO fecha : dto.fechas()) {
@@ -246,7 +228,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
     @Override
     @Transactional
     public void update(Long id, ConvocatoriaFormularioDTO dto) {
-        log.info("Actualizando convocatoria id={}", id);
         ConvocatoriaDatosInsertarDTO datos = dto.convocatoriaDatosInsertar();
         if (datos.id() == null || !datos.id().equals(id)) {
             throw new ApiException(HttpStatus.BAD_REQUEST,  "El id de la convocatoria no coincide con la ruta");
@@ -262,7 +243,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 new Date(),
                 id);
         if (updated == 0) {
-            log.warn("Convocatoria no encontrada al actualizar. id={}", id);
             throw new ApiException(HttpStatus.NOT_FOUND,  "Convocatoria no encontrada");
         }
 
@@ -370,13 +350,11 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                             .deleteByIdConvocatoriaTipoContratacion(cotc.getId());
                     convocatoriaTipoContratacionRepository.deleteById(cotc.getId());
                 });
-        log.info("Convocatoria actualizada. id={}", id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ConvocatoriaFormularioDTO findCallDetail(Long id) {
-        log.debug("Consultando detalle de convocatoria id={}", id);
         ConvocatoriaEntity convocatoria = convocatoriaRepository.findConvocatoriaByIdNative(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Convocatoria no encontrada"));
         
         return new ConvocatoriaFormularioDTO(
@@ -399,7 +377,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
 
     @Override
     public void delete(Long id, ConvocatoriaFormularioDTO dto) {
-        log.info("Eliminando convocatoria id={}", id);
         ConvocatoriaDatosInsertarDTO datos = dto.convocatoriaDatosInsertar();
         if (datos.id() == null || !datos.id().equals(id)) {
             throw new ApiException(HttpStatus.NOT_FOUND,  "El id de la convocatoria no existe");
@@ -414,14 +391,11 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
             }
             convocatoriaTipoContratacionRepository.deleteByProcedure(cotc.id(), "REGISTRO_WEB");
         }
-        log.info("Convocatoria eliminada id={}", id);
     }
 
     @Override
     @Transactional
     public void bulkDelete(List<ConvocatoriaFormularioDTO> listaConvocatorias) {
-        log.info("Eliminación masiva de convocatorias. total={}",
-                listaConvocatorias != null ? listaConvocatorias.size() : 0);
         for(ConvocatoriaFormularioDTO dto : listaConvocatorias) {
             delete(dto.convocatoriaDatosInsertar().id(), dto);
         }
@@ -429,8 +403,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
 
     @Override
     public List<ConvocatoriaDTO> findActivePreloadCalls(Long idPeriodoUniversidad) {
-        log.debug("findActivePreloadCalls ===> Consultando convocatorias activas. idPeriodoUniversidad={}",
-                idPeriodoUniversidad);
+
 
         if (idPeriodoUniversidad == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El periodo universitario es obligatorio");
@@ -442,17 +415,12 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 .map(this::toPreloadCallListDto)
                 .collect(Collectors.toList());
 
-        log.info("findActivePreloadCalls ===> Convocatorias activas consultadas. periodo={}, total={}",
-                idPeriodoUniversidad, result.size());
-
         return result;
     }
 
     @Override
     public List<ConvocatoriaDTO> findAssignableActivePreloadCalls(Long idPeriodoUniversidad) {
-        log.debug(
-                "findAssignableActivePreloadCalls ===> Consultando convocatorias asignables. idPeriodoUniversidad={}",
-                idPeriodoUniversidad);
+
 
         if (idPeriodoUniversidad == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El periodo universitario es obligatorio");
@@ -466,9 +434,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 .map(this::toPreloadCallListDto)
                 .collect(Collectors.toList());
 
-        log.info(
-                "findAssignableActivePreloadCalls ===> Convocatorias asignables consultadas. periodo={}, total={}",
-                idPeriodoUniversidad, result.size());
 
         return result;
     }
@@ -498,7 +463,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
     @Override
     @Transactional
     public void updateRelation(Long idConvocatoria, Long idRelacion) {
-        log.info("updateRelation ===> Relacionando convocatoria. idConvocatoria={}, idRelacion={}", idConvocatoria, idRelacion);
 
         if (!convocatoriaRepository.existsById(idConvocatoria)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
@@ -517,16 +481,11 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         if (updated == 0) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
         }
-
-        log.info("updateRelation ===> Relación actualizada. idConvocatoria={}, idRelacion={}", idConvocatoria, idRelacionResuelto);
     }
 
     @Override
     @Transactional
     public void updatePreassignmentRelation(Long idConvocatoria, Long idRelacion) {
-        log.info("updatePreassignmentRelation ===> Relacionando contratación. idConvocatoria={}, idRelacion={}",
-                idConvocatoria, idRelacion);
-
         ConvocatoriaEntity convocatoria = convocatoriaRepository.findById(idConvocatoria)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -540,9 +499,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         if (updated == 0) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Convocatoria no encontrada");
         }
-
-        log.info("updatePreassignmentRelation ===> Relación actualizada. idConvocatoria={}, idRelacion={}",
-                idConvocatoria, idRelacionResuelto);
     }
 
     private Long resolveIdRelacion(Long idRelacion, Long idConvocatoriaActual) {
@@ -598,13 +554,6 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         return idRelacion;
     }
 
-    private boolean isConvocatoriaContratacion(String contratacion) {
-        return "1".equals(contratacion);
-    }
-
-    private boolean isConvocatoriaPreasignacion(String contratacion) {
-        return contratacion == null || "0".equals(contratacion);
-    }
 
 }
 
