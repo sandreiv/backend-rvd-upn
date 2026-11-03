@@ -1,6 +1,6 @@
 /**
  * Aplicación: rvd
- * Archivo: CoordinacionServiceImpl.java
+ * Archivo: CargaServiceImpl.java
  * Paquete: co.edu.unipamplona.ciadti.rvd.controller
  * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
  * Fecha de creación: 10/06/2026
@@ -62,8 +62,9 @@ import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaCoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionListadoProjection;
-import co.edu.unipamplona.ciadti.rvd.model.service.CoordinacionService;
+import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ConvocatoriaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +72,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CoordinacionServiceImpl implements CoordinacionService {
+public class CargaServiceImpl implements CargaService {
 
     private static final String ROL_COORDINADOR = "Coordinador";
     private static final String ROL_DECANO = "Decano";
@@ -82,6 +83,8 @@ public class CoordinacionServiceImpl implements CoordinacionService {
 
     private final CoordinacionRepository coordinacionRepository;
 
+    private final PersonaCoordinacionRepository personaCoordinacionRepository;
+
     private final ConvocatoriaRepository convocatoriaRepository;
 
     private final CoordinacionMapper coordinacionMapper;
@@ -89,25 +92,24 @@ public class CoordinacionServiceImpl implements CoordinacionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CoordinacionDTO> findCoordinationsByIdConvocatoria(
-            Long idConvocatoria,
-            Long idPeriodoUniversidad) {
-        AuthUserDetails user = requireListadoUser();
-        Long idPersona = user.getIdPersonaGeneral();
-        boolean coordinador = hasRole(user, ROL_COORDINADOR);
-        boolean decano = hasRole(user, ROL_DECANO);
-        boolean desarrollo = hasRole(user, ROL_DESARROLLO);
-
-
-        validateListadoFiltros(idConvocatoria, idPeriodoUniversidad);
-        List<CoordinacionListadoProjection> projections = new ArrayList<>();
-        if (coordinador) {
-            projections.addAll(listForCoordinador(idConvocatoria, idPeriodoUniversidad, idPersona));
+    public List<CoordinacionDTO> findCoordinationsByPerson(Long idConvocatoria, Long idPeriodoUniversidad) {
+        if (idPeriodoUniversidad == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El periodo universitario es obligatorio");
         }
-
-        List<CoordinacionDTO> result = coordinacionMapper.toDtoList(projections);
-
-        return result;
+        Long idPersona;
+        try {
+            idPersona = SecurityUtils.requireIdPersona();
+        } catch (IllegalStateException ex) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        }
+        if (idConvocatoria != null
+                && !convocatoriaRepository.existsByIdAndIdPeriodoUniversidad(idConvocatoria, idPeriodoUniversidad)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "La convocatoria no pertenece al periodo indicado");
+        }
+    
+        return coordinacionMapper.toDtoList(
+                personaCoordinacionRepository.findActiveByPersonAndCall(
+                        idPersona, idPeriodoUniversidad, idConvocatoria));
     }
 
 

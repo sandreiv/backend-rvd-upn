@@ -18,17 +18,19 @@ import co.edu.unipamplona.ciadti.rvd.util.FechasConvocatoriaCalculator;
 public interface ConvocatoriaMapper {
 
     @Mapping(source = "convocatoria.id", target = "id")
+    @Mapping(source = "convocatoria.idPeriodoUniversidad", target = "idPeriodoUniversidad")
     @Mapping(source = "convocatoria.descripcion", target = "descripcion")
     @Mapping(source = "convocatoria.nombre", target = "nombre")
     @Mapping(source = "convocatoria.idRelacion", target = "idRelacion")
+    @Mapping(source = "convocatoria.esIntersemestral", target = "esIntersemestral")
+    @Mapping(source = "convocatoria.fechaInicio", target = "fechaInicio")
+    @Mapping(source = "convocatoria.fechaFin", target = "fechaFin")
     @Mapping(target = "contratacion", ignore = true)
     @Mapping(
             source = "periodo",
             target = "periodoUniversidad",
             qualifiedByName = "formatPeriodoUniversidad")
     @Mapping(source = "nivel.descripcion", target = "nivelEducativo")
-    @Mapping(source = "fechaCnv.fechaInicio", target = "fechaInicio")
-    @Mapping(source = "fechaCnv.fechaFin", target = "fechaFin")
     @Mapping(
             source = "autoriza.personaNaturalGeneral",
             target = "nombreCompleto",

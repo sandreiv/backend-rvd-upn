@@ -36,10 +36,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
 import co.edu.unipamplona.ciadti.rvd.model.service.ConvocatoriaPrecargaService;
-import co.edu.unipamplona.ciadti.rvd.model.service.CoordinacionService;
-import co.edu.unipamplona.ciadti.rvd.model.service.ModalidadContratacionService;
+import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
 import co.edu.unipamplona.ciadti.rvd.model.service.PeriodoUniversidadService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -51,29 +51,16 @@ import lombok.RequiredArgsConstructor;
 public class LoadController {
 
     private final ConvocatoriaPrecargaService convocatoriaPrecargaService;
-    private final CoordinacionService coordinacionService;
-    private final ModalidadContratacionService modalidadContratacionService;
     private final PeriodoUniversidadService periodoUniversidadService;
+    private final CargaService cargaService;
     
     @Operation(
-        summary = "Obtiene las convocatorias de precarga activas",
-        description = "Obtiene las convocatorias de preasignación activas del periodo (CONV_CONTRATACION nulo o 0)"
+        summary = "Obtiene las convocatorias activas",
+        description = "Obtiene las convocatorias."
     )
-    @GetMapping("/list-active-preload-calls") 
-    public ResponseEntity<?> listActivePreloadCalls(@RequestParam Long idPeriodoUniversidad) throws Exception {
-        List<ConvocatoriaDTO> activePreloadCalls = convocatoriaPrecargaService.findActivePreloadCalls(idPeriodoUniversidad);
-        return new ResponseEntity<>(activePreloadCalls, HttpStatus.OK);
-    }
-
-    @Operation(
-        summary = "Obtiene las convocatorias activas asignables",
-        description = "Obtiene las convocatorias activas del periodo sin restricciones vigentes para asignación libre"
-    )
-    @GetMapping("/list-assignable-preload-calls")
-    public ResponseEntity<?> listAssignablePreloadCalls(@RequestParam Long idPeriodoUniversidad) throws Exception {
-        List<ConvocatoriaDTO> activePreloadCalls = convocatoriaPrecargaService.findAssignableActivePreloadCalls(idPeriodoUniversidad);
-
-        return new ResponseEntity<>(activePreloadCalls, HttpStatus.OK);
+    @GetMapping("/list-active-calls")
+    public ResponseEntity<List<ConvocatoriaDTO>> listActivePreloadCalls(@RequestParam Long idPeriodoUniversidad) {
+        return ResponseEntity.ok(convocatoriaPrecargaService.findActivePreloadCalls(idPeriodoUniversidad));
     }
 
     @Operation(
@@ -87,27 +74,15 @@ public class LoadController {
     }
 
     @Operation(
-        summary = "Obtiene la lista de coordinaciones",
+        summary = "Obtiene las coordinaciones de la persona",
         description = """
-            Identidad y roles salen del JWT (idPersona + roles del bootstrap).
-            Coordinador: sus coordinaciones en PERSONACOORDINACION.
-            Decano: coordinaciones hijas de sus facultades, carga INSCRITO.
-            Desarrollo academico: APROBADO DECANO, o AVAL DESARROLLO
-            con al menos un docente en NOVEDADCARGADOCENTE
-            (NOCD_ESTADONOVEDAD = 0).
-            Sin idConvocatoria: requiere idPeriodoUniversidad.
-            La carga incluye valor (CARG_VALOR) y valorAutorizado
-            (CARG_VALORAUTORIZADO).
+            idPersona sale del JWT. Devuelve las coordinaciones activas de RVDIES.PERSONACOORDINACION.
+            idPeriodoUniversidad es obligatorio. idConvocatoria, si se envía, debe pertenecer a ese periodo.
             """
     )
     @GetMapping("/list")
-    public ResponseEntity<?> listCoordinations(
-            @RequestParam(required = false) Long idConvocatoria,
-            @RequestParam(required = false) Long idPeriodoUniversidad) throws Exception {
-        //List<CoordinacionDTO> coordinations = coordinacionService.findCoordinationsByIdConvocatoria(idConvocatoria, idPeriodoUniversidad);
-        return new ResponseEntity<>(HttpStatus.OK);
-        //return new ResponseEntity<>(coordinations, HttpStatus.OK);
-
+    public ResponseEntity<List<CoordinacionDTO>> listCoordinations(@RequestParam(required = false) Long idConvocatoria, @RequestParam Long idPeriodoUniversidad) {
+        return ResponseEntity.ok(cargaService.findCoordinationsByPerson(idConvocatoria, idPeriodoUniversidad));
     }
 
 }

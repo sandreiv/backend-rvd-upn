@@ -409,7 +409,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         List<ConvocatoriaDTO> result = convocatoriaRepository
                 .findActivePreloadCalls(idPeriodoUniversidad)
                 .stream()
-                .map(this::toPreloadCallListDto)
+                .map(this::toActiveCallDto)
                 .collect(Collectors.toList());
 
         return result;
@@ -433,6 +433,23 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
 
 
         return result;
+    }
+
+    private ConvocatoriaDTO toActiveCallDto(ConvocatoriaEntity convocatoria) {
+        return new ConvocatoriaDTO(
+                convocatoria.getId(),
+                convocatoria.getIdPeriodoUniversidad(),
+                convocatoria.getIdRelacion(),
+                convocatoria.getNombre(),
+                convocatoria.getDescripcion(),
+                convocatoria.getEstado(),
+                convocatoria.getFechaInicio(),
+                convocatoria.getFechaFin(),
+                convocatoria.getEsIntersemestral(),
+                null,
+                null,
+                null,
+                null);
     }
 
     private ConvocatoriaDTO toPreloadCallListDto(ConvocatoriaEntity convocatoria) {

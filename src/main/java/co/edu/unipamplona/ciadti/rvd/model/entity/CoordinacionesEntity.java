@@ -68,19 +68,6 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     @Column(name = "COOR_FECHACAMBIO")
     private Date fechaCambio;
 
-    @Column(name = "COOR_NOMBRE")
-    private String nombre;
-
-    @Column(name = "COOR_DESCRIPCION")
-    private String descripcion;
-
-    @Column(name = "COOR_IDPADRE")
-    private Long idCoordinacionPadre;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "COOR_IDPADRE", insertable = false, updatable = false)
-    private CoordinacionesEntity coordinacionPadre;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "UNID_IDREGIONAL", insertable = false, updatable = false)
     private UnidadEntity unidadRegional;
@@ -106,9 +93,6 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
                 + ", idUnidadRegional=" + idUnidadRegional
                 + ", idUnidadArea=" + idUnidadArea
                 + ", esAcademica=" + esAcademica
-                + ", nombre=" + nombre
-                + ", descripcion=" + descripcion
-                + ", idCoordinacionPadre=" + idCoordinacionPadre
                 + '}';
     }
 }

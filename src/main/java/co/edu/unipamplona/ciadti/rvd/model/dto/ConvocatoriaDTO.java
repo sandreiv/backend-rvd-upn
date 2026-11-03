@@ -14,15 +14,17 @@ import java.util.Date;
 
 public record ConvocatoriaDTO(
     Long id,
+    Long idPeriodoUniversidad,
+    Long idRelacion,
     String nombre,
     String descripcion,
-    String periodoUniversidad,
-    String nivelEducativo,
+    String estado,
     Date fechaInicio,
     Date fechaFin,
+    String esIntersemestral,
+    String periodoUniversidad,
+    String nivelEducativo,
     String nombreCompleto,
-    String estado,
-    Long idRelacion,
     String contratacion
 ) {}
 /* 03/06/2026 @:Sebastian Jaimes */

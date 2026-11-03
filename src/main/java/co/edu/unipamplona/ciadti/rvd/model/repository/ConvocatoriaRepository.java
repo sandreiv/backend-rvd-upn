@@ -286,19 +286,18 @@ public interface ConvocatoriaRepository extends JpaRepository<ConvocatoriaEntity
             SELECT
                 CONV.CONV_ID,
                 CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
+                CONV.CONV_IDRELACION,
                 CONV.CONV_NOMBRE,
                 CONV.CONV_DESCRIPCION,
                 CONV.CONV_ESTADO,
+                CONV.CONV_FECHAINICIO,
+                CONV.CONV_FECHAFIN,
+                CONV.CONV_ESINTERSEMESTRAL,
                 CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
+                CONV.CONV_FECHACAMBIO
+            FROM RVDIES.CONVOCATORIA CONV
             WHERE CONV.CONV_ESTADO = '1'
             AND CONV.PEUN_ID = :idPeriodoUniversidad
-            AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
             ORDER BY CONV.CONV_ID
             """, nativeQuery = true)
     List<ConvocatoriaEntity> findActivePreloadCalls(
