@@ -21,8 +21,9 @@ public interface TipoVinculacionMapper {
     default TipoVinculacionListaDTO toListaDto(TipoVinculacionListaProjection projection) {
         return new TipoVinculacionListaDTO(
                 projection.getId(),
+                projection.getEstado(),
                 new TipoVinculacionDTO(
-                        projection.getEstado(),
+                        null,
                         projection.getIdClasificacionDocente(),
                         projection.getIdDedicacionDocente(),
                         projection.getMinimo(),
