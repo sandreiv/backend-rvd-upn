@@ -13,161 +13,51 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.CoordinacionesEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CatalogoAdministracionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionAdministracionListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionListadoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPersonaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ResumenSolicitudCdpProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CdpContextProjection;
 
 public interface CoordinacionRepository extends JpaRepository<CoordinacionesEntity, Long> {
-
     @Query(value = """
             SELECT
-                COOR.COOR_ID AS idCoordinacion,
-                COOR.COOR_NOMBRE AS nombreCoordinacion,
-                COOR.COOR_DESCRIPCION AS descripcionCoordinacion,
-                COOR.COOR_CODIGO AS codigo,
-                COOR.COOR_ESACADEMICA AS esAcademica,
+                COOR.COOR_ID AS id,
                 UNID_REG.UNID_ID AS idUnidadRegional,
                 UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
                 UNID_AREA.UNID_ID AS idUnidadArea,
                 UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
-                METO.METO_ID AS idMetodologia,
-                METO.METO_DESCRIPCION AS descripcionMetodologia,
-                MODA.MODA_ID AS idModalidad,
-                MODA.MODA_DESCRIPCION AS descripcionModalidad,
+                UNID_PADRE.UNID_ID AS idUnidadAreaPadre,
+                UNID_PADRE.UNID_NOMBRE AS nombreUnidadAreaPadre,
+                COOR.COOR_ESACADEMICA AS esAcademica,
                 CONV.CONV_ID AS idConvocatoria,
                 CONV.CONV_NOMBRE AS nombreConvocatoria,
                 CONV.CONV_DESCRIPCION AS descripcionConvocatoria,
                 CONV.CONV_ESTADO AS estadoConvocatoria,
-                NIED.NIED_ID AS idNivelEducativo,
-                NIED.NIED_DESCRIPCION AS descripcionNivelEducativo,
                 PEUN.PEUN_ID AS idPeriodoUniversidad,
                 PEUN.PEUN_ANO AS anioPeriodo,
-                PEUN.PEUN_PERIODO AS descripcionPeriodo,
-                CARG.CARG_ID AS idCarga,
-                CARG.CARG_VALOR AS valor,
-                CARG.CARG_VALORAUTORIZADO AS valorAutorizado,
-                ESCA.ESCA_ID AS idEstadoCarga,
-                ESCA.ESCA_NOMBRE AS nombreEstadoCarga,
-                ESCA.ESCA_DESCRIPCION AS descripcionEstadoCarga,
-                MOCO.MOCO_ID AS idModalidadContratacion,
-                MOCO.MOCO_NOMBRE AS nombreModalidadContratacion,
-                CECO.CECO_ID AS idCentroCosto,
-                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
-
-                CASE
-                    WHEN ESCA.ESCA_NOMBRE <> 'REGISTRADO' THEN '0'
-                    WHEN NOT EXISTS (
-                        SELECT 1
-                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ANY
-                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ANY
-                            ON FECO_ANY.FECO_ID = REXC_ANY.FECO_ID
-                        WHERE FECO_ANY.CONV_ID = CONV.CONV_ID
-                        AND REXC_ANY.REXC_ESTADO = '1'
-                        AND TRUNC(REXC_ANY.REXC_FECHAFIN) >= TRUNC(SYSDATE)
-                    ) THEN '1'
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ALLOWED
-                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ALLOWED
-                            ON FECO_ALLOWED.FECO_ID = REXC_ALLOWED.FECO_ID
-                        WHERE FECO_ALLOWED.CONV_ID = CONV.CONV_ID
-                        AND REXC_ALLOWED.COOR_ID = COOR.COOR_ID
-                        AND REXC_ALLOWED.REXC_ESTADO = '1'
-                        AND TRUNC(SYSDATE) BETWEEN TRUNC(REXC_ALLOWED.REXC_FECHAINICIO)
-                                                AND TRUNC(REXC_ALLOWED.REXC_FECHAFIN)
-                    ) THEN '1'
-                    ELSE '0'
-                END AS canEditPreassignment,
-
-                CASE
-                    WHEN ESCA.ESCA_NOMBRE <> 'REGISTRADO' THEN 'READ_ONLY'
-                    WHEN NOT EXISTS (
-                        SELECT 1
-                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ANY
-                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ANY
-                            ON FECO_ANY.FECO_ID = REXC_ANY.FECO_ID
-                        WHERE FECO_ANY.CONV_ID = CONV.CONV_ID
-                        AND REXC_ANY.REXC_ESTADO = '1'
-                        AND TRUNC(REXC_ANY.REXC_FECHAFIN) >= TRUNC(SYSDATE)
-                    ) THEN 'NORMAL_ACTIVE'
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ALLOWED
-                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ALLOWED
-                            ON FECO_ALLOWED.FECO_ID = REXC_ALLOWED.FECO_ID
-                        WHERE FECO_ALLOWED.CONV_ID = CONV.CONV_ID
-                        AND REXC_ALLOWED.COOR_ID = COOR.COOR_ID
-                        AND REXC_ALLOWED.REXC_ESTADO = '1'
-                        AND TRUNC(SYSDATE) BETWEEN TRUNC(REXC_ALLOWED.REXC_FECHAINICIO)
-                                                AND TRUNC(REXC_ALLOWED.REXC_FECHAFIN)
-                    ) THEN 'RESTRICTED_ALLOWED'
-                    ELSE 'READ_ONLY'
-                END AS editionMode,
-
-                CASE
-                    WHEN ESCA.ESCA_NOMBRE <> 'REGISTRADO' THEN 'La coordinación no está habilitada para edición en esta convocatoria.'
-                    WHEN NOT EXISTS (
-                        SELECT 1
-                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ANY
-                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ANY
-                            ON FECO_ANY.FECO_ID = REXC_ANY.FECO_ID
-                        WHERE FECO_ANY.CONV_ID = CONV.CONV_ID
-                        AND REXC_ANY.REXC_ESTADO = '1'
-                        AND TRUNC(REXC_ANY.REXC_FECHAFIN) >= TRUNC(SYSDATE)
-                    ) THEN CAST(NULL AS VARCHAR2(4000))
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM RVD.RESTRICCIONXCOORDINACION REXC_ALLOWED
-                        INNER JOIN RVD.FECHASCONVOCATORIA FECO_ALLOWED
-                            ON FECO_ALLOWED.FECO_ID = REXC_ALLOWED.FECO_ID
-                        WHERE FECO_ALLOWED.CONV_ID = CONV.CONV_ID
-                        AND REXC_ALLOWED.COOR_ID = COOR.COOR_ID
-                        AND REXC_ALLOWED.REXC_ESTADO = '1'
-                        AND TRUNC(SYSDATE) BETWEEN TRUNC(REXC_ALLOWED.REXC_FECHAINICIO)
-                                                AND TRUNC(REXC_ALLOWED.REXC_FECHAFIN)
-                    ) THEN CAST(NULL AS VARCHAR2(4000))
-                    ELSE 'La convocatoria tiene restricción activa y esta coordinación no está habilitada para edición en las fechas permitidas.'
-                END AS editBlockReason
-            FROM RVD.CONVOCATORIA CONV
-            INNER JOIN ACADEMICO.NIVELEDUCATIVO NIED
-                ON NIED.NIED_ID = CONV.NIED_ID
+                PEUN.PEUN_PERIODO AS periodo
+            FROM RVDIES.CONVOCATORIA CONV
             INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
                 ON PEUN.PEUN_ID = CONV.PEUN_ID
-            LEFT JOIN RVD.CONVOCATORIATIPOCONTRATACION COTC
-                ON COTC.CONV_ID = CONV.CONV_ID
-            LEFT JOIN CONTRATOS.MODALIDADCONTRATACION MOCO
-                ON MOCO.MOCO_ID = COTC.MOCO_ID
-            INNER JOIN RVD.CARGA CARG
-                ON CARG.CONV_ID = CONV.CONV_ID
-            INNER JOIN RVD.ESTADOCARGA ESCA
-                ON ESCA.ESCA_ID = CARG.ESCA_ID
-            INNER JOIN RVD.COORDINACIONES COOR
-                ON COOR.COOR_ID = CARG.COOR_ID
-            INNER JOIN ACADEMICO.UNIDAD UNID_REG
-                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
-            INNER JOIN ACADEMICO.UNIDAD UNID_AREA
-                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
-            INNER JOIN ACADEMICO.METODOLOGIA METO
-                ON METO.METO_ID = COOR.METO_ID
-            INNER JOIN ACADEMICO.MODALIDAD MODA
-                ON MODA.MODA_ID = COOR.MODA_ID
-            INNER JOIN RVD.PERSONACOORDINACION PECO
+            INNER JOIN RVDIES.PERSONACOORDINACION PECO
+                ON PECO.PEGE_ID = :idPersona
+                AND NVL(PECO.PECO_ESTADO, '1') = '1'
+            INNER JOIN RVDIES.COORDINACIONES COOR
                 ON COOR.COOR_ID = PECO.COOR_ID
-            LEFT JOIN RVD.ASIGNARCENTROCOSTO ASCC
-                ON ASCC.COOR_ID = COOR.COOR_ID
-            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
-                ON CECO.CECO_ID = ASCC.CECO_ID
-            WHERE CONV.CONV_ID = :convId
-            AND PECO.PEGE_ID = :idPersonaGeneral
-            AND CONV.CONV_ESTADO = '1'
-            ORDER BY
-                UNID_REG.UNID_NOMBRE,
-                UNID_AREA.UNID_NOMBRE,
-                COOR.COOR_NOMBRE,
-                MOCO.MOCO_NOMBRE
+            LEFT JOIN ACADEMICO.UNIDAD UNID_REG
+                ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN ACADEMICO.UNIDAD UNID_PADRE
+                ON UNID_PADRE.UNID_ID = COOR.UNID_IDPADRE
+            WHERE CONV.PEUN_ID = :idPeriodoUniversidad
+                AND CONV.CONV_ESTADO = '1'
+                AND CONV.CONV_ID = NVL(:idConvocatoria, CONV.CONV_ID)
+            ORDER BY COOR.COOR_ID, CONV.CONV_ID
             """, nativeQuery = true)
-    List<CoordinacionListadoProjection> findByConvocatoriaWithCarga(
-            @Param("convId") Long convId,
-            @Param("idPersonaGeneral") Long idPersonaGeneral);
+    List<CoordinacionPersonaProjection> findByConvocatoriaWithCarga(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
+            @Param("idConvocatoria") Long idConvocatoria,
+            @Param("idPersona") Long idPersona);
 
     @Query(value = """
             SELECT
@@ -1285,8 +1175,6 @@ public interface CoordinacionRepository extends JpaRepository<CoordinacionesEnti
     List<CoordinacionAdministracionListadoProjection> findAdministrationChildCoordinations(
             @Param("idPadre") Long idPadre
     );
-
-    boolean existsByIdCoordinacionPadre(Long idCoordinacionPadre);
 
     @Query(value = """
             SELECT DISTINCT

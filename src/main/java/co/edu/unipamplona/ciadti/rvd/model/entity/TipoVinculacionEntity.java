@@ -50,6 +50,12 @@ public class TipoVinculacionEntity implements Serializable, Cloneable {
     @Column(name = "TIVI_TIPOCONTRATO")
     private String tipoContrato;
 
+    @Column(name = "TIVI_ESPLANTA")
+    private Integer esPlanta;
+
+    @Column(name = "TIVI_TIPOHORAS")
+    private String tipoHoras;
+
     @Column(name = "TIVI_REGISTRADOPOR")
     private String registradoPor;
 
@@ -71,6 +77,8 @@ public class TipoVinculacionEntity implements Serializable, Cloneable {
                 + ", maximo=" + maximo
                 + ", formaPago=" + formaPago
                 + ", tipoContrato=" + tipoContrato
+                + ", esPlanta=" + esPlanta
+                + ", tipoHoras=" + tipoHoras
                 + '}';
     }
 }

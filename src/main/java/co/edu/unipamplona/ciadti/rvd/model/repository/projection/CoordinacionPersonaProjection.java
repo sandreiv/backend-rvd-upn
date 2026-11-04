@@ -4,8 +4,6 @@ public interface CoordinacionPersonaProjection {
 
     Long getId();
 
-    Long getIdUnidadPadre();
-
     Long getIdUnidadRegional();
 
     String getNombreUnidadRegional();
@@ -13,6 +11,10 @@ public interface CoordinacionPersonaProjection {
     Long getIdUnidadArea();
 
     String getNombreUnidadArea();
+
+    Long getIdUnidadAreaPadre();
+
+    String getNombreUnidadAreaPadre();
 
     String getEsAcademica();
 

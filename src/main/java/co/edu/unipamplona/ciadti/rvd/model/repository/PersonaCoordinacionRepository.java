@@ -52,11 +52,12 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
     @Query(value = """
             SELECT
                 COOR.COOR_ID AS id,
-                COOR.UNID_IDPADRE AS idUnidadPadre,
                 UNID_REG.UNID_ID AS idUnidadRegional,
                 UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
                 UNID_AREA.UNID_ID AS idUnidadArea,
                 UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
+                UNID_PADRE.UNID_ID AS idUnidadAreaPadre,
+                UNID_PADRE.UNID_NOMBRE AS nombreUnidadAreaPadre,
                 COOR.COOR_ESACADEMICA AS esAcademica,
                 CONV.CONV_ID AS idConvocatoria,
                 CONV.CONV_NOMBRE AS nombreConvocatoria,
@@ -72,6 +73,8 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
                 ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
             LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN ACADEMICO.UNIDAD UNID_PADRE
+                ON UNID_PADRE.UNID_ID = COOR.UNID_IDPADRE
             LEFT JOIN RVDIES.CONVOCATORIA CONV
                 ON CONV.PEUN_ID = :idPeriodoUniversidad
                 AND CONV.CONV_ESTADO = '1'

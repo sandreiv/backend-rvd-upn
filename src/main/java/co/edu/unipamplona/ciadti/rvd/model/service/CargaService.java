@@ -12,13 +12,14 @@ import java.util.List;
 
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListaDTO;
 
 
 public interface CargaService {
 
-    List<CoordinacionDTO> findCoordinationsByPerson(
-            Long idConvocatoria,
-            Long idPeriodoUniversidad);
+    List<CoordinacionDTO> findCoordinationsByPerson(Long idConvocatoria, Long idPeriodoUniversidad);
+
+    List<TipoVinculacionListaDTO> findLinkageTypesByCall(Long idConvocatoria);
 
 
     

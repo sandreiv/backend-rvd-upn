@@ -26,9 +26,9 @@ public interface CoordinacionMapper {
     default CoordinacionDTO toDto(CoordinacionPersonaProjection projection) {
         return new CoordinacionDTO(
                 projection.getId(),
-                projection.getIdUnidadPadre(),
                 toUnidad(projection.getIdUnidadRegional(), projection.getNombreUnidadRegional()),
                 toUnidad(projection.getIdUnidadArea(), projection.getNombreUnidadArea()),
+                toUnidad(projection.getIdUnidadAreaPadre(), projection.getNombreUnidadAreaPadre()),
                 projection.getEsAcademica(),
                 toConvocatoria(projection));
     }
