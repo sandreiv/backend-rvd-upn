@@ -6,7 +6,11 @@ public interface TipoVinculacionListaProjection {
 
     Long getIdClasificacionDocente();
 
+    String getDescripcionClasificacionDocente();
+
     Long getIdDedicacionDocente();
+
+    String getDescripcionDedicacionDocente();
 
     String getMinimo();
 

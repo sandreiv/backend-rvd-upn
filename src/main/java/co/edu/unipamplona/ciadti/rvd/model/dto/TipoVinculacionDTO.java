@@ -10,17 +10,4 @@ public record TipoVinculacionDTO(
         String tipoContrato,
         Integer esPlanta,
         String tipoHoras
-) {
-    public TipoVinculacionDTO(
-            Long id,
-            Long idClasificacionDocente,
-            Long idDedicacionDocente,
-            String minimo,
-            String maximo,
-            String formaPago,
-            String tipoContrato,
-            String tipoHoras
-    ) {
-        this(id, idClasificacionDocente, idDedicacionDocente, minimo, maximo, formaPago, tipoContrato, null, tipoHoras);
-    }
-}
+) {}

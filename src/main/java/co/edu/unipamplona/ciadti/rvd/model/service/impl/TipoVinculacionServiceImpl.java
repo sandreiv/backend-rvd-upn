@@ -39,6 +39,7 @@ public class TipoVinculacionServiceImpl implements TipoVinculacionService {
                         t.getMaximo(),
                         t.getFormaPago(),
                         t.getTipoContrato(),
+                        t.getEsPlanta(),
                         t.getTipoHoras()
                 ))
                 .toList();
@@ -67,6 +68,7 @@ public class TipoVinculacionServiceImpl implements TipoVinculacionService {
                 saved.getMaximo(),
                 saved.getFormaPago(),
                 saved.getTipoContrato(),
+                saved.getEsPlanta(),
                 saved.getTipoHoras()
         );
     }

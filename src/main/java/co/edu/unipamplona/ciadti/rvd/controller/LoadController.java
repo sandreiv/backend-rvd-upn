@@ -73,10 +73,11 @@ public class LoadController {
     @Operation(
         summary = "Lista los tipos de vinculación de una convocatoria",
         description = """
-            Une RVDIES.TIPOVINCULACIONCONVOCATORIA con RVDIES.TIPOVINCULACION por CONV_ID.
-            La respuesta es TipoVinculacionListadoDTO: tipoVinculaciones trae cada TIVI_ID
-            con clasificación, dedicación, mínimos, máximos, forma de pago, tipo de contrato,
-            si es de planta y tipo de horas.
+            Une RVDIES.TIPOVINCULACIONCONVOCATORIA con RVDIES.TIPOVINCULACION por CONV_ID
+            y trae ACADEMICO.CLASIFICACIONDOCENTE y ACADEMICO.DEDICACIONDOCENTE.
+            La respuesta es TipoVinculacionListadoDTO. Cada ítem es TipoVinculacionesDTO:
+            clasificacionDocente y dedicacionDocente incluyen id y descripcion, además de
+            mínimos, máximos, forma de pago, tipo de contrato, si es de planta y tipo de horas.
             """
     )
     @GetMapping("/list-linkage-types")
