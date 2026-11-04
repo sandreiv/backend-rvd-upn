@@ -41,6 +41,56 @@ public interface ConvocatoriaRepository extends JpaRepository<ConvocatoriaEntity
     BigDecimal deleteByProcedure(@Param("P_CONV_ID") Long id, @Param("P_CONV_REGISTRADOPOR") String registradoPor);
 
     boolean existsByIdAndIdPeriodoUniversidad(Long id, Long idPeriodoUniversidad);
+    @Query(value = """
+            SELECT
+                CONV.CONV_ID,
+                CONV.PEUN_ID,
+                CONV.CONV_IDRELACION,
+                CONV.CONV_NOMBRE,
+                CONV.CONV_DESCRIPCION,
+                CONV.CONV_ESTADO,
+                CONV.CONV_FECHAINICIO,
+                CONV.CONV_FECHAFIN,
+                CONV.CONV_ESINTERSEMESTRAL,
+                CONV.CONV_REGISTRADOPOR,
+                CONV.CONV_FECHACAMBIO
+            FROM RVDIES.CONVOCATORIA CONV
+            WHERE CONV.CONV_ESTADO = '1'
+            AND CONV.PEUN_ID = :idPeriodoUniversidad
+            ORDER BY CONV.CONV_ID
+            """, nativeQuery = true)
+    List<ConvocatoriaEntity> findActivePreloadCalls(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+
+    @Query(value = """
+            SELECT
+                CONV.CONV_ID,
+                CONV.PEUN_ID,
+                CONV.NIED_ID,
+                CONV.PEGE_IDAUTORIZA,
+                CONV.CONV_NOMBRE,
+                CONV.CONV_DESCRIPCION,
+                CONV.CONV_ESTADO,
+                CONV.CONV_REGISTRADOPOR,
+                CONV.CONV_FECHACAMBIO,
+                CONV.CONV_IDRELACION,
+                CONV.CONV_CONTRATACION
+            FROM RVD.CONVOCATORIA CONV
+            WHERE CONV.CONV_ESTADO = '1'
+            AND CONV.PEUN_ID = :idPeriodoUniversidad
+            AND NOT EXISTS (
+                SELECT 1
+                FROM RVD.RESTRICCIONXCOORDINACION REXC
+                INNER JOIN RVD.FECHASCONVOCATORIA FECO
+                    ON FECO.FECO_ID = REXC.FECO_ID
+                WHERE FECO.CONV_ID = CONV.CONV_ID
+                    AND REXC.REXC_ESTADO = '1'
+                    AND TRUNC(REXC.REXC_FECHAFIN) >= TRUNC(SYSDATE)
+            )
+            ORDER BY CONV.CONV_ID
+            """, nativeQuery = true)
+    List<ConvocatoriaEntity> findAssignableActivePreloadCalls(
+            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
 
     @Query(value = "SELECT * FROM RVDIES.FECHASCONVOCATORIA WHERE CONV_ID = :id AND FECO_CODIGO = 'CNV'", nativeQuery = true)
     FechasConvocatoriaEntity findFechaCnvByConvocatoriaId(@Param("id") Long id);

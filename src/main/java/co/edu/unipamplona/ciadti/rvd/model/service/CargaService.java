@@ -1,6 +1,6 @@
 /**
  * Aplicación: rvd
- * Archivo: CoordinacionService.java
+ * Archivo: CargaService.java
  * Paquete: co.edu.unipamplona.ciadti.rvd.controller
  * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
  * Fecha de creación: 10/06/2026
@@ -12,13 +12,14 @@ import java.util.List;
 
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListaDTO;
 
 
-public interface CoordinacionService {
+public interface CargaService {
 
-    List<CoordinacionDTO> findCoordinationsByIdConvocatoria(
-            Long idConvocatoria,
-            Long idPeriodoUniversidad);
+    List<CoordinacionDTO> findCoordinationsByPerson(Long idConvocatoria, Long idPeriodoUniversidad);
+
+    List<TipoVinculacionListaDTO> findLinkageTypesByCall(Long idConvocatoria);
 
 
     
