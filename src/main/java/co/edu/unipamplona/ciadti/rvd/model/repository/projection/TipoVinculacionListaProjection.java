@@ -4,11 +4,13 @@ public interface TipoVinculacionListaProjection {
 
     Long getId();
 
-    String getEstado();
-
     Long getIdClasificacionDocente();
 
+    String getDescripcionClasificacionDocente();
+
     Long getIdDedicacionDocente();
+
+    String getDescripcionDedicacionDocente();
 
     String getMinimo();
 
