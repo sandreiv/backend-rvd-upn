@@ -1,12 +1,3 @@
-/**
- * Aplicación: rvd
- * Archivo: PeriodoUniversidadDTO.java
- * Paquete: co.edu.unipamplona.ciadti.rvd.model.dto
- * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
- * Fecha de creación: 05/06/2026
- * Modificaciones:
- * 05/06/2026 - Sebastian Jaimes - Creación inicial
- */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
@@ -17,11 +8,15 @@ public record PeriodoUniversidadDTO(
     @JsonProperty("anio")
     @JsonAlias({"ano", "PEUN_ANO"})
     Long anio,
-    String periodo
+    String periodo,
+    String codigoPeriodo
 ) {
+    public PeriodoUniversidadDTO(Long id, Long anio, String periodo) {
+        this(id, anio, periodo, null);
+    }
+
     @JsonProperty("ano")
     public Long ano() {
         return anio;
     }
 }
-/* 05/06/2026 @:Sebastian Jaimes */

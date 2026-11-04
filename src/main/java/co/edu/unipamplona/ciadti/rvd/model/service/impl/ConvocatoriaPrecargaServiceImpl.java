@@ -14,11 +14,14 @@ import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.ConvocatoriaMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoExtensionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.ConvocatoriaEntity;
+import co.edu.unipamplona.ciadti.rvd.model.entity.PeriodoExtensionEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PeriodoUniversidadEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionConvocatoriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ConvocatoriaRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.PeriodoExtensionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PeriodoUniversidadRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionConvocatoriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.service.ConvocatoriaPrecargaService;
@@ -36,6 +39,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
     private final ConvocatoriaMapper convocatoriaMapper;
     private final PeriodoUniversidadRepository periodoUniversidadRepository;
     private final TipoVinculacionConvocatoriaRepository tipoVinculacionConvocatoriaRepository;
+    private final PeriodoExtensionRepository periodoExtensionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,8 +50,8 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                     .collect(Collectors.toList());
         }
         return convocatoriaRepository.findAllByOrderByIdDesc().stream()
-                .map(convocatoriaMapper::toListDto)
-                .collect(Collectors.toList());
+                    .map(convocatoriaMapper::toListDto)
+                    .collect(Collectors.toList());
     }
 
     @Override
@@ -80,6 +84,7 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
         Long convId = convocatoriaRepository.save(convocatoria).getId();
 
         guardarVinculaciones(convId, dto.vinculaciones());
+        guardarPeriodosExtension(convId, dto.periodosExtension());
     }
 
     @Override
@@ -105,6 +110,9 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
 
         tipoVinculacionConvocatoriaRepository.deleteByIdConvocatoria(id);
         guardarVinculaciones(id, dto.vinculaciones());
+
+        periodoExtensionRepository.deleteByIdConvocatoria(id);
+        guardarPeriodosExtension(id, dto.periodosExtension());
     }
 
     private void guardarVinculaciones(Long convId, List<TipoVinculacionConvocatoriaDTO> vinculaciones) {
@@ -119,6 +127,21 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
             entity.setFechaCambio(new Date());
             entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
             tipoVinculacionConvocatoriaRepository.save(entity);
+        }
+    }
+
+    private void guardarPeriodosExtension(Long convId, List<PeriodoExtensionDTO> periodosExtension) {
+        if (periodosExtension == null || periodosExtension.isEmpty()) {
+            return;
+        }
+        for (PeriodoExtensionDTO pe : periodosExtension) {
+            if (pe.idPeriodoUniversidad() == null) continue;
+            PeriodoExtensionEntity entity = new PeriodoExtensionEntity();
+            entity.setIdConvocatoria(convId);
+            entity.setIdPeriodoUniversidad(pe.idPeriodoUniversidad());
+            entity.setFechaCambio(new Date());
+            entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
+            periodoExtensionRepository.save(entity);
         }
     }
 
@@ -138,6 +161,21 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 ))
                 .toList();
 
+        List<PeriodoExtensionDTO> periodosExtension = periodoExtensionRepository
+                .findByIdConvocatoriaWithPeriodo(id).stream()
+                .map(p -> new PeriodoExtensionDTO(
+                        p.getId(),
+                        p.getIdPeriodoUniversidad(),
+                        p.getPeriodoUniversidad() != null
+                                ? ((p.getPeriodoUniversidad().getAno() != null ? p.getPeriodoUniversidad().getAno() : "")
+                                        + " - " + p.getPeriodoUniversidad().getPeriodo()
+                                        + (p.getPeriodoUniversidad().getCodigoPeriodo() != null && !p.getPeriodoUniversidad().getCodigoPeriodo().isBlank()
+                                                ? " (" + p.getPeriodoUniversidad().getCodigoPeriodo() + ")"
+                                                : ""))
+                                : null
+                ))
+                .toList();
+
         return new ConvocatoriaFormularioDTO(
                 convocatoria.getId(),
                 convocatoria.getIdPeriodoUniversidad(),
@@ -148,13 +186,15 @@ public class ConvocatoriaPrecargaServiceImpl implements ConvocatoriaPrecargaServ
                 convocatoria.getFechaFin(),
                 convocatoria.getEstado(),
                 convocatoria.getEsIntersemestral(),
-                vinculaciones
+                vinculaciones,
+                periodosExtension
         );
     }
 
     @Override
     @Transactional
     public void delete(Long id, ConvocatoriaFormularioDTO dto) {
+        periodoExtensionRepository.deleteByIdConvocatoria(id);
         tipoVinculacionConvocatoriaRepository.deleteByIdConvocatoria(id);
         convocatoriaRepository.deleteById(id);
     }

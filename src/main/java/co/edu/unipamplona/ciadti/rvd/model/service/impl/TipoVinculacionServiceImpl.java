@@ -39,6 +39,7 @@ public class TipoVinculacionServiceImpl implements TipoVinculacionService {
                         t.getMaximo(),
                         t.getFormaPago(),
                         t.getTipoContrato(),
+                        t.getEsPlanta(),
                         t.getTipoHoras()
                 ))
                 .toList();
@@ -55,6 +56,7 @@ public class TipoVinculacionServiceImpl implements TipoVinculacionService {
         entity.setFormaPago(dto.formaPago());
         entity.setTipoContrato(dto.tipoContrato());
         entity.setTipoHoras(dto.tipoHoras() != null ? dto.tipoHoras().trim().toUpperCase() : null);
+        entity.setEsPlanta(dto.esPlanta() != null ? dto.esPlanta() : 0);
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
         entity.setFechaCambio(new Date());
 
@@ -67,6 +69,7 @@ public class TipoVinculacionServiceImpl implements TipoVinculacionService {
                 saved.getMaximo(),
                 saved.getFormaPago(),
                 saved.getTipoContrato(),
+                saved.getEsPlanta(),
                 saved.getTipoHoras()
         );
     }

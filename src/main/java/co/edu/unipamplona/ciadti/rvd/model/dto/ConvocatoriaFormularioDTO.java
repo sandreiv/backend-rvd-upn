@@ -13,5 +13,21 @@ public record ConvocatoriaFormularioDTO(
     LocalDate fechaFin,
     String estado,
     String esIntersemestral,
-    List<TipoVinculacionConvocatoriaDTO> vinculaciones
-) {}
+    List<TipoVinculacionConvocatoriaDTO> vinculaciones,
+    List<PeriodoExtensionDTO> periodosExtension
+) {
+    public ConvocatoriaFormularioDTO(
+        Long id,
+        Long idPeriodoUniversidad,
+        Long idRelacion,
+        String nombre,
+        String descripcion,
+        LocalDate fechaInicio,
+        LocalDate fechaFin,
+        String estado,
+        String esIntersemestral,
+        List<TipoVinculacionConvocatoriaDTO> vinculaciones
+    ) {
+        this(id, idPeriodoUniversidad, idRelacion, nombre, descripcion, fechaInicio, fechaFin, estado, esIntersemestral, vinculaciones, null);
+    }
+}
