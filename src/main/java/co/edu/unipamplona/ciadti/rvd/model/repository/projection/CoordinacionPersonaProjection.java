@@ -12,6 +12,8 @@ public interface CoordinacionPersonaProjection {
 
     String getNombreUnidadArea();
 
+    Long getIdCoordinacionPadre();
+
     Long getIdUnidadAreaPadre();
 
     String getNombreUnidadAreaPadre();

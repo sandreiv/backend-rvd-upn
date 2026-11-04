@@ -50,8 +50,8 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     @Column(name = "COOR_ID", nullable = false)
     private Long id;
 
-    @Column(name = "UNID_IDPADRE")
-    private Long idUnidadPadre;
+    @Column(name = "COOR_IDPADRE")
+    private Long idCoordinacionPadre;
 
     @Column(name = "UNID_IDREGIONAL", nullable = false)
     private Long idUnidadRegional;
@@ -77,8 +77,8 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     private UnidadEntity unidadArea;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "UNID_IDPADRE", insertable = false, updatable = false)
-    private UnidadEntity unidadPadre;
+    @JoinColumn(name = "COOR_IDPADRE", insertable = false, updatable = false)
+    private CoordinacionesEntity coordinacionPadre;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -89,7 +89,7 @@ public class CoordinacionesEntity implements Serializable, Cloneable {
     public String toString() {
         return "CoordinacionesEntity{"
                 + "id=" + id
-                + ", idUnidadPadre=" + idUnidadPadre
+                + ", idCoordinacionPadre=" + idCoordinacionPadre
                 + ", idUnidadRegional=" + idUnidadRegional
                 + ", idUnidadArea=" + idUnidadArea
                 + ", esAcademica=" + esAcademica

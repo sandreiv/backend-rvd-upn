@@ -61,6 +61,7 @@ public class LoadController {
         summary = "Obtiene las coordinaciones de la persona",
         description = """
             idPersona sale del JWT. Devuelve las coordinaciones activas de RVDIES.PERSONACOORDINACION.
+            unidadAreaPadre es el área de la coordinación padre (COOR_IDPADRE).
             idPeriodoUniversidad es obligatorio. idConvocatoria, si se envía, debe pertenecer a ese periodo.
             """
     )

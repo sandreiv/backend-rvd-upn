@@ -25,8 +25,9 @@ public interface CoordinacionRepository extends JpaRepository<CoordinacionesEnti
                 UNID_REG.UNID_NOMBRE AS nombreUnidadRegional,
                 UNID_AREA.UNID_ID AS idUnidadArea,
                 UNID_AREA.UNID_NOMBRE AS nombreUnidadArea,
-                UNID_PADRE.UNID_ID AS idUnidadAreaPadre,
-                UNID_PADRE.UNID_NOMBRE AS nombreUnidadAreaPadre,
+                COOR.COOR_IDPADRE AS idCoordinacionPadre,
+                UNID_AREA_PADRE.UNID_ID AS idUnidadAreaPadre,
+                UNID_AREA_PADRE.UNID_NOMBRE AS nombreUnidadAreaPadre,
                 COOR.COOR_ESACADEMICA AS esAcademica,
                 CONV.CONV_ID AS idConvocatoria,
                 CONV.CONV_NOMBRE AS nombreConvocatoria,
@@ -47,8 +48,10 @@ public interface CoordinacionRepository extends JpaRepository<CoordinacionesEnti
                 ON UNID_REG.UNID_ID = COOR.UNID_IDREGIONAL
             LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
-            LEFT JOIN ACADEMICO.UNIDAD UNID_PADRE
-                ON UNID_PADRE.UNID_ID = COOR.UNID_IDPADRE
+            LEFT JOIN RVDIES.COORDINACIONES COOR_PADRE
+                ON COOR_PADRE.COOR_ID = COOR.COOR_IDPADRE
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA_PADRE
+                ON UNID_AREA_PADRE.UNID_ID = COOR_PADRE.UNID_IDAREA
             WHERE CONV.PEUN_ID = :idPeriodoUniversidad
                 AND CONV.CONV_ESTADO = '1'
                 AND CONV.CONV_ID = NVL(:idConvocatoria, CONV.CONV_ID)
