@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.service.ConvocatoriaPrecargaService;
 import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
 import co.edu.unipamplona.ciadti.rvd.model.service.PeriodoUniversidadService;
@@ -74,11 +74,13 @@ public class LoadController {
         summary = "Lista los tipos de vinculación de una convocatoria",
         description = """
             Une RVDIES.TIPOVINCULACIONCONVOCATORIA con RVDIES.TIPOVINCULACION por CONV_ID.
-            El id de cada ítem es TIVC_ID. Incluye tipo de horas y si es de planta.
+            La respuesta es TipoVinculacionListadoDTO: tipoVinculaciones trae cada TIVI_ID
+            con clasificación, dedicación, mínimos, máximos, forma de pago, tipo de contrato,
+            si es de planta y tipo de horas.
             """
     )
     @GetMapping("/list-linkage-types")
-    public ResponseEntity<List<TipoVinculacionListaDTO>> listLinkageTypes(@RequestParam Long idConvocatoria) {
+    public ResponseEntity<TipoVinculacionListadoDTO> listLinkageTypes(@RequestParam Long idConvocatoria) {
         return ResponseEntity.ok(cargaService.findLinkageTypesByCall(idConvocatoria));
     }
 

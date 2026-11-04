@@ -14,8 +14,7 @@ public interface TipoVinculacionConvocatoriaRepository extends JpaRepository<Tip
 
     @Query(value = """
             SELECT
-                TIVC.TIVC_ID AS id,
-                TIVC.TIVC_ESTADO AS estado,
+                TIVI.TIVI_ID AS id,
                 TIVI.CLDO_ID AS idClasificacionDocente,
                 TIVI.DEDO_ID AS idDedicacionDocente,
                 TIVI.TIVI_MINIMO AS minimo,
@@ -28,7 +27,7 @@ public interface TipoVinculacionConvocatoriaRepository extends JpaRepository<Tip
             INNER JOIN RVDIES.TIPOVINCULACION TIVI
                 ON TIVI.TIVI_ID = TIVC.TIVI_ID
             WHERE TIVC.CONV_ID = :idConvocatoria
-            ORDER BY TIVC.TIVC_ID
+            ORDER BY TIVI.TIVI_ID
             """, nativeQuery = true)
     List<TipoVinculacionListaProjection> findByIdConvocatoria(
             @Param("idConvocatoria") Long idConvocatoria);

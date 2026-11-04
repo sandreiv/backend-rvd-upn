@@ -20,7 +20,7 @@ import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.TipoVinculacionMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionConvocatoriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPersonaProjection;
@@ -76,7 +76,7 @@ public class CargaServiceImpl implements CargaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TipoVinculacionListaDTO> findLinkageTypesByCall(Long idConvocatoria) {
+    public TipoVinculacionListadoDTO findLinkageTypesByCall(Long idConvocatoria) {
         if (idConvocatoria == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La convocatoria es obligatoria");
         }
@@ -84,7 +84,7 @@ public class CargaServiceImpl implements CargaService {
             throw new ApiException(HttpStatus.NOT_FOUND, "La convocatoria no existe");
         }
         log.info("findLinkageTypesByCall ===> Listando tipos de vinculación. idConvocatoria={}", idConvocatoria);
-        return tipoVinculacionMapper.toListaDtoList(
+        return tipoVinculacionMapper.toListadoDto(
                 tipoVinculacionConvocatoriaRepository.findByIdConvocatoria(idConvocatoria));
     }
 

@@ -5,32 +5,29 @@ import java.util.List;
 import org.mapstruct.Mapper;
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoVinculacionListaProjection;
 
 @Mapper(componentModel = "spring")
 public interface TipoVinculacionMapper {
 
-    default List<TipoVinculacionListaDTO> toListaDtoList(List<TipoVinculacionListaProjection> projections) {
+    default TipoVinculacionListadoDTO toListadoDto(List<TipoVinculacionListaProjection> projections) {
         if (projections == null || projections.isEmpty()) {
-            return List.of();
+            return new TipoVinculacionListadoDTO(List.of());
         }
-        return projections.stream().map(this::toListaDto).toList();
+        return new TipoVinculacionListadoDTO(projections.stream().map(this::toDto).toList());
     }
 
-    default TipoVinculacionListaDTO toListaDto(TipoVinculacionListaProjection projection) {
-        return new TipoVinculacionListaDTO(
+    default TipoVinculacionDTO toDto(TipoVinculacionListaProjection projection) {
+        return new TipoVinculacionDTO(
                 projection.getId(),
-                projection.getEstado(),
-                new TipoVinculacionDTO(
-                        null,
-                        projection.getIdClasificacionDocente(),
-                        projection.getIdDedicacionDocente(),
-                        projection.getMinimo(),
-                        projection.getMaximo(),
-                        projection.getFormaPago(),
-                        projection.getTipoContrato(),
-                        projection.getEsPlanta(),
-                        projection.getTipoHoras()));
+                projection.getIdClasificacionDocente(),
+                projection.getIdDedicacionDocente(),
+                projection.getMinimo(),
+                projection.getMaximo(),
+                projection.getFormaPago(),
+                projection.getTipoContrato(),
+                projection.getEsPlanta(),
+                projection.getTipoHoras());
     }
 }
