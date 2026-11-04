@@ -13,330 +13,35 @@ import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.ConvocatoriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.FechasConvocatoriaEntity;
-import co.edu.unipamplona.ciadti.rvd.model.entity.NivelEducativoEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PeriodoUniversidadEntity;
 
 public interface ConvocatoriaRepository extends JpaRepository<ConvocatoriaEntity, Long> {
 
-    @Query(value = """
-            SELECT DISTINCT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            INNER JOIN RVD.FECHASCONVOCATORIA FECO
-                ON FECO.CONV_ID = CONV.CONV_ID
-            WHERE FECO.FECO_CODIGO = 'CNV'
-                AND CONV.PEUN_ID = :idPeriodoUniversidad
-            ORDER BY CONV.CONV_ID
-            """, nativeQuery = true)
-    List<ConvocatoriaEntity> findCallListWithDates(@Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+    List<ConvocatoriaEntity> findAllByOrderByIdDesc();
 
-    @Query(value = """
-            SELECT DISTINCT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            INNER JOIN RVD.FECHASCONVOCATORIA FECO
-                ON FECO.CONV_ID = CONV.CONV_ID
-            WHERE FECO.FECO_CODIGO = 'CNV'
-                AND CONV.PEUN_ID = :idPeriodoUniversidad
-                AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
-            ORDER BY CONV.CONV_ID
-            """, nativeQuery = true)
-    List<ConvocatoriaEntity> findPreassignmentCallListByPeriod(
-            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+    List<ConvocatoriaEntity> findByIdPeriodoUniversidad(Long idPeriodoUniversidad);
 
-    @Query(value = """
-            SELECT DISTINCT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            INNER JOIN RVD.FECHASCONVOCATORIA FECO
-                ON FECO.CONV_ID = CONV.CONV_ID
-            WHERE FECO.FECO_CODIGO = 'CNV'
-                AND CONV.PEUN_ID = :idPeriodoUniversidad
-                AND CONV.CONV_CONTRATACION = '1'
-            ORDER BY CONV.CONV_ID
-            """, nativeQuery = true)
-    List<ConvocatoriaEntity> findHiringCallListByPeriod(
-            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+    List<ConvocatoriaEntity> findByIdPeriodoUniversidadAndEstado(Long idPeriodoUniversidad, String estado);
 
-    @Query(value = """
-            SELECT DISTINCT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            INNER JOIN RVD.FECHASCONVOCATORIA FECO
-                ON FECO.CONV_ID = CONV.CONV_ID
-            INNER JOIN ACADEMICO.PERIODOUNIVERSIDAD PEUN
-                ON PEUN.PEUN_ID = CONV.PEUN_ID
-            WHERE FECO.FECO_CODIGO = 'CNV'
-                AND PEUN.PEUN_ANO = :year
-                AND PEUN.PEUN_PERIODO = '1'
-            ORDER BY CONV.CONV_ID
-            """, nativeQuery = true)
-    List<ConvocatoriaEntity> findCallListByFirstPeriodByYear(@Param("year") Long year);
+    @Query("SELECT c FROM ConvocatoriaEntity c WHERE c.periodoUniversidad.ano = :year AND c.periodoUniversidad.periodo = '1' ORDER BY c.id")
+    List<ConvocatoriaEntity> findByPeriodoYear(@Param("year") Long year);
 
-    @Query(value = """
-            SELECT
-                FECO.FECO_ID,
-                FECO.COTC_ID,
-                FECO.CONV_ID,
-                FECO.FECO_VACACIONES,
-                FECO.FECO_SEMANAS,
-                FECO.FECO_ONCEMESES,
-                FECO.FECO_FECHAINICIO,
-                FECO.FECO_FECHAFIN,
-                FECO.FECO_CODIGO,
-                FECO.FECO_REGISTRADOPOR,
-                FECO.FECO_FECHACAMBIO
-            FROM RVD.FECHASCONVOCATORIA FECO
-            WHERE FECO.CONV_ID = :id
-                AND FECO.FECO_CODIGO = 'CNV'
-            """, nativeQuery = true)
-    FechasConvocatoriaEntity findFechaCnvByConvocatoriaId(@Param("id") Long id);
-
-
-
-    @Query(value = """
-            SELECT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            WHERE CONV.CONV_ID = :id
-            """, nativeQuery = true)
-
-    Optional<ConvocatoriaEntity> findConvocatoriaByIdNative(@Param("id") Long id);
-
-    @Query(value = """
-            SELECT
-                PEUN.PEUN_ID,
-                PEUN.TPPA_ID,
-                PEUN.PEUN_FECHAINICIO,
-                PEUN.PEUN_FECHAFIN,
-                PEUN.PEUN_ANO,
-                PEUN.PEUN_PERIODO,
-                PEUN.PEUN_FECHAINICIOCLASES,
-                PEUN.PEUN_FECHAFINCLASES,
-                PEUN.PEUN_CODIGOPERIODO,
-                PEUN.PEUN_ACTUAL,
-                PEUN.PEUN_REGISTRADOPOR,
-                PEUN.PEUN_FECHACAMBIO
-            FROM ACADEMICO.PERIODOUNIVERSIDAD PEUN
-            INNER JOIN RVD.CONVOCATORIA CONV
-                ON CONV.PEUN_ID = PEUN.PEUN_ID
-            WHERE CONV.CONV_ID = :id
-            """, nativeQuery = true)
-
+    @Query("SELECT c.periodoUniversidad FROM ConvocatoriaEntity c WHERE c.id = :id")
     PeriodoUniversidadEntity findPeriodoEntityByConvocatoriaId(@Param("id") Long id);
 
-    @Query(value = """
-            SELECT
-                NIED.NIED_ID,
-                NIED.NIED_DESCRIPCION,
-                NIED.NIED_FECHACAMBIO,
-                NIED.NIED_REGISTRADOPOR,
-                NIED.NIED_PARA_IES,
-                NIED.NIED_OBSERVACION
-            FROM ACADEMICO.NIVELEDUCATIVO NIED
-            INNER JOIN RVD.CONVOCATORIA CONV
-                ON CONV.NIED_ID = NIED.NIED_ID
-            WHERE CONV.CONV_ID = :id
-            """, nativeQuery = true)
-
-    NivelEducativoEntity findNivelEntityByConvocatoriaId(@Param("id") Long id);
-
-    @Query(value = """
-            SELECT
-                FECO.FECO_ID,
-                FECO.COTC_ID,
-                FECO.CONV_ID,
-                FECO.FECO_VACACIONES,
-                FECO.FECO_SEMANAS,
-                FECO.FECO_ONCEMESES,
-                FECO.FECO_FECHAINICIO,
-                FECO.FECO_FECHAFIN,
-                FECO.FECO_CODIGO,
-                FECO.FECO_REGISTRADOPOR,
-                FECO.FECO_FECHACAMBIO
-            FROM RVD.FECHASCONVOCATORIA FECO
-            WHERE FECO.CONV_ID = :id
-                AND FECO.FECO_CODIGO IS NOT NULL
-            ORDER BY FECO.FECO_ID
-            """, nativeQuery = true)
-
-    List<FechasConvocatoriaEntity> findFechasGeneralesByConvocatoriaId(@Param("id") Long id);
-
-    @Query(value = """
-            SELECT
-                FECO.FECO_ID,
-                FECO.COTC_ID,
-                FECO.CONV_ID,
-                FECO.FECO_VACACIONES,
-                FECO.FECO_SEMANAS,
-                FECO.FECO_ONCEMESES,
-                FECO.FECO_FECHAINICIO,
-                FECO.FECO_FECHAFIN,
-                FECO.FECO_CODIGO,
-                FECO.FECO_REGISTRADOPOR,
-                FECO.FECO_FECHACAMBIO
-            FROM RVD.FECHASCONVOCATORIA FECO
-            WHERE FECO.CONV_ID = :id
-                AND FECO.COTC_ID IS NOT NULL
-            ORDER BY FECO.FECO_ID
-            """, nativeQuery = true)
-    List<FechasConvocatoriaEntity> findModalidadesFechasByConvocatoriaId(
-            @Param("id") Long id);
+    @Modifying
+    @Query("UPDATE ConvocatoriaEntity c SET c.estado = :estado, c.fechaCambio = :fechaCambio WHERE c.id = :id")
+    int updateEstado(@Param("estado") String estado, @Param("fechaCambio") Date fechaCambio, @Param("id") Long id);
 
     @Modifying
-    @Query("""
-            update ConvocatoriaEntity c set
-            c.estado = :estado,
-            c.fechaCambio = :fechaCambio
-            where c.id = :id
-            """)
-    int updateEstado(
-            @Param("estado") String estado,
-            @Param("fechaCambio") Date fechaCambio,
-            @Param("id") Long id);
-
-    @Modifying
-    @Query("""
-            update ConvocatoriaEntity c set
-            c.nombre = :nombre,
-            c.descripcion = :descripcion,
-            c.idPeriodoUniversidad = :idPeriodoUniversidad,
-            c.fechaCambio = :fechaCambio
-            where c.id = :id
-            """)
-    int update(
-            @Param("nombre") String nombre,
-            @Param("descripcion") String descripcion,
-            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
-            @Param("fechaCambio") Date fechaCambio,
-            @Param("id") Long id);
-
-    @Modifying
-    @Query("""
-            update ConvocatoriaEntity c set
-            c.idRelacion = :idRelacion,
-            c.fechaCambio = :fechaCambio
-            where c.id = :id
-            """)
-    int updateIdRelacion(
-            @Param("idRelacion") Long idRelacion,
-            @Param("fechaCambio") Date fechaCambio,
-            @Param("id") Long id);
-
-    @Modifying
-    @Query(value = """
-            DELETE FROM RVD.CONVOCATORIA WHERE CONV_ID = :id
-            """, nativeQuery = true)
-    void deleteById(@Param("id") Long id);
+    @Query("UPDATE ConvocatoriaEntity c SET c.idRelacion = :idRelacion, c.fechaCambio = :fechaCambio WHERE c.id = :id")
+    int updateIdRelacion(@Param("idRelacion") Long idRelacion, @Param("fechaCambio") Date fechaCambio, @Param("id") Long id);
 
     @Procedure(name = "ConvocatoriaEntity.deleteByProcedure")
     BigDecimal deleteByProcedure(@Param("P_CONV_ID") Long id, @Param("P_CONV_REGISTRADOPOR") String registradoPor);
 
-    @Query(value = """
-            SELECT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            WHERE CONV.CONV_ESTADO = '1'
-            AND CONV.PEUN_ID = :idPeriodoUniversidad
-            AND NVL(CONV.CONV_CONTRATACION, '0') = '0'
-            ORDER BY CONV.CONV_ID
-            """, nativeQuery = true)
-    List<ConvocatoriaEntity> findActivePreloadCalls(
-            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
+    boolean existsByIdAndIdPeriodoUniversidad(Long id, Long idPeriodoUniversidad);
 
-    @Query(value = """
-            SELECT
-                CONV.CONV_ID,
-                CONV.PEUN_ID,
-                CONV.NIED_ID,
-                CONV.PEGE_IDAUTORIZA,
-                CONV.CONV_NOMBRE,
-                CONV.CONV_DESCRIPCION,
-                CONV.CONV_ESTADO,
-                CONV.CONV_REGISTRADOPOR,
-                CONV.CONV_FECHACAMBIO,
-                CONV.CONV_IDRELACION,
-                CONV.CONV_CONTRATACION
-            FROM RVD.CONVOCATORIA CONV
-            WHERE CONV.CONV_ESTADO = '1'
-            AND CONV.PEUN_ID = :idPeriodoUniversidad
-            AND NOT EXISTS (
-                SELECT 1
-                FROM RVD.RESTRICCIONXCOORDINACION REXC
-                INNER JOIN RVD.FECHASCONVOCATORIA FECO
-                    ON FECO.FECO_ID = REXC.FECO_ID
-                WHERE FECO.CONV_ID = CONV.CONV_ID
-                    AND REXC.REXC_ESTADO = '1'
-                    AND TRUNC(REXC.REXC_FECHAFIN) >= TRUNC(SYSDATE)
-            )
-            ORDER BY CONV.CONV_ID
-            """, nativeQuery = true)
-    List<ConvocatoriaEntity> findAssignableActivePreloadCalls(
-            @Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
-
-    boolean existsByIdAndIdPeriodoUniversidad(
-            Long id,
-            Long idPeriodoUniversidad);
-
+    @Query(value = "SELECT * FROM RVDIES.FECHASCONVOCATORIA WHERE CONV_ID = :id AND FECO_CODIGO = 'CNV'", nativeQuery = true)
+    FechasConvocatoriaEntity findFechaCnvByConvocatoriaId(@Param("id") Long id);
 }
-

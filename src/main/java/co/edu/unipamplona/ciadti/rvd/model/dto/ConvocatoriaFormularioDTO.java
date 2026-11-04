@@ -1,12 +1,17 @@
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
+import java.time.LocalDate;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 public record ConvocatoriaFormularioDTO(
-    @JsonProperty("convocatoria")
-    ConvocatoriaDatosInsertarDTO convocatoriaDatosInsertar,
-    List<FechasConvocatoriaFormularioDTO> fechas,
-    List<ConvocatoriaTipoContratacionFormularioDTO> convocatoriaTipoContratacion
+    Long id,
+    Long idPeriodoUniversidad,
+    Long idRelacion,
+    String nombre,
+    String descripcion,
+    LocalDate fechaInicio,
+    LocalDate fechaFin,
+    String estado,
+    String esIntersemestral,
+    List<TipoVinculacionConvocatoriaDTO> vinculaciones
 ) {}

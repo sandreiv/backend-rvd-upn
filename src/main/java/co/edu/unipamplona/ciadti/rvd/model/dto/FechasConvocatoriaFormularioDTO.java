@@ -4,7 +4,10 @@ import java.time.LocalDate;
 
 public record FechasConvocatoriaFormularioDTO(
     Long id,
-    String codigo,
     LocalDate fechaInicio,
-    LocalDate fechaFin
+    LocalDate fechaFin,
+    String semanas,
+    String vacaciones,
+    String onceMeses,
+    String codigo
 ) {}

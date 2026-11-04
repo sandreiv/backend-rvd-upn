@@ -1,16 +1,8 @@
-/**
- * Aplicación: rvd
- * Archivo: ConvocatoriaEntity.java
- * Paquete: co.edu.unipamplona.ciadti.rvd.model.entity
- * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
- * Fecha de creación: 02/06/2026
- * Modificaciones:
- * 02/06/2026 - Sebastian Jaimes - Creación inicial
- * 03/11/2026 - Alineación con RVDIES.CONVOCATORIA
- */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Date;
 
 import jakarta.persistence.Column;
@@ -21,17 +13,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.persistence.NamedStoredProcedureQuery;
-import jakarta.persistence.StoredProcedureParameter;
 import jakarta.persistence.ParameterMode;
-import java.math.BigDecimal;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.StoredProcedureParameter;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
 @NamedStoredProcedureQuery(
     name = "ConvocatoriaEntity.deleteByProcedure",
-    procedureName = "RVDIES.PR_RVDIES_D_CONVOCATORIA",
+    procedureName = "RVD.PR_RVD_D_CONVOCATORIA",
     parameters = {
         @StoredProcedureParameter(name = "P_CONV_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_CONV_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -65,10 +57,10 @@ public class ConvocatoriaEntity implements Serializable, Cloneable {
     private String estado;
 
     @Column(name = "CONV_FECHAINICIO")
-    private Date fechaInicio;
+    private LocalDate fechaInicio;
 
     @Column(name = "CONV_FECHAFIN")
-    private Date fechaFin;
+    private LocalDate fechaFin;
 
     @Column(name = "CONV_ESINTERSEMESTRAL")
     private String esIntersemestral;
@@ -91,21 +83,4 @@ public class ConvocatoriaEntity implements Serializable, Cloneable {
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
     }
-
-    @Override
-    public String toString() {
-        return "ConvocatoriaEntity{"
-                + "id=" + id
-                + ", idPeriodoUniversidad=" + idPeriodoUniversidad
-                + ", idRelacion=" + idRelacion
-                + ", nombre=" + nombre
-                + ", descripcion=" + descripcion
-                + ", estado=" + estado
-                + ", fechaInicio=" + fechaInicio
-                + ", fechaFin=" + fechaFin
-                + ", esIntersemestral=" + esIntersemestral
-                + '}';
-    }
 }
-
-/* 03/11/2026 @:Sebastian Jaimes */

@@ -39,7 +39,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "TIPOACTIVIDADES", schema = "RVD")
+@Table(name = "TIPOACTIVIDADES", schema = "RVDIES")
 public class TipoActividadesEntity implements Serializable, Cloneable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

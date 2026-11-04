@@ -1,12 +1,3 @@
-/**
- * Aplicación: rvd
- * Archivo: TipoVinculacionConvocatoriaEntity.java
- * Paquete: co.edu.unipamplona.ciadti.rvd.model.entity
- * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
- * Fecha de creación: 03/11/2026
- * Modificaciones:
- * 03/11/2026 - Creación según RVDIES.TIPOVINCULACIONCONVOCATORIA
- */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
@@ -20,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,11 +27,11 @@ public class TipoVinculacionConvocatoriaEntity implements Serializable, Cloneabl
     @Column(name = "TIVC_ID", nullable = false)
     private Long id;
 
-    @Column(name = "CONV_ID", nullable = false)
-    private Long idConvocatoria;
-
     @Column(name = "TIVI_ID", nullable = false)
     private Long idTipoVinculacion;
+
+    @Column(name = "CONV_ID", nullable = false)
+    private Long idConvocatoria;
 
     @Column(name = "TIVC_ESTADO")
     private String estado;
@@ -51,25 +43,15 @@ public class TipoVinculacionConvocatoriaEntity implements Serializable, Cloneabl
     private Date fechaCambio;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CONV_ID", insertable = false, updatable = false)
-    private ConvocatoriaEntity convocatoria;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "TIVI_ID", insertable = false, updatable = false)
     private TipoVinculacionEntity tipoVinculacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CONV_ID", insertable = false, updatable = false)
+    private ConvocatoriaEntity convocatoria;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
-    }
-
-    @Override
-    public String toString() {
-        return "TipoVinculacionConvocatoriaEntity{"
-                + "id=" + id
-                + ", idConvocatoria=" + idConvocatoria
-                + ", idTipoVinculacion=" + idTipoVinculacion
-                + ", estado=" + estado
-                + '}';
     }
 }
