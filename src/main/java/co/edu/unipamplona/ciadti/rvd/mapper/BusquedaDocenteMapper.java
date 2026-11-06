@@ -30,6 +30,7 @@ public interface BusquedaDocenteMapper {
                 toEscalafon(projection),
                 null,
                 null,
+                null,
                 null);
     }
 

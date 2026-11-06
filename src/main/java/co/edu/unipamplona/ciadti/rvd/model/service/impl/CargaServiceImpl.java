@@ -14,7 +14,9 @@ package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -127,11 +129,13 @@ public class CargaServiceImpl implements CargaService {
 
         BigDecimal valorPunto = valorPuntoVigencia(anio);
         BigDecimal valorPuntoEscalado = valorPunto.setScale(2, RoundingMode.HALF_UP);
+        Map<Long, BigDecimal> valorHoraPorCategoria = new HashMap<>();
 
         return busquedaDocenteMapper.toDtoList(
                 personaGeneralRepository.searchProfessorsForPreassignment(nombreParam, documentoParam))
                 .stream()
-                .map(docente -> withSalaryAssignment(docente, valorPunto, valorPuntoEscalado))
+                .map(docente -> withSalaryAssignment(
+                        docente, valorPunto, valorPuntoEscalado, valorHoraPorCategoria))
                 .toList();
     }
 
@@ -146,9 +150,7 @@ public class CargaServiceImpl implements CargaService {
             Long idTipoVinculacion) {
         BigDecimal valorPunto = valorPuntoVigencia(anio);
 
-        PuntosCategoriaEntity puntosCategoria = puntosCategoriaRepository.findByIdCategoriaCatedratico(idCategoriaCatedratico);
-        BigDecimal puntosCategoriaValor = ParseUtils.parseBigDecimal(puntosCategoria.getPuntos(), "puntos de la categoria");
-        BigDecimal valorHora = valorPunto.multiply(puntosCategoriaValor).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal valorHora = valorHora(valorPunto, idCategoriaCatedratico);
         BigDecimal valorPuntoEscalado = valorPunto.setScale(2, RoundingMode.HALF_UP);
         String formaPago = resolveFormaPago(idTipoVinculacion);
 
@@ -184,10 +186,26 @@ public class CargaServiceImpl implements CargaService {
         return puntosDocente.multiply(valorPunto).setScale(2, RoundingMode.HALF_UP);
     }
 
+    private BigDecimal valorHora(BigDecimal valorPunto, Long idCategoriaCatedratico) {
+        PuntosCategoriaEntity puntosCategoria = puntosCategoriaRepository.findByIdCategoriaCatedratico(idCategoriaCatedratico);
+
+        if (puntosCategoria == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "No existen puntos para la categoría " + idCategoriaCatedratico);
+        }
+        
+        BigDecimal puntosCategoriaValor = ParseUtils.parseBigDecimal(
+                puntosCategoria.getPuntos(),
+                "puntos de la categoria");
+        return valorPunto.multiply(puntosCategoriaValor).setScale(2, RoundingMode.HALF_UP);
+    }
+
     private BusquedaDocenteDTO withSalaryAssignment(
             BusquedaDocenteDTO docente,
             BigDecimal valorPunto,
-            BigDecimal valorPuntoEscalado) {
+            BigDecimal valorPuntoEscalado,
+            Map<Long, BigDecimal> valorHoraPorCategoria) {
         BigDecimal asignacion = null;
         if (docente.escalafon() != null) {
             BigDecimal puntosDocente = ParseUtils.parseBigDecimal(
@@ -203,7 +221,31 @@ public class CargaServiceImpl implements CargaService {
                 docente.escalafon(),
                 docente.cargaDocente(),
                 valorPuntoEscalado,
+                valorHoraDocente(docente, valorPunto, valorHoraPorCategoria),
                 asignacion);
+    }
+
+    private BigDecimal valorHoraDocente(
+            BusquedaDocenteDTO docente,
+            BigDecimal valorPunto,
+            Map<Long, BigDecimal> valorHoraPorCategoria) {
+        Long idCategoria = idCategoria(docente);
+        if (idCategoria == null) {
+            return null;
+        }
+        return valorHoraPorCategoria.computeIfAbsent(
+                idCategoria,
+                id -> valorHora(valorPunto, id));
+    }
+
+    private static Long idCategoria(BusquedaDocenteDTO docente) {
+        if (docente.categoriaCatedratico() != null) {
+            return docente.categoriaCatedratico().id();
+        }
+        if (docente.escalafon() != null) {
+            return docente.escalafon().idCategoriaCatedratico();
+        }
+        return null;
     }
 
     private String resolveFormaPago(Long idTipoVinculacion) {

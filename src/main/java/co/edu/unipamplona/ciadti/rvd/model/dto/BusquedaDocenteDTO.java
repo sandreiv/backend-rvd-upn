@@ -10,5 +10,6 @@ public record BusquedaDocenteDTO(
     EscalafonDTO escalafon,
     CargaDocenteBusquedaDTO cargaDocente,
     BigDecimal valorPunto,
+    BigDecimal valorHora,
     BigDecimal asignacionSalarial
 ) {}

@@ -7,6 +7,7 @@
  * Modificaciones:
  * 05/11/2026 - Creación inicial
  * 05/11/2026 - Cálculo previo según tipo de vinculación.
+ * 05/11/2026 - Horas mínima y máxima del tipo de vinculación.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -22,6 +23,7 @@ import co.edu.unipamplona.ciadti.rvd.contratacion.ContratoFormaPagoFactory;
 import co.edu.unipamplona.ciadti.rvd.contratacion.strategy.ContratoFormaPagoStrategy;
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionConvocatoriaEntity;
@@ -92,6 +94,21 @@ public class ContratoCargaServiceImpl implements ContratoCargaService {
             throw new ApiException(HttpStatus.BAD_REQUEST, missingInputsMessage(formaPago));
         }
         return valor;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public HorasContratoDTO findContractHours(Long idTipoVinculacion) {
+        if (idTipoVinculacion == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El tipo de vinculación es obligatorio.");
+        }
+        TipoVinculacionEntity tipoVinculacion = tipoVinculacionRepository.findById(idTipoVinculacion)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "No existe el tipo de vinculación."));
+        log.info("findContractHours ===> Consultando horas del tipo de vinculación. idTipoVinculacion={}",
+                idTipoVinculacion);
+        return new HorasContratoDTO(tipoVinculacion.getMinimo(), tipoVinculacion.getMaximo());
     }
 
     private static String missingInputsMessage(FormaPago formaPago) {

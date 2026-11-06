@@ -9,6 +9,7 @@
  * 05/11/2026 - Forma de pago desde el tipo de vinculación en value-points-preload.
  * 05/11/2026 - Búsqueda de docente con valor del punto y asignación salarial.
  * 05/11/2026 - Cálculo de contrato según tipo de vinculación.
+ * 05/11/2026 - Horas mínima y máxima del tipo de vinculación.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
@@ -101,7 +103,8 @@ public class LoadController {
         description = """
             Busca en GENERAL.PERSONAGENERAL por documento y/o fragmento de nombre o apellido.
             Solo devuelve personas que existen en COMITES.ESCALAFON e incluye categoría y puntos.
-            anio es obligatorio: con RVD.PUNTOSVIGENCIA calcula valorPunto y la asignación salarial
+            anio es obligatorio: con RVD.PUNTOSVIGENCIA calcula valorPunto, valorHora
+            (valor del punto × RVDIES.PUNTOSCATEGORIA.PUCA_PUNTOS) y la asignación salarial
             (puntos del escalafón × valor del punto). Si no hay vigencia para ese año, responde 404.
             """
     )
@@ -113,8 +116,21 @@ public class LoadController {
         return ResponseEntity.ok(cargaService.searchProfessor(nombre, documento, anio));
     }
 
+    @Operation(
+        summary = "Obtiene el mínimo y el máximo de horas del tipo de vinculación",
+        description = """
+            Lee RVDIES.TIPOVINCULACION.TIVI_MINIMO y TIVI_MAXIMO según idTipoVinculacion.
+            Los valores se devuelven tal como están guardados. Si el tipo no existe, responde 404.
+            """
+    )
+    @GetMapping("/contract-hours")
+    public ResponseEntity<HorasContratoDTO> getContractHours(@RequestParam Long idTipoVinculacion) {
+        return ResponseEntity.ok(contratoCargaService.findContractHours(idTipoVinculacion));
+    }
 
 
+    // La implemnetación para el cargue SOLO DEBE HACER CÁLCULOS PARA TIPO SALARIO.
+    // Para tipo CATEDRA este valor se va a calcular únicamente cuando ya se carguen todas las actividades. ----> Cantidad de horas != horas semanales máximas.
     @Operation(
         summary = "Calcula el valor del contrato según el tipo de vinculación",
         description = """
@@ -150,6 +166,8 @@ public class LoadController {
                 fechaFin);
         return ResponseEntity.ok(contratoCargaService.calculateByLinkageType(idTipoVinculacion, context));
     }
+
+    
 
 
 }

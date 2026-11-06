@@ -32,6 +32,7 @@ import co.edu.unipamplona.ciadti.rvd.contratacion.strategy.ContratoFormaPagoStra
 import co.edu.unipamplona.ciadti.rvd.contratacion.strategy.SalarioContratoStrategy;
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionConvocatoriaEntity;
@@ -229,6 +230,20 @@ class ContratoFormaPagoStrategyTest {
                 FIN));
 
         assertMoney("2328000.00", valor.totalContrato());
+    }
+
+    @Test
+    void findContractHoursDevuelveMinimoYMaximoDelTipo() {
+        TipoVinculacionEntity tipo = new TipoVinculacionEntity();
+        tipo.setMinimo("8");
+        tipo.setMaximo("12");
+        org.mockito.Mockito.when(tipoVinculacionRepository.findById(5L))
+                .thenReturn(Optional.of(tipo));
+
+        HorasContratoDTO horas = service.findContractHours(5L);
+
+        assertEquals("8", horas.minimo());
+        assertEquals("12", horas.maximo());
     }
 
     @Test
