@@ -15,6 +15,7 @@ public interface TipoVinculacionConvocatoriaRepository extends JpaRepository<Tip
     @Query(value = """
             SELECT
                 TIVI.TIVI_ID AS id,
+                TIVC.TIVC_ID AS idTipoVinculacionConvocatoria,
                 CLDO.CLDO_ID AS idClasificacionDocente,
                 CLDO.CLDO_DESCRIPCION AS descripcionClasificacionDocente,
                 DEDO.DEDO_ID AS idDedicacionDocente,

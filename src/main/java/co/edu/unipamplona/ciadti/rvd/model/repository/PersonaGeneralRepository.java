@@ -117,6 +117,59 @@ public interface PersonaGeneralRepository
             @Param("documento") String documento);
 
     @Query(value = """
+            SELECT DISTINCT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                PEGE.PEGE_DOCUMENTOIDENTIDAD AS documentoIdentidad,
+                PENG.PENG_PRIMERNOMBRE AS primerNombre,
+                PENG.PENG_SEGUNDONOMBRE AS segundoNombre,
+                PENG.PENG_PRIMERAPELLIDO AS primerApellido,
+                PENG.PENG_SEGUNDOAPELLIDO AS segundoApellido,
+                CACA.CACA_ID AS idCategoriaCatedratico,
+                CACA.CACA_DESCRIPCION AS descripcionCategoriaCatedratico,
+                ESCA.ESCA_ID AS idEscalafon,
+                ESCA.MOCO_ID AS idModalidadContratacion,
+                ESCA.ESCA_PUNTOS AS puntos,
+                CAST(NULL AS NUMBER) AS idCargaDocente,
+                CAST(NULL AS NUMBER) AS idCarga,
+                CAST(NULL AS NUMBER) AS idConvocatoria,
+                CAST(NULL AS NUMBER) AS idCoordinacion,
+                CAST(NULL AS NUMBER) AS idModalidadContratacionCarga,
+                CAST(NULL AS NUMBER) AS idFechasConvocatoria
+            FROM GENERAL.PERSONAGENERAL PEGE
+            INNER JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            INNER JOIN TALENTOV3.TRABAJADORLABOR TRLA
+                ON TRLA.PEGE_ID = PEGE.PEGE_ID
+                AND TRLA.TRLA_FECHAFINAL IS NULL
+            INNER JOIN COMITES.ESCALAFON ESCA
+                ON ESCA.PEGE_ID = PEGE.PEGE_ID
+            LEFT JOIN TALENTOV3.CATEGORIACATEDRATICO CACA
+                ON CACA.CACA_ID = ESCA.CACA_ID
+            WHERE
+                (:documento IS NULL
+                    OR UPPER(PEGE.PEGE_DOCUMENTOIDENTIDAD)
+                        LIKE UPPER('%' || :documento || '%'))
+            AND
+                (:nombre IS NULL
+                    OR UPPER(PENG.PENG_PRIMERNOMBRE)
+                        LIKE UPPER('%' || :nombre || '%')
+                    OR UPPER(PENG.PENG_SEGUNDONOMBRE)
+                        LIKE UPPER('%' || :nombre || '%')
+                    OR UPPER(PENG.PENG_PRIMERAPELLIDO)
+                        LIKE UPPER('%' || :nombre || '%')
+                    OR UPPER(PENG.PENG_SEGUNDOAPELLIDO)
+                        LIKE UPPER('%' || :nombre || '%'))
+            ORDER BY
+                PENG.PENG_PRIMERAPELLIDO,
+                PENG.PENG_SEGUNDOAPELLIDO,
+                PENG.PENG_PRIMERNOMBRE,
+                PENG.PENG_SEGUNDONOMBRE
+            """, nativeQuery = true)
+    List<DocentePreasignacionProjection> searchCareerProfessorsForPreassignment(
+            @Param("nombre") String nombre,
+            @Param("documento") String documento);
+
+    @Query(value = """
             SELECT
                 PEGE.PEGE_ID AS id,
                 TRIM(

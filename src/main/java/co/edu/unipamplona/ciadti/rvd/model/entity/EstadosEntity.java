@@ -6,6 +6,7 @@
  * Fecha de creación: 03/11/2026
  * Modificaciones:
  * 03/11/2026 - Creación según RVDIES.ESTADOS
+ * 06/11/2026 - Orden del estado y auditoría de la tabla.
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -38,10 +39,16 @@ public class EstadosEntity implements Serializable, Cloneable {
     @Column(name = "ESTA_DESCRIPCION")
     private String descripcion;
 
-    @Column(name = "COTC_REGISTRADOPOR")
+    @Column(name = "ESTA_ORDEN", length = 30)
+    private String orden;
+
+    @Column(name = "ESTA_TIPO", length = 30)
+    private String tipo;
+
+    @Column(name = "ESTA_REGISTRADOPOR")
     private String registradoPor;
 
-    @Column(name = "COTC_FECHACAMBIO")
+    @Column(name = "ESTA_FECHACAMBIO")
     private Date fechaCambio;
 
     @Override

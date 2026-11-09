@@ -9,6 +9,8 @@
  * 05/11/2026 - Forma de pago desde el tipo de vinculación en value-points-preload.
  * 05/11/2026 - Búsqueda de docente con valor del punto y asignación salarial.
  * 05/11/2026 - Cálculo de contrato según tipo de vinculación.
+ * 06/11/2026 - Búsqueda de docente de carrera vigente en trabajador labor.
+ * 06/11/2026 - Alta de carga docente.
  * 05/11/2026 - Horas mínima y máxima del tipo de vinculación.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
@@ -20,9 +22,12 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
@@ -89,6 +94,7 @@ public class LoadController {
             Une RVDIES.TIPOVINCULACIONCONVOCATORIA con RVDIES.TIPOVINCULACION por CONV_ID
             y trae ACADEMICO.CLASIFICACIONDOCENTE y ACADEMICO.DEDICACIONDOCENTE.
             La respuesta es TipoVinculacionListadoDTO. Cada ítem es TipoVinculacionesDTO:
+            id es TIVI_ID e idTipoVinculacionConvocatoria es TIVC_ID.
             clasificacionDocente y dedicacionDocente incluyen id y descripcion, además de
             mínimos, máximos, forma de pago, tipo de contrato, si es de planta y tipo de horas.
             """
@@ -99,12 +105,11 @@ public class LoadController {
     }
 
     @Operation(
-        summary = "Busca docentes para preasignacion",
+        summary = "Busca docentes para carga (no tiene en cuenta docentes carrera)",
         description = """
             Busca en GENERAL.PERSONAGENERAL por documento y/o fragmento de nombre o apellido.
             Solo devuelve personas que existen en COMITES.ESCALAFON e incluye categoría y puntos.
-            anio es obligatorio: con RVD.PUNTOSVIGENCIA calcula valorPunto, valorHora
-            (valor del punto × RVDIES.PUNTOSCATEGORIA.PUCA_PUNTOS) y la asignación salarial
+            anio es obligatorio: con RVD.PUNTOSVIGENCIA calcula valorPunto y la asignación salarial
             (puntos del escalafón × valor del punto). Si no hay vigencia para ese año, responde 404.
             """
     )
@@ -167,7 +172,40 @@ public class LoadController {
         return ResponseEntity.ok(contratoCargaService.calculateByLinkageType(idTipoVinculacion, context));
     }
 
-    
+
+    @Operation(
+        summary = "Busca docentes de carrera",
+        description = """
+            Busca en GENERAL.PERSONAGENERAL por documento y/o fragmento de nombre o apellido.
+            Solo devuelve personas que existen en COMITES.ESCALAFON y en TALENTOV3.TRABAJADORLABOR
+            con TRLA_FECHAFINAL nulo. Incluye categoría y puntos.
+            anio es obligatorio: con RVD.PUNTOSVIGENCIA calcula valorPunto y la asignación salarial
+            (puntos del escalafón × valor del punto). Si no hay vigencia para ese año, responde 404.
+            """
+    )
+    @GetMapping("/search-career-professor")
+    public ResponseEntity<List<BusquedaDocenteDTO>> searchCareerProfessor(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String documento,
+            @RequestParam Long anio) {
+        return ResponseEntity.ok(cargaService.searchCareerProfessor(nombre, documento, anio));
+    }
+
+    @Operation(
+        summary = "Agrega un docente a la carga",
+        description = """
+            Guarda en RVDIES.CARGADOCENTE. idTipoVinculacionConvocatoria (TIVC_ID) es obligatorio.
+            ESTA_ID queda con el estado de RVDIES.ESTADOS cuyo ESTA_ORDEN es 1.
+            El cuerpo admite persona, categoría, coordinación, fechas, valores, horas, puntos,
+            semanas, novedad y observación. Lo que no venga queda nulo.
+            Si la persona ya está en esa vinculación y coordinación, responde 409.
+            """
+    )
+    @PostMapping("/add-professor")
+    public ResponseEntity<Void> addProfessor(@RequestBody CargaDocenteFormularioDTO dto) {
+        cargaService.addProfessor(dto);
+        return ResponseEntity.ok().build();
+    }
 
 
 }

@@ -7,12 +7,15 @@
  * Modificaciones:
  * 05/11/2026 - Forma de pago desde el tipo de vinculación.
  * 05/11/2026 - Búsqueda de docente con valor del punto y asignación salarial.
+ * 06/11/2026 - Búsqueda de docente de carrera vigente en trabajador labor.
+ * 06/11/2026 - Alta de carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service;
 
 import java.util.List;
 
 
+import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
@@ -26,6 +29,10 @@ public interface CargaService {
     TipoVinculacionListadoDTO findLinkageTypesByCall(Long idConvocatoria);
 
     List<BusquedaDocenteDTO> searchProfessor(String nombre, String documento, Long anio);
+
+    List<BusquedaDocenteDTO> searchCareerProfessor(String nombre, String documento, Long anio);
+
+    void addProfessor(CargaDocenteFormularioDTO dto);
 
     ValorPuntosCargaDTO getValuePointsPreload(
             Long anio,

@@ -44,6 +44,11 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PublicHiringRec
 
 public interface CargaDocenteRepository extends JpaRepository<CargaDocenteEntity, Long> {
 
+    boolean existsByIdPersonaGeneralAndIdTipoVinculacionConvocatoriaAndIdCoordinacion(
+            Long idPersonaGeneral,
+            Long idTipoVinculacionConvocatoria,
+            Long idCoordinacion);
+
     @Query(value = """
                 SELECT
                 PEGE.PEGE_ID AS idPersonaGeneral,
