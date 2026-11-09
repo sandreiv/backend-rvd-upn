@@ -79,42 +79,20 @@ public interface PersonaGeneralRepository
                 ESCA.ESCA_ID AS idEscalafon,
                 ESCA.MOCO_ID AS idModalidadContratacion,
                 ESCA.ESCA_PUNTOS AS puntos,
-                CADO.CADO_ID AS idCargaDocente,
-                CADO.CARG_ID AS idCarga,
-                CARG.CONV_ID AS idConvocatoria,
-                CARG.COOR_ID AS idCoordinacion,
-                CADO.MOCO_ID AS idModalidadContratacionCarga,
-                CADO.FECO_ID AS idFechasConvocatoria
+                CAST(NULL AS NUMBER) AS idCargaDocente,
+                CAST(NULL AS NUMBER) AS idCarga,
+                CAST(NULL AS NUMBER) AS idConvocatoria,
+                CAST(NULL AS NUMBER) AS idCoordinacion,
+                CAST(NULL AS NUMBER) AS idModalidadContratacionCarga,
+                CAST(NULL AS NUMBER) AS idFechasConvocatoria
             FROM GENERAL.PERSONAGENERAL PEGE
             INNER JOIN GENERAL.PERSONANATURALGENERAL PENG
                 ON PENG.PEGE_ID = PEGE.PEGE_ID
-            LEFT JOIN COMITES.ESCALAFON ESCA
-                ON PEGE.PEGE_ID = ESCA.PEGE_ID
+            INNER JOIN COMITES.ESCALAFON ESCA
+                ON ESCA.PEGE_ID = PEGE.PEGE_ID
             LEFT JOIN TALENTOV3.CATEGORIACATEDRATICO CACA
-                ON ESCA.CACA_ID = CACA.CACA_ID
-            LEFT JOIN RVD.CARGADOCENTE CADO
-                ON CADO.PEGE_ID = PEGE.PEGE_ID
-                AND CADO.MOCO_ID = :idModalidadContratacion
-                AND CADO.CADO_ID = (
-                    SELECT MAX(CADO2.CADO_ID)
-                    FROM RVD.CARGADOCENTE CADO2
-                    WHERE CADO2.PEGE_ID = PEGE.PEGE_ID
-                        AND CADO2.MOCO_ID = :idModalidadContratacion
-                        AND (
-                            :idConvocatoria IS NULL
-                            OR EXISTS (
-                                SELECT 1
-                                FROM RVD.CARGA CARGF
-                                WHERE CARGF.CARG_ID = CADO2.CARG_ID
-                                    AND CARGF.CONV_ID = :idConvocatoria
-                            )
-                        )
-                )
-            LEFT JOIN RVD.CARGA CARG
-                ON CARG.CARG_ID = CADO.CARG_ID
+                ON CACA.CACA_ID = ESCA.CACA_ID
             WHERE
-                ESCA.MOCO_ID = :idModalidadContratacion
-            AND
                 (:documento IS NULL
                     OR UPPER(PEGE.PEGE_DOCUMENTOIDENTIDAD)
                         LIKE UPPER('%' || :documento || '%'))
@@ -128,40 +106,6 @@ public interface PersonaGeneralRepository
                         LIKE UPPER('%' || :nombre || '%')
                     OR UPPER(PENG.PENG_SEGUNDOAPELLIDO)
                         LIKE UPPER('%' || :nombre || '%'))
-            AND (
-                -- Si tiene carga docente, devuelve para mostrar el modal de advertencia
-                CADO.CADO_ID IS NOT NULL
-                OR (
-                    -- Validar novedades para excluir personas en las ultimas novedades efectivas de cada carga docente
-                    NOT EXISTS (
-                        SELECT 1
-                        FROM RVD.NOVEDADCARGADOCENTE NOCD
-                        WHERE NOCD.PEGE_ID = PEGE.PEGE_ID
-                        AND NOCD.MOCO_ID = :idModalidadContratacion
-                        AND NOCD.NOCD_ESTADONOVEDAD = 1
-                        AND NOCD.NOCD_ID = (
-                            SELECT MAX(NOCD2.NOCD_ID)
-                            FROM RVD.NOVEDADCARGADOCENTE NOCD2
-                            WHERE NOCD2.CADO_ID = NOCD.CADO_ID
-                                AND NOCD2.NOCD_ESTADONOVEDAD = 1
-                        )
-                    )
-                    AND NOT EXISTS (
-                        SELECT 1
-                        FROM RVD.NOVEDADCARGADOCENTE NOCD
-                        WHERE NOCD.PEGE_ID = PEGE.PEGE_ID
-                        AND NOCD.MOCO_ID = :idModalidadContratacion
-                        AND NOCD.NOCD_ESTADONOVEDAD = 0
-                        AND NOCD.NOCD_ID = (
-                            SELECT MAX(NOCD2.NOCD_ID)
-                            FROM RVD.NOVEDADCARGADOCENTE NOCD2
-                            WHERE NOCD2.CADO_ID = NOCD.CADO_ID
-                                AND NOCD2.NOCD_ESTADONOVEDAD = 0
-                        )
-                    )
-                )
-            )
-            
             ORDER BY
                 PENG.PENG_PRIMERAPELLIDO,
                 PENG.PENG_SEGUNDOAPELLIDO,
@@ -170,9 +114,60 @@ public interface PersonaGeneralRepository
             """, nativeQuery = true)
     List<DocentePreasignacionProjection> searchProfessorsForPreassignment(
             @Param("nombre") String nombre,
-            @Param("documento") String documento,
-            @Param("idModalidadContratacion") Long idModalidadContratacion,
-            @Param("idConvocatoria") Long idConvocatoria);
+            @Param("documento") String documento);
+
+    @Query(value = """
+            SELECT DISTINCT
+                PEGE.PEGE_ID AS idPersonaGeneral,
+                PEGE.PEGE_DOCUMENTOIDENTIDAD AS documentoIdentidad,
+                PENG.PENG_PRIMERNOMBRE AS primerNombre,
+                PENG.PENG_SEGUNDONOMBRE AS segundoNombre,
+                PENG.PENG_PRIMERAPELLIDO AS primerApellido,
+                PENG.PENG_SEGUNDOAPELLIDO AS segundoApellido,
+                CACA.CACA_ID AS idCategoriaCatedratico,
+                CACA.CACA_DESCRIPCION AS descripcionCategoriaCatedratico,
+                ESCA.ESCA_ID AS idEscalafon,
+                ESCA.MOCO_ID AS idModalidadContratacion,
+                ESCA.ESCA_PUNTOS AS puntos,
+                CAST(NULL AS NUMBER) AS idCargaDocente,
+                CAST(NULL AS NUMBER) AS idCarga,
+                CAST(NULL AS NUMBER) AS idConvocatoria,
+                CAST(NULL AS NUMBER) AS idCoordinacion,
+                CAST(NULL AS NUMBER) AS idModalidadContratacionCarga,
+                CAST(NULL AS NUMBER) AS idFechasConvocatoria
+            FROM GENERAL.PERSONAGENERAL PEGE
+            INNER JOIN GENERAL.PERSONANATURALGENERAL PENG
+                ON PENG.PEGE_ID = PEGE.PEGE_ID
+            INNER JOIN TALENTOV3.TRABAJADORLABOR TRLA
+                ON TRLA.PEGE_ID = PEGE.PEGE_ID
+                AND TRLA.TRLA_FECHAFINAL IS NULL
+            INNER JOIN COMITES.ESCALAFON ESCA
+                ON ESCA.PEGE_ID = PEGE.PEGE_ID
+            LEFT JOIN TALENTOV3.CATEGORIACATEDRATICO CACA
+                ON CACA.CACA_ID = ESCA.CACA_ID
+            WHERE
+                (:documento IS NULL
+                    OR UPPER(PEGE.PEGE_DOCUMENTOIDENTIDAD)
+                        LIKE UPPER('%' || :documento || '%'))
+            AND
+                (:nombre IS NULL
+                    OR UPPER(PENG.PENG_PRIMERNOMBRE)
+                        LIKE UPPER('%' || :nombre || '%')
+                    OR UPPER(PENG.PENG_SEGUNDONOMBRE)
+                        LIKE UPPER('%' || :nombre || '%')
+                    OR UPPER(PENG.PENG_PRIMERAPELLIDO)
+                        LIKE UPPER('%' || :nombre || '%')
+                    OR UPPER(PENG.PENG_SEGUNDOAPELLIDO)
+                        LIKE UPPER('%' || :nombre || '%'))
+            ORDER BY
+                PENG.PENG_PRIMERAPELLIDO,
+                PENG.PENG_SEGUNDOAPELLIDO,
+                PENG.PENG_PRIMERNOMBRE,
+                PENG.PENG_SEGUNDONOMBRE
+            """, nativeQuery = true)
+    List<DocentePreasignacionProjection> searchCareerProfessorsForPreassignment(
+            @Param("nombre") String nombre,
+            @Param("documento") String documento);
 
     @Query(value = """
             SELECT

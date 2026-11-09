@@ -61,6 +61,9 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "COOR_ID")
     private Long idCoordinacion;
 
+    @Column(name = "ESTA_ID")
+    private Long idEstado;
+
     @Column(name = "CADO_FECHAINICIO")
     private Date fechaInicio;
 
@@ -127,6 +130,10 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
     private CoordinacionesEntity coordinacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ESTA_ID", insertable = false, updatable = false)
+    private EstadosEntity estadoCarga;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "NOVE_ID", insertable = false, updatable = false)
     private NovedadEntity novedad;
 
@@ -143,6 +150,7 @@ public class CargaDocenteEntity implements Serializable, Cloneable {
                 + ", idTipoVinculacionConvocatoria=" + idTipoVinculacionConvocatoria
                 + ", idCategoriaCatedratico=" + idCategoriaCatedratico
                 + ", idCoordinacion=" + idCoordinacion
+                + ", idEstado=" + idEstado
                 + ", estado=" + estado
                 + ", vigente=" + vigente
                 + ", esNovedad=" + esNovedad
