@@ -12,6 +12,8 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.PeriodoUniversidadEntity;
 public interface PeriodoUniversidadMapper {
 
     @Mapping(source = "ano", target = "anio")
+    @Mapping(source = "idTipoPeriodoAcademico", target = "idTipoPeriodo")
+    @Mapping(source = "tipoPeriodoAcademico.descripcion", target = "tipoPeriodo")
     PeriodoUniversidadDTO toDto(PeriodoUniversidadEntity entity);
 
     List<PeriodoUniversidadDTO> toDtoList(

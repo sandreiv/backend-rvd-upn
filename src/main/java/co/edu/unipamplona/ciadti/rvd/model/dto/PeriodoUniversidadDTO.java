@@ -9,10 +9,16 @@ public record PeriodoUniversidadDTO(
     @JsonAlias({"ano", "PEUN_ANO"})
     Long anio,
     String periodo,
-    String codigoPeriodo
+    String codigoPeriodo,
+    Long idTipoPeriodo,
+    String tipoPeriodo
 ) {
     public PeriodoUniversidadDTO(Long id, Long anio, String periodo) {
-        this(id, anio, periodo, null);
+        this(id, anio, periodo, null, null, null);
+    }
+
+    public PeriodoUniversidadDTO(Long id, Long anio, String periodo, String codigoPeriodo) {
+        this(id, anio, periodo, codigoPeriodo, null, null);
     }
 
     @JsonProperty("ano")

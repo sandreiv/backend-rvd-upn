@@ -35,7 +35,7 @@ public class TipoPeriodoAcademicoEntity implements Serializable, Cloneable{
     private String descripcion;
 
     @Column(name = "TPPA_DURACIONSEMANAS", nullable = false)
-    private String duracionSemanas;
+    private Integer duracionSemanas;
     
     @Column(name = "TPPA_REGISTRADOPOR")
     private String registradoPor;

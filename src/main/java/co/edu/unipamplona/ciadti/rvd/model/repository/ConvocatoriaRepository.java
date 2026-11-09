@@ -17,9 +17,11 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.PeriodoUniversidadEntity;
 
 public interface ConvocatoriaRepository extends JpaRepository<ConvocatoriaEntity, Long> {
 
+    @Query("SELECT c FROM ConvocatoriaEntity c LEFT JOIN FETCH c.periodoUniversidad p LEFT JOIN FETCH p.tipoPeriodoAcademico ORDER BY c.id DESC")
     List<ConvocatoriaEntity> findAllByOrderByIdDesc();
 
-    List<ConvocatoriaEntity> findByIdPeriodoUniversidad(Long idPeriodoUniversidad);
+    @Query("SELECT c FROM ConvocatoriaEntity c LEFT JOIN FETCH c.periodoUniversidad p LEFT JOIN FETCH p.tipoPeriodoAcademico WHERE c.idPeriodoUniversidad = :idPeriodoUniversidad ORDER BY c.id DESC")
+    List<ConvocatoriaEntity> findByIdPeriodoUniversidad(@Param("idPeriodoUniversidad") Long idPeriodoUniversidad);
 
     List<ConvocatoriaEntity> findByIdPeriodoUniversidadAndEstado(Long idPeriodoUniversidad, String estado);
 

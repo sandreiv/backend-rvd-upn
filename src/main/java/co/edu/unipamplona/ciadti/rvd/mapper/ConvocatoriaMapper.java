@@ -29,6 +29,9 @@ public interface ConvocatoriaMapper {
             return "";
         }
         String periodoStr = periodo.getPeriodo() != null ? periodo.getPeriodo() : "";
-        return periodo.getAno() + " - " + periodoStr;
+        String tipoStr = (periodo.getTipoPeriodoAcademico() != null && periodo.getTipoPeriodoAcademico().getDescripcion() != null)
+                ? " - " + periodo.getTipoPeriodoAcademico().getDescripcion()
+                : "";
+        return periodo.getAno() + " - " + periodoStr + tipoStr;
     }
 }
