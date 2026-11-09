@@ -11,6 +11,7 @@
  * 05/11/2026 - Cálculo de contrato según tipo de vinculación.
  * 06/11/2026 - Búsqueda de docente de carrera vigente en trabajador labor.
  * 06/11/2026 - Alta de carga docente.
+ * 09/11/2026 - Listado de docentes por tipo de vinculación de la convocatoria.
  * 05/11/2026 - Horas mínima y máxima del tipo de vinculación.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
@@ -189,6 +191,22 @@ public class LoadController {
             @RequestParam(required = false) String documento,
             @RequestParam Long anio) {
         return ResponseEntity.ok(cargaService.searchCareerProfessor(nombre, documento, anio));
+    }
+
+    @Operation(
+        summary = "Lista los docentes de un tipo de vinculación de la convocatoria",
+        description = """
+            Solo docentes con registro en RVDIES.CARGADOCENTE para ese TIVC_ID.
+            Incluye persona, categoría, coordinación, el estado de RVDIES.ESTADOS,
+            fechas, valores, horas,
+            puntos, semanas y si tiene actividades en RVDIES.DETALLECARGADOCENTE.
+            Si el tipo de vinculación no existe, responde 404.
+            """
+    )
+    @GetMapping("/list-professors")
+    public ResponseEntity<List<DocenteCargaDTO>> listProfessors(
+            @RequestParam Long idTipoVinculacionConvocatoria) {
+        return ResponseEntity.ok(cargaService.listProfessors(idTipoVinculacionConvocatoria));
     }
 
     @Operation(

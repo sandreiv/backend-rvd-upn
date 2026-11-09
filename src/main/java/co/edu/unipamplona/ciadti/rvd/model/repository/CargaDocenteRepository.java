@@ -21,6 +21,7 @@
  * 07/10/2026 - Andrés Hernández - Eliminación de métodos para consultar docentes aprobados
  * 07/10/2026 - Sebastian Jaimes - Información del docente para contratación
  * 08/10/2026 - Andrés Hernández - Uso de docentes aprobados para generar el CDP
+ * 09/11/2026 - Listado de docentes de RVDIES.CARGADOCENTE por TIVC_ID.
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -36,6 +37,7 @@ import org.springframework.data.jpa.repository.Modifying;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteCargaCoordinacionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteEfectivoCoordinacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.InformacionDocenteContratacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionReporteProjection;
@@ -48,6 +50,71 @@ public interface CargaDocenteRepository extends JpaRepository<CargaDocenteEntity
             Long idPersonaGeneral,
             Long idTipoVinculacionConvocatoria,
             Long idCoordinacion);
+
+    @Query(value = """
+                SELECT
+                    PEGE.PEGE_ID AS idPersonaGeneral,
+                    TRIM(
+                        TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                        || ' ' ||
+                        TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                    ) AS nombreCompleto,
+                    CADO.CADO_ID AS idCargaDocente,
+                    CADO.TIVC_ID AS idTipoVinculacionConvocatoria,
+                    CADO.CACA_ID AS idCategoriaCatedratico,
+                    CADO.COOR_ID AS idCoordinacion,
+                    ESTA.ESTA_ID AS idEstado,
+                    ESTA.ESTA_NOMBRE AS nombreEstado,
+                    ESTA.ESTA_DESCRIPCION AS descripcionEstado,
+                    ESTA.ESTA_ORDEN AS ordenEstado,
+                    ESTA.ESTA_TIPO AS tipoEstado,
+                    CADO.CADO_FECHAINICIO AS cargaFechaInicio,
+                    CADO.CADO_FECHAFIN AS cargaFechaFin,
+                    CADO.CADO_VALORCONTRATO AS valorContrato,
+                    CADO.CADO_VALORPRESTACIONES AS valorPrestaciones,
+                    CADO.CADO_SALARIO AS asignacionSalarial,
+                    CADO.CADO_TOTALCONTRATO AS totalContrato,
+                    CADO.CADO_HORAS AS horas,
+                    CADO.CADO_VALORHORA AS valorHora,
+                    CADO.CADO_PUNTOS AS puntos,
+                    CADO.CADO_VALORPUNTO AS valorPunto,
+                    CADO.CADO_SEMANAS AS semanas,
+                    CADO.CADO_ONCEMESES AS onceMeses,
+                    CASE
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM RVDIES.DETALLECARGADOCENTE DECD
+                            WHERE DECD.CADO_ID = CADO.CADO_ID
+                        )
+                        THEN 1
+                        ELSE 0
+                    END AS tieneActividades
+                FROM RVDIES.CARGADOCENTE CADO
+                LEFT JOIN GENERAL.PERSONAGENERAL PEGE
+                    ON PEGE.PEGE_ID = CADO.PEGE_ID
+                LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
+                    ON PENG.PEGE_ID = PEGE.PEGE_ID
+                LEFT JOIN RVDIES.ESTADOS ESTA
+                    ON ESTA.ESTA_ID = CADO.ESTA_ID
+                WHERE CADO.TIVC_ID = :idTipoVinculacionConvocatoria
+                ORDER BY
+                    CASE
+                        WHEN PEGE.PEGE_ID IS NULL THEN 1
+                        WHEN TRIM(
+                            TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                            || ' ' ||
+                            TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                        ) IS NULL THEN 1
+                        ELSE 0
+                    END,
+                    UPPER(TRIM(
+                        TRIM(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_SEGUNDONOMBRE)
+                        || ' ' ||
+                        TRIM(PENG.PENG_PRIMERAPELLIDO || ' ' || PENG.PENG_SEGUNDOAPELLIDO)
+                    )) NULLS LAST
+            """, nativeQuery = true)
+    List<DocenteCargaProjection> findProfessorsByTipoVinculacionConvocatoria(
+            @Param("idTipoVinculacionConvocatoria") Long idTipoVinculacionConvocatoria);
 
     @Query(value = """
                 SELECT

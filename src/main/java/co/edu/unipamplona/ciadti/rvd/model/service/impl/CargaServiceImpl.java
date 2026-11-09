@@ -10,6 +10,7 @@
  * 05/11/2026 - Búsqueda de docente con valor del punto y asignación salarial.
  * 06/11/2026 - Búsqueda de docente de carrera vigente en trabajador labor.
  * 06/11/2026 - Alta de carga docente.
+ * 09/11/2026 - Listado de docentes por tipo de vinculación de la convocatoria.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -27,10 +28,12 @@ import co.edu.unipamplona.ciadti.rvd.config.security.AuthUserDetails;
 import co.edu.unipamplona.ciadti.rvd.config.security.SecurityUtils;
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.BusquedaDocenteMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.DocenteCargaMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.TipoVinculacionMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
@@ -82,6 +85,7 @@ public class CargaServiceImpl implements CargaService {
     private final CoordinacionMapper coordinacionMapper;
     private final TipoVinculacionMapper tipoVinculacionMapper;
     private final BusquedaDocenteMapper busquedaDocenteMapper;
+    private final DocenteCargaMapper docenteCargaMapper;
     private final PersonaGeneralRepository personaGeneralRepository;
     private final PuntosVigenciaRepository puntosVigenciaRepository;
     private final PuntosCategoriaRepository puntosCategoriaRepository;
@@ -246,6 +250,29 @@ public class CargaServiceImpl implements CargaService {
                         HttpStatus.NOT_FOUND,
                         "No existe el tipo de vinculación."));
         return tipoVinculacion.getFormaPago();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocenteCargaDTO> listProfessors(Long idTipoVinculacionConvocatoria) {
+        log.debug("listProfessors ===> Listando docentes. idTipoVinculacionConvocatoria={}",
+                idTipoVinculacionConvocatoria);
+        if (idTipoVinculacionConvocatoria == null) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "El tipo de vinculación de la convocatoria es obligatorio.");
+        }
+        if (!tipoVinculacionConvocatoriaRepository.existsById(idTipoVinculacionConvocatoria)) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "No existe el tipo de vinculación de la convocatoria.");
+        }
+        List<DocenteCargaDTO> docentes = docenteCargaMapper.toDtoList(
+                cargaDocenteRepository.findProfessorsByTipoVinculacionConvocatoria(
+                        idTipoVinculacionConvocatoria));
+        log.info("listProfessors ===> Docentes listados. idTipoVinculacionConvocatoria={}, total={}",
+                idTipoVinculacionConvocatoria, docentes.size());
+        return docentes;
     }
 
     @Override
