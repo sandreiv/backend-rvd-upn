@@ -6,6 +6,7 @@
  * Fecha de creación: 02/06/2026
  * Modificaciones:
  * 02/06/2026 - Sebastian Jaimes - Creación inicial
+ * 09/11/2026 - Se agregan idDependencia, docenciaDirecta y horasPorSemestre
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -28,7 +29,7 @@ import lombok.Setter;
 
 @NamedStoredProcedureQuery(
     name = "TipoActividadesEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_TIPOACTIVIDADES",
+    procedureName = "RVDIES.PR_RVDIES_D_TIPOACTIVIDADES",
     parameters = {
         @StoredProcedureParameter(name = "P_TIAC_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_TIAC_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -61,9 +62,6 @@ public class TipoActividadesEntity implements Serializable, Cloneable{
     @Column(name = "TIAC_ESTADO")
     private String estado;
 
-    @Column(name = "TIAC_CODIGO")
-    private String codigo;
-
     @Column(name = "TIAC_COMPONENTE")
     private String componente;
 
@@ -73,8 +71,15 @@ public class TipoActividadesEntity implements Serializable, Cloneable{
     @Column(name = "TIAC_MAXIMOHORAS")
     private String maximoHoras;
 
-    @Column(name = "TIAC_PTD")
-    private String ptd;
+    @Column(name = "TIAC_IDDEPENDENCIA")
+    private Long idDependencia;
+
+    @Column(name = "TIAC_DOCENCIADIRECTA")
+    private String docenciaDirecta;
+
+    @Column(name = "TIAC_HORASPERSEMESTRE")
+    private String horasPorSemestre;
+
 
     @Column(name = "TIAC_REGISTRADOPOR")
     private String registradoPor;
@@ -96,15 +101,16 @@ public class TipoActividadesEntity implements Serializable, Cloneable{
                 ", descripcion=" + descripcion +
                 ", orden=" + orden +
                 ", estado=" + estado +
-                ", codigo=" + codigo +
                 ", componente=" + componente +
                 ", minimoHoras=" + minimoHoras +
                 ", maximoHoras=" + maximoHoras +
-                ", ptd=" + ptd +
+                ", idDependencia=" + idDependencia +
+                ", docenciaDirecta=" + docenciaDirecta +
+                ", horasPorSemestre=" + horasPorSemestre +
                 ", registradoPor=" + registradoPor +
                 ", fechaCambio=" + fechaCambio +
                 '}';
     }
 
 }
-/* 02/06/2026 @:Sebastian Jaimes */
+/* 09/11/2026 */

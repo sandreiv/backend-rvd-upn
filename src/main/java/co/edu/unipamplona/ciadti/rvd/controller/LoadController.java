@@ -12,6 +12,8 @@
  * 06/11/2026 - Búsqueda de docente de carrera vigente en trabajador labor.
  * 06/11/2026 - Alta de carga docente.
  * 09/11/2026 - Listado de docentes por tipo de vinculación de la convocatoria.
+ * 09/11/2026 - Árbol de tipos de actividad desde RVDIES.TIPOACTIVIDADES.
+ * 09/11/2026 - Restricciones de actividad por tipo de vinculación.
  * 05/11/2026 - Horas mínima y máxima del tipo de vinculación.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
@@ -36,6 +38,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
@@ -225,5 +229,31 @@ public class LoadController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(
+        summary = "Lista los tipos de actividad en árbol",
+        description = """
+            Lee RVDIES.TIPOACTIVIDADES y devuelve solo los padres (TIAC_IDPADRE nulo).
+            Cada nodo trae sus descendientes en hijos, ordenados por TIAC_ORDEN y nombre.
+            Incluye estado, componente, docencia directa, dependencia y horas.
+            """
+    )
+    @GetMapping("/list-activity-types")
+    public ResponseEntity<List<TipoActividadListadoDTO>> listActivityTypes() {
+        return ResponseEntity.ok(cargaService.listActivityTypes());
+    }
 
+    @Operation(
+        summary = "Lista las restricciones de actividad de un tipo de vinculación",
+        description = """
+            Lee RVDIES.RESTRICCIONACTIVIDADES filtrado por TIVI_ID.
+            Cada ítem trae el id de la restricción y el tipo de actividad (id y nombre).
+            Si el tipo de vinculación no existe, responde 404.
+            Si no tiene restricciones, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-activity-restrictions")
+    public ResponseEntity<List<RestriccionActividadListadoDTO>> listActivityRestrictions(
+            @RequestParam Long idTipoVinculacion) {
+        return ResponseEntity.ok(cargaService.listActivityRestrictions(idTipoVinculacion));
+    }
 }

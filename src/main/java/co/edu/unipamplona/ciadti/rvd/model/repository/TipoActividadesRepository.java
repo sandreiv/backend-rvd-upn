@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.query.Procedure;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoActividadesEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadAdministracionListadoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadArbolProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadListadoProjection;
 
 public interface TipoActividadesRepository
@@ -202,6 +203,32 @@ public interface TipoActividadesRepository
     String findNextOrderByParent(@Param("idPadre") Long idPadre);
 
     boolean existsByIdPadre(Long idPadre);
+
+    @Query(value = """
+            SELECT
+                TIAC.TIAC_ID AS id,
+                TIAC.TIAC_IDPADRE AS idPadre,
+                TIAC.TIAC_NOMBRE AS nombre,
+                TIAC.TIAC_DESCRIPCION AS descripcion,
+                TIAC.TIAC_ORDEN AS orden,
+                TIAC.TIAC_ESTADO AS estado,
+                TIAC.TIAC_MINIMOHORAS AS minimoHoras,
+                TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
+                TIAC.TIAC_IDDEPENDENCIA AS idDependencia,
+                TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
+                TIAC.TIAC_COMPONENTE AS componente,
+                TIAC.TIAC_HORASPERSEMESTRE AS horasPorSemestre
+            FROM RVDIES.TIPOACTIVIDADES TIAC
+            ORDER BY
+                CASE
+                    WHEN REGEXP_LIKE(NVL(TIAC.TIAC_ORDEN, '0'), '^[0-9]+$')
+                    THEN TO_NUMBER(TIAC.TIAC_ORDEN)
+                    ELSE 999999
+                END,
+                TIAC.TIAC_NOMBRE,
+                TIAC.TIAC_ID
+            """, nativeQuery = true)
+    List<TipoActividadArbolProjection> findAllForActivityTree();
 
 
     @Procedure(name = "TipoActividadesEntity.deleteByProcedure")

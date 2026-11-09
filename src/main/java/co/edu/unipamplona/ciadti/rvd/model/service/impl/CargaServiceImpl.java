@@ -11,16 +11,23 @@
  * 06/11/2026 - Búsqueda de docente de carrera vigente en trabajador labor.
  * 06/11/2026 - Alta de carga docente.
  * 09/11/2026 - Listado de docentes por tipo de vinculación de la convocatoria.
+ * 09/11/2026 - Árbol de tipos de actividad desde RVDIES.TIPOACTIVIDADES.
+ * 09/11/2026 - Restricciones de actividad por tipo de vinculación.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,11 +36,15 @@ import co.edu.unipamplona.ciadti.rvd.config.security.SecurityUtils;
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.BusquedaDocenteMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.DocenteCargaMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.RestriccionActividadListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.TipoActividadListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.TipoVinculacionMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
@@ -51,9 +62,12 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.EstadosRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaGeneralRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PuntosCategoriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PuntosVigenciaRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.RestriccionActividadesRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.TipoActividadesRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionConvocatoriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPersonaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadArbolProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
 import co.edu.unipamplona.ciadti.rvd.util.FechasConvocatoriaCalculator;
@@ -92,6 +106,10 @@ public class CargaServiceImpl implements CargaService {
     private final EscalafonRepository escalafonRepository;
     private final CargaDocenteRepository cargaDocenteRepository;
     private final EstadosRepository estadosRepository;
+    private final TipoActividadesRepository tipoActividadesRepository;
+    private final TipoActividadListadoMapper tipoActividadListadoMapper;
+    private final RestriccionActividadesRepository restriccionActividadesRepository;
+    private final RestriccionActividadListadoMapper restriccionActividadListadoMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -170,6 +188,56 @@ public class CargaServiceImpl implements CargaService {
                 .toList();
     }
 
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TipoActividadListadoDTO> listActivityTypes() {
+        log.info("listActivityTypes ===> Listando tipos de actividad en árbol");
+        List<TipoActividadArbolProjection> rows = tipoActividadesRepository.findAllForActivityTree();
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, List<TipoActividadArbolProjection>> porPadre = new LinkedHashMap<>();
+        for (TipoActividadArbolProjection row : rows) {
+            porPadre.computeIfAbsent(row.getIdPadre(), key -> new ArrayList<>()).add(row);
+        }
+        return buildActivityTree(null, porPadre, new HashSet<>());
+    }
+
+    private List<TipoActividadListadoDTO> buildActivityTree(
+            Long idPadre,
+            Map<Long, List<TipoActividadArbolProjection>> porPadre,
+            Set<Long> visitados) {
+        List<TipoActividadArbolProjection> nodos = porPadre.getOrDefault(idPadre, List.of());
+        if (nodos.isEmpty()) {
+            return List.of();
+        }
+        List<TipoActividadListadoDTO> arbol = new ArrayList<>();
+        for (TipoActividadArbolProjection nodo : nodos) {
+            if (nodo.getId() == null || !visitados.add(nodo.getId())) {
+                continue;
+            }
+            arbol.add(tipoActividadListadoMapper.toDto(
+                    nodo,
+                    buildActivityTree(nodo.getId(), porPadre, visitados)));
+        }
+        return List.copyOf(arbol);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RestriccionActividadListadoDTO> listActivityRestrictions(Long idTipoVinculacion) {
+        if (idTipoVinculacion == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El tipo de vinculación es obligatorio.");
+        }
+        if (!tipoVinculacionRepository.existsById(idTipoVinculacion)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe el tipo de vinculación.");
+        }
+        log.info("listActivityRestrictions ===> Listando restricciones de actividad. idTipoVinculacion={}",
+                idTipoVinculacion);
+        return restriccionActividadListadoMapper.toDtoList(
+                restriccionActividadesRepository.findByIdTipoVinculacion(idTipoVinculacion));
+    }
 
     @Override
     @Transactional(readOnly = true)
