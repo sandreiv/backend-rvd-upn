@@ -6,6 +6,7 @@
  * Fecha de creación: 17/07/2026
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
+ * 10/11/2026 - Leonel Antonio Perez Rios - Adición de método para listar todos los tipos en jerarquía
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.service;
@@ -18,6 +19,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadAdministracionListad
 public interface TipoActividadesAdministracionService {
 
     List<TipoActividadAdministracionListadoDTO> listParentActivityTypes();
+
+    List<TipoActividadAdministracionListadoDTO> listAllActivityTypes();
 
     List<TipoActividadAdministracionListadoDTO> listChildActivityTypes(Long idPadre);
 

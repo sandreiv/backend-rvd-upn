@@ -7,6 +7,9 @@
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
  * 30/07/2026 - Se agrega campo componente.
+ * 10/11/2026 - Leonel Antonio Perez Rios - Depuración de campos inexistentes en esquema (codigo, ptd)
+ * 10/11/2026 - Leonel Antonio Perez Rios - Adición de campo orden configurable
+ * 10/11/2026 - Leonel Antonio Perez Rios - Adición de idDependencia, docenciaDirecta y horasPorSemestre
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.dto;
@@ -14,11 +17,13 @@ package co.edu.unipamplona.ciadti.rvd.model.dto;
 public record TipoActividadAdministracionFormularioDTO(
         String nombre,
         String descripcion,
-        String codigo,
         String componente,
+        String orden,
+        Long idDependencia,
+        String docenciaDirecta,
+        String horasPorSemestre,
         Integer minimoHoras,
         Integer maximoHoras,
-        String ptd,
         String estado
 ) {}
 

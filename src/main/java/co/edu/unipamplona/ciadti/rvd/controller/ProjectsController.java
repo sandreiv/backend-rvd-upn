@@ -7,6 +7,7 @@
  * Modificaciones:
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Endpoint de búsqueda de personas para proyectos
+ * 10/11/2026 - Leonel Antonio Perez Rios - Endpoint para listar todos los proyectos y productos jerárquicamente
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -25,6 +26,15 @@ import java.util.List;
 public class ProjectsController {
 
     private final ProyectosService proyectosService;
+
+    @Operation(
+            summary = "Lista todos los proyectos y productos",
+            description = "Lista todos los proyectos y sus productos jerárquicamente para visualización en árbol"
+    )
+    @GetMapping("/all")
+    public ResponseEntity<List<ProyectosListaDTO>> listAllProjects() {
+        return ResponseEntity.ok(proyectosService.listAllProjects());
+    }
 
     @Operation(
             summary = "Lista proyectos padre",

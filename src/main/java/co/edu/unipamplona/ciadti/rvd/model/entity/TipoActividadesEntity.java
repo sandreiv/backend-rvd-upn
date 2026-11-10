@@ -6,13 +6,13 @@
  * Fecha de creación: 02/06/2026
  * Modificaciones:
  * 02/06/2026 - Sebastian Jaimes - Creación inicial
+ * 10/11/2026 - Leonel Antonio Perez Rios - Se agregan campos idDependencia, docenciaDirecta y horasPorSemestre
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
 import java.util.Date;
 import java.math.BigDecimal;
-
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
@@ -40,7 +40,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "TIPOACTIVIDADES", schema = "RVDIES")
-public class TipoActividadesEntity implements Serializable, Cloneable{
+public class TipoActividadesEntity implements Serializable, Cloneable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "TIAC_ID", nullable = false)
@@ -70,6 +70,15 @@ public class TipoActividadesEntity implements Serializable, Cloneable{
     @Column(name = "TIAC_MAXIMOHORAS")
     private String maximoHoras;
 
+    @Column(name = "TIAC_IDDEPENDENCIA")
+    private Long idDependencia;
+
+    @Column(name = "TIAC_DOCENCIADIRECTA")
+    private String docenciaDirecta;
+
+    @Column(name = "TIAC_HORASPORSEMESTRE")
+    private String horasPorSemestre;
+
     @Column(name = "TIAC_REGISTRADOPOR")
     private String registradoPor;
 
@@ -93,10 +102,12 @@ public class TipoActividadesEntity implements Serializable, Cloneable{
                 ", componente=" + componente +
                 ", minimoHoras=" + minimoHoras +
                 ", maximoHoras=" + maximoHoras +
+                ", idDependencia=" + idDependencia +
+                ", docenciaDirecta=" + docenciaDirecta +
+                ", horasPorSemestre=" + horasPorSemestre +
                 ", registradoPor=" + registradoPor +
                 ", fechaCambio=" + fechaCambio +
                 '}';
     }
-
 }
 /* 02/06/2026 @:Sebastian Jaimes */

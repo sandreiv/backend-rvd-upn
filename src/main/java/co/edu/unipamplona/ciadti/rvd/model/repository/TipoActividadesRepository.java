@@ -7,6 +7,9 @@
  * Modificaciones:
  * 02/06/2026 - Sebastian Jaimes - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Ajuste de esquema a RVDIES y remoción de columnas inexistentes
+ * 10/11/2026 - Leonel Antonio Perez Rios - Adición de consulta para árbol completo y soporte de idPadre
+ * 10/11/2026 - Leonel Antonio Perez Rios - Depuración de columnas no existentes (codigo, ptd) y ubicación de orden
+ * 10/11/2026 - Leonel Antonio Perez Rios - Adición de idDependencia, docenciaDirecta y horasPorSemestre en proyecciones
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -137,14 +140,16 @@ public interface TipoActividadesRepository
     @Query(value = """
             SELECT
                 TIAC.TIAC_ID AS id,
+                TIAC.TIAC_IDPADRE AS idPadre,
+                TIAC.TIAC_IDDEPENDENCIA AS idDependencia,
+                TIAC.TIAC_ORDEN AS orden,
                 TIAC.TIAC_NOMBRE AS nombre,
                 TIAC.TIAC_DESCRIPCION AS descripcion,
-                NULL AS codigo,
                 TIAC.TIAC_COMPONENTE AS componente,
                 TIAC.TIAC_MINIMOHORAS AS minimoHoras,
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
-                TIAC.TIAC_ORDEN AS orden,
-                '1' AS ptd,
+                TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
+                TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             WHERE TIAC.TIAC_IDPADRE IS NULL
@@ -161,14 +166,43 @@ public interface TipoActividadesRepository
     @Query(value = """
             SELECT
                 TIAC.TIAC_ID AS id,
+                TIAC.TIAC_IDPADRE AS idPadre,
+                TIAC.TIAC_IDDEPENDENCIA AS idDependencia,
+                TIAC.TIAC_ORDEN AS orden,
                 TIAC.TIAC_NOMBRE AS nombre,
                 TIAC.TIAC_DESCRIPCION AS descripcion,
-                NULL AS codigo,
                 TIAC.TIAC_COMPONENTE AS componente,
                 TIAC.TIAC_MINIMOHORAS AS minimoHoras,
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
+                TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
+                TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
+                TIAC.TIAC_ESTADO AS estado
+            FROM RVDIES.TIPOACTIVIDADES TIAC
+            ORDER BY
+                NVL(TIAC.TIAC_IDPADRE, TIAC.TIAC_ID),
+                TIAC.TIAC_IDPADRE NULLS FIRST,
+                CASE
+                    WHEN REGEXP_LIKE(NVL(TIAC.TIAC_ORDEN, '0'), '^[0-9]+$')
+                    THEN TO_NUMBER(TIAC.TIAC_ORDEN)
+                    ELSE 999999
+                END,
+                TIAC.TIAC_NOMBRE
+            """, nativeQuery = true)
+    List<TipoActividadAdministracionListadoProjection> findAdministrationAllList();
+
+    @Query(value = """
+            SELECT
+                TIAC.TIAC_ID AS id,
+                TIAC.TIAC_IDPADRE AS idPadre,
+                TIAC.TIAC_IDDEPENDENCIA AS idDependencia,
                 TIAC.TIAC_ORDEN AS orden,
-                '1' AS ptd,
+                TIAC.TIAC_NOMBRE AS nombre,
+                TIAC.TIAC_DESCRIPCION AS descripcion,
+                TIAC.TIAC_COMPONENTE AS componente,
+                TIAC.TIAC_MINIMOHORAS AS minimoHoras,
+                TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
+                TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
+                TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             WHERE TIAC.TIAC_IDPADRE IS NULL
@@ -185,14 +219,16 @@ public interface TipoActividadesRepository
     @Query(value = """
             SELECT
                 TIAC.TIAC_ID AS id,
+                TIAC.TIAC_IDPADRE AS idPadre,
+                TIAC.TIAC_IDDEPENDENCIA AS idDependencia,
+                TIAC.TIAC_ORDEN AS orden,
                 TIAC.TIAC_NOMBRE AS nombre,
                 TIAC.TIAC_DESCRIPCION AS descripcion,
-                NULL AS codigo,
                 TIAC.TIAC_COMPONENTE AS componente,
                 TIAC.TIAC_MINIMOHORAS AS minimoHoras,
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
-                TIAC.TIAC_ORDEN AS orden,
-                '1' AS ptd,
+                TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
+                TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             WHERE TIAC.TIAC_IDPADRE = :idPadre

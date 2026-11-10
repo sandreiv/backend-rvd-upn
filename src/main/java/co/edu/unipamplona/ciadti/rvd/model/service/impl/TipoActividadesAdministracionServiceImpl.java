@@ -8,12 +8,15 @@
  * 17/07/2026 - Daniel Arias - Creación inicial
  * 13/10/2026 - Andrés Hernández - Manejo de campos nulos para actividades PTD
  * 10/11/2026 - Leonel Antonio Perez Rios - Ajuste de validaciones y eliminación para esquema general
+ * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para listado completo con idPadre
+ * 10/11/2026 - Leonel Antonio Perez Rios - Depuración de campos inexistentes en esquema (codigo, ptd) y ajuste de DTOs
+ * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para orden personalizado en creación y edición
+ * 10/11/2026 - Leonel Antonio Perez Rios - Mapeo de idDependencia, docenciaDirecta y horasPorSemestre
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 import java.math.BigDecimal;
 
 import org.springframework.http.HttpStatus;
@@ -38,8 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TipoActividadesAdministracionServiceImpl implements TipoActividadesAdministracionService {
 
-    private static final Set<String> CODIGOS_PERMITIDOS = Set.of("CTEI", "AC", "FAD", "FAI", "ISU", "PTD");
-
     private final TipoActividadesRepository tipoActividadesRepository;
 
     @Override
@@ -53,6 +54,20 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 .toList();
 
         log.info("listParentActivityTypes ===> Tipos de actividad padre listados. total={}", result.size());
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TipoActividadAdministracionListadoDTO> listAllActivityTypes() {
+        log.debug("listAllActivityTypes ===> Listando todos los tipos de actividad");
+
+        List<TipoActividadAdministracionListadoDTO> result = tipoActividadesRepository.findAdministrationAllList()
+                .stream()
+                .map(this::mapToDto)
+                .toList();
+
+        log.info("listAllActivityTypes ===> Todos los tipos de actividad listados. total={}", result.size());
         return result;
     }
 
@@ -198,7 +213,11 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
 
         TipoActividadesEntity entity = new TipoActividadesEntity();
         entity.setIdPadre(idPadre);
-        entity.setOrden(tipoActividadesRepository.findNextOrderByParent(idPadre));
+
+        String orden = StringUtils.hasText(dto.orden())
+                ? dto.orden().trim()
+                : tipoActividadesRepository.findNextOrderByParent(idPadre);
+        entity.setOrden(orden);
 
         fillActivityType(entity, dto);
         tipoActividadesRepository.save(entity);
@@ -209,14 +228,16 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
     ) {
         return new TipoActividadAdministracionListadoDTO(
                 item.getId(),
+                item.getIdPadre(),
+                item.getIdDependencia(),
+                item.getOrden(),
                 item.getNombre(),
                 item.getDescripcion(),
-                item.getCodigo(),
                 item.getComponente(),
                 item.getMinimoHoras(),
                 item.getMaximoHoras(),
-                item.getOrden(),
-                item.getPtd(),
+                item.getDocenciaDirecta(),
+                item.getHorasPorSemestre(),
                 item.getEstado()
         );
     }
@@ -231,6 +252,21 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 StringUtils.hasText(dto.componente())
                         ? dto.componente().trim()
                         : null);
+
+        if (StringUtils.hasText(dto.orden())) {
+            entity.setOrden(dto.orden().trim());
+        }
+
+        entity.setIdDependencia(dto.idDependencia());
+        entity.setDocenciaDirecta(
+                StringUtils.hasText(dto.docenciaDirecta())
+                        ? dto.docenciaDirecta().trim()
+                        : "0");
+        entity.setHorasPorSemestre(
+                StringUtils.hasText(dto.horasPorSemestre())
+                        ? dto.horasPorSemestre().trim()
+                        : "0");
+
         entity.setMinimoHoras(
                 dto.minimoHoras() != null
                     ? String.valueOf(dto.minimoHoras())
@@ -262,24 +298,15 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
             throw new ApiException(HttpStatus.BAD_REQUEST, "El nombre es obligatorio");
         }
 
-        if (StringUtils.hasText(dto.codigo())) {
-            String codigo = dto.codigo().trim().toUpperCase();
-            if (!CODIGOS_PERMITIDOS.contains(codigo)) {
-                log.debug("validateActivityType ===> Código '{}' no está en la lista estándar, pero se permite", codigo);
-            }
+        if (dto.minimoHoras() != null && dto.minimoHoras() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El mínimo de horas no puede ser negativo");
         }
 
-        if (!"1".equals(dto.ptd())) {
-            if (dto.minimoHoras() != null && dto.minimoHoras() < 0) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "El mínimo de horas no puede ser negativo");
-            }
-
-            if (dto.minimoHoras() != null && dto.maximoHoras() != null && dto.maximoHoras() < dto.minimoHoras()) {
-                throw new ApiException(
-                        HttpStatus.BAD_REQUEST,
-                        "El máximo de horas debe ser mayor o igual al mínimo de horas"
-                );
-            }
+        if (dto.minimoHoras() != null && dto.maximoHoras() != null && dto.maximoHoras() < dto.minimoHoras()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "El máximo de horas debe ser mayor o igual al mínimo de horas"
+            );
         }
     }
 

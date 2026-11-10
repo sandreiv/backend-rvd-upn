@@ -7,6 +7,7 @@
  * Modificaciones:
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Búsqueda de personas para proyectos
+ * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para listado completo jerárquico de proyectos y productos
  */
 package co.edu.unipamplona.ciadti.rvd.model.service;
 
@@ -23,6 +24,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadProyectoDTO;
 public interface ProyectosService {
 
     List<ProyectosListaDTO> listProjects();
+
+    List<ProyectosListaDTO> listAllProjects();
 
     List<ProyectosListaDTO> listProducts(Long idProyecto);
 

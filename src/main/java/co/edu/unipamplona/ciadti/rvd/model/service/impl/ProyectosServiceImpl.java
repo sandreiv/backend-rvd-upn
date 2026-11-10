@@ -7,6 +7,7 @@
  * Modificaciones:
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Búsqueda de personas para proyectos
+ * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para listado completo jerárquico de proyectos y productos
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -70,6 +71,16 @@ public class ProyectosServiceImpl implements ProyectosService {
         List<ProyectosListaProjection> projects = proyectosRepository.findParentProjectsList();
         List<ProyectosListaDTO> result = proyectosMapper.toProyectosListaDTOList(projects);
         log.info("listProjects ===> Proyectos padre listados. total={}", result.size());
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProyectosListaDTO> listAllProjects() {
+        log.debug("listAllProjects ===> Listando todos los proyectos y productos");
+        List<ProyectosListaProjection> rows = proyectosRepository.findAllProjectsList();
+        List<ProyectosListaDTO> result = proyectosMapper.toProyectosListaDTOList(rows);
+        log.info("listAllProjects ===> Proyectos y productos listados. total={}", result.size());
         return result;
     }
 

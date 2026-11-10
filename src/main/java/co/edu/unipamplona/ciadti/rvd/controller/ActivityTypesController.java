@@ -6,6 +6,7 @@
  * Fecha de creación: 10/11/2026
  * Modificaciones:
  * 10/11/2026 - Leonel Antonio Perez Rios - Creación inicial de endpoints para administración de tipos de actividad
+ * 10/11/2026 - Leonel Antonio Perez Rios - Adición de endpoint /all para listado jerárquico
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -34,6 +35,15 @@ import lombok.RequiredArgsConstructor;
 public class ActivityTypesController {
 
     private final TipoActividadesAdministracionService tipoActividadesAdministracionService;
+
+    @Operation(
+            summary = "Lista todos los tipos de actividad",
+            description = "Lista todos los tipos de actividad en estructura jerárquica completa"
+    )
+    @GetMapping("/all")
+    public ResponseEntity<List<TipoActividadAdministracionListadoDTO>> listAllActivityTypes() {
+        return ResponseEntity.ok(tipoActividadesAdministracionService.listAllActivityTypes());
+    }
 
     @Operation(
             summary = "Lista tipos de actividad padre",
@@ -91,7 +101,7 @@ public class ActivityTypesController {
 
     @Operation(
             summary = "Elimina un tipo de actividad",
-            description = "Elimina un tipo de actividad si no tiene dependencias activas"
+            description = "Elimina un tipo de actividad por identificador"
     )
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteActivityType(@PathVariable Long id) {
@@ -100,8 +110,8 @@ public class ActivityTypesController {
     }
 
     @Operation(
-            summary = "Eliminación masiva de tipos de actividad",
-            description = "Elimina varios tipos de actividad por lista de identificadores"
+            summary = "Elimina masivamente tipos de actividad",
+            description = "Elimina varios tipos de actividad según los identificadores indicados"
     )
     @PostMapping("/delete-bulk")
     public ResponseEntity<Void> deleteBulkActivityTypes(@RequestBody EliminacionMasivaDTO dto) {
