@@ -6,23 +6,21 @@
  * Fecha de creación: 27/07/2026
  * Modificaciones:
  * 27/07/2026 - Sebastian Jaimes - Creación inicial
+ * 09/11/2026 - Leonel Antonio Perez Rios - Ajuste de atributos para listado de proyectos
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
-import java.util.Date;
-
 public record ProyectosListaDTO(
     Long id,
-    Long idConvocatoriaProyectos,
-    Long idTipoProyecto,
+    Long idTipoActividad,
     Long idCoordinacion,
     Long idProyectoPadre,
+    Long idMateriaTdg,
     String nombre,
     String descripcion,
-    String monto,
-    Date fechaInicio,
-    Date fechaFin,
-    IdNombreDTO convocatoriaProyectos,
-    IdNombreDTO tipoProyecto,
-    IdNombreDTO coordinacion
+    String actaConsejo,
+    String estado,
+    IdNombreDTO tipoActividad,
+    IdNombreDTO coordinacion,
+    Integer totalDocentes
 ) {}

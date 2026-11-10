@@ -6,7 +6,9 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
- * 03/11/2026 - Alineación con RVDIES.PERSONAPROYECTO
+ * 03/11/2026 - Sebastian Jaimes - Alineación con RVDIES.PERSONAPROYECTO
+ * 09/11/2026 - Leonel Antonio Perez Rios - Inclusión de rol, relación con PersonaGeneral y remoción de campos inexistentes en BD
+ * 10/11/2026 - Leonel Antonio Perez Rios - Remoción del campo inexistente rol/pepr_rol
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -57,6 +59,10 @@ public class PersonaProyectoEntity implements Serializable, Cloneable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PROY_ID", insertable = false, updatable = false)
     private ProyectosEntity proyecto;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PEGE_ID", insertable = false, updatable = false)
+    private PersonaGeneralEntity personaGeneral;
 
     @Override
     public Object clone() throws CloneNotSupportedException {

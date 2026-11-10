@@ -7,8 +7,8 @@
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
  * 13/10/2026 - Andrés Hernández - Manejo de campos nulos para actividades PTD
+ * 10/11/2026 - Leonel Antonio Perez Rios - Ajuste de validaciones y eliminación para esquema general
  */
-
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
 import java.util.Date;
@@ -79,24 +79,21 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
     @Override
     @Transactional
     public void saveActivityType(TipoActividadAdministracionFormularioDTO dto) {
-        log.info("saveActivityType ===> Guardando tipo de actividad padre. nombre={}, codigo={}",
-                dto != null ? dto.nombre() : null,
-                dto != null ? dto.codigo() : null);
+        log.info("saveActivityType ===> Guardando tipo de actividad padre. nombre={}",
+                dto != null ? dto.nombre() : null);
 
         saveActivityTypeWithParent(null, dto);
 
-        log.info("saveActivityType ===> Tipo de actividad padre guardado. nombre={}, codigo={}",
-                dto != null ? dto.nombre() : null,
-                dto != null ? dto.codigo() : null);
+        log.info("saveActivityType ===> Tipo de actividad padre guardado. nombre={}",
+                dto != null ? dto.nombre() : null);
     }
 
     @Override
     @Transactional
     public void saveChildActivityType(Long idPadre, TipoActividadAdministracionFormularioDTO dto) {
-        log.info("saveChildActivityType ===> Guardando tipo de actividad hija. idPadre={}, nombre={}, codigo={}",
+        log.info("saveChildActivityType ===> Guardando tipo de actividad hija. idPadre={}, nombre={}",
                 idPadre,
-                dto != null ? dto.nombre() : null,
-                dto != null ? dto.codigo() : null);
+                dto != null ? dto.nombre() : null);
 
         if (idPadre == null || !tipoActividadesRepository.existsById(idPadre)) {
             log.warn("saveChildActivityType ===> Tipo de actividad padre no encontrado. idPadre={}", idPadre);
@@ -105,19 +102,17 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
 
         saveActivityTypeWithParent(idPadre, dto);
 
-        log.info("saveChildActivityType ===> Tipo de actividad hija guardado. idPadre={}, nombre={}, codigo={}",
+        log.info("saveChildActivityType ===> Tipo de actividad hija guardado. idPadre={}, nombre={}",
                 idPadre,
-                dto != null ? dto.nombre() : null,
-                dto != null ? dto.codigo() : null);
+                dto != null ? dto.nombre() : null);
     }
 
     @Override
     @Transactional
     public void updateActivityType(Long id, TipoActividadAdministracionFormularioDTO dto) {
-        log.info("updateActivityType ===> Actualizando tipo de actividad. id={}, nombre={}, codigo={}",
+        log.info("updateActivityType ===> Actualizando tipo de actividad. id={}, nombre={}",
                 id,
-                dto != null ? dto.nombre() : null,
-                dto != null ? dto.codigo() : null);
+                dto != null ? dto.nombre() : null);
 
         validateActivityType(dto);
 
@@ -130,9 +125,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                     );
                 });
 
-        
         fillActivityType(entity, dto);
-
         tipoActividadesRepository.save(entity);
 
         log.info("updateActivityType ===> Tipo de actividad actualizado. id={}", id);
@@ -161,17 +154,19 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
             );
         }
 
-        BigDecimal result = tipoActividadesRepository.deleteByProcedure(
-                id,
-                RegistradoPorUtils.value(Accion.DELETE)
-        );
+        try {
+            BigDecimal result = tipoActividadesRepository.deleteByProcedure(
+                    id,
+                    RegistradoPorUtils.value(Accion.DELETE)
+            );
 
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            log.warn("deleteActivityType ===> Procedimiento de eliminación falló. id={}, resultado={}",
-                    id, result);
+            if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
+                tipoActividadesRepository.delete(entity);
+            }
+        } catch (Exception e) {
+            log.warn("deleteActivityType ===> Error en procedimiento, eliminando por repositorio: {}", e.getMessage());
+            tipoActividadesRepository.delete(entity);
         }
-
-        validateProcedureResult(result, "No se pudo eliminar el tipo de actividad");
 
         log.info("deleteActivityType ===> Tipo de actividad eliminado. id={}", id);
     }
@@ -202,22 +197,10 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
         validateActivityType(dto);
 
         TipoActividadesEntity entity = new TipoActividadesEntity();
-
-        /*
-         * Si idPadre es null, se crea actividad padre.
-         * Si idPadre tiene valor, se crea actividad hija.
-         */
         entity.setIdPadre(idPadre);
-
-        /*
-         * El orden se calcula según el grupo:
-         * - Padres: MAX(TIAC_ORDEN) WHERE TIAC_IDPADRE IS NULL + 1
-         * - Hijos:  MAX(TIAC_ORDEN) WHERE TIAC_IDPADRE = idPadre + 1
-         */
         entity.setOrden(tipoActividadesRepository.findNextOrderByParent(idPadre));
 
         fillActivityType(entity, dto);
-
         tipoActividadesRepository.save(entity);
     }
 
@@ -243,8 +226,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
             TipoActividadAdministracionFormularioDTO dto
     ) {
         entity.setNombre(dto.nombre().trim());
-        entity.setDescripcion(dto.descripcion().trim());
-        entity.setCodigo(dto.codigo().trim().toUpperCase());
+        entity.setDescripcion(dto.descripcion() != null ? dto.descripcion().trim() : null);
         entity.setComponente(
                 StringUtils.hasText(dto.componente())
                         ? dto.componente().trim()
@@ -257,10 +239,9 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 dto.maximoHoras() != null
                     ? String.valueOf(dto.maximoHoras())
                     : null);
-        entity.setPtd(normalizePtd(dto.ptd()));
         entity.setEstado(normalizeStatus(dto.estado()));
         entity.setRegistradoPor(
-        RegistradoPorUtils.value(
+                RegistradoPorUtils.value(
                         entity.getId() == null
                                 ? Accion.INSERT
                                 : Accion.UPDATE
@@ -281,37 +262,22 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
             throw new ApiException(HttpStatus.BAD_REQUEST, "El nombre es obligatorio");
         }
 
-        if (!StringUtils.hasText(dto.descripcion())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "La descripción es obligatoria");
-        }
-
-        if (!StringUtils.hasText(dto.codigo())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "El código es obligatorio");
-        }
-
-        String codigo = dto.codigo().trim().toUpperCase();
-
-        if (!CODIGOS_PERMITIDOS.contains(codigo)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "El código del tipo de actividad no es válido");
+        if (StringUtils.hasText(dto.codigo())) {
+            String codigo = dto.codigo().trim().toUpperCase();
+            if (!CODIGOS_PERMITIDOS.contains(codigo)) {
+                log.debug("validateActivityType ===> Código '{}' no está en la lista estándar, pero se permite", codigo);
+            }
         }
 
         if (!"1".equals(dto.ptd())) {
-            if (dto.minimoHoras() == null) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "El mínimo de horas es obligatorio");
-            }
-
-            if (dto.maximoHoras() == null) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "El máximo de horas es obligatorio");
-            }
-
-            if (dto.minimoHoras() < 0) {
+            if (dto.minimoHoras() != null && dto.minimoHoras() < 0) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "El mínimo de horas no puede ser negativo");
             }
 
-            if (dto.maximoHoras() <= dto.minimoHoras()) {
+            if (dto.minimoHoras() != null && dto.maximoHoras() != null && dto.maximoHoras() < dto.minimoHoras()) {
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,
-                        "El máximo de horas debe ser mayor al mínimo de horas"
+                        "El máximo de horas debe ser mayor o igual al mínimo de horas"
                 );
             }
         }
@@ -330,17 +296,4 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 ? "0"
                 : "1";
     }
-
-    private String normalizePtd(String ptd) {
-        return "1".equals(ptd) ? "1" : "0";
-    }
-
-    private void validateProcedureResult(BigDecimal result, String message) {
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, message);
-        }
-    }
-    
 }
-
-/* 17/07/2026 @:Daniel Arias */

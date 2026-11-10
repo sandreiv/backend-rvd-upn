@@ -7,19 +7,17 @@
  * Modificaciones:
  * 27/07/2026 - Sebastian Jaimes - Creación inicial
  * 27/08/2026 - Andrés Hernández - Manejo de fechas local
+ * 09/11/2026 - Leonel Antonio Perez Rios - Ajuste de atributos para gestión de proyectos
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
-
-import java.time.LocalDate;
 
 public record ProyectosFormularioDTO(
     String nombre,
     String descripcion,
-    String monto,
-    LocalDate fechaInicio,
-    LocalDate fechaFin,
-    Long idConvocatoriaProyectos,
-    Long idTipoProyecto,
+    String actaConsejo,
+    Long idTipoActividad,
     Long idCoordinacion,
-    Long idProyectoPadre
+    Long idProyectoPadre,
+    Long idMateriaTdg,
+    String estado
 ) {}

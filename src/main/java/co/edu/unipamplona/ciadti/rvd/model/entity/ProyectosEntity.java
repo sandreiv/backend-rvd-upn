@@ -6,7 +6,8 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
- * 03/11/2026 - Alineación con RVDIES.PROYECTOS
+ * 03/11/2026 - Sebastian Jaimes - Alineación con RVDIES.PROYECTOS
+ * 09/11/2026 - Leonel Antonio Perez Rios - Inclusión de TIAC_ID y remoción de campos inexistentes en BD
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -36,6 +37,9 @@ public class ProyectosEntity implements Serializable, Cloneable {
     @Column(name = "PROY_ID", nullable = false)
     private Long id;
 
+    @Column(name = "TIAC_ID", nullable = false)
+    private Long idTipoActividad;
+
     @Column(name = "PROY_IDPROYECTO")
     private Long idProyectoPadre;
 
@@ -61,6 +65,10 @@ public class ProyectosEntity implements Serializable, Cloneable {
     private Date fechaCambio;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "TIAC_ID", insertable = false, updatable = false)
+    private TipoActividadesEntity tipoActividad;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PROY_IDPROYECTO", insertable = false, updatable = false)
     private ProyectosEntity proyectoPadre;
 
@@ -81,6 +89,7 @@ public class ProyectosEntity implements Serializable, Cloneable {
     public String toString() {
         return "ProyectosEntity{"
                 + "id=" + id
+                + ", idTipoActividad=" + idTipoActividad
                 + ", idProyectoPadre=" + idProyectoPadre
                 + ", idCoordinacion=" + idCoordinacion
                 + ", idMateriaTdg=" + idMateriaTdg
