@@ -12,12 +12,13 @@
  * 10/11/2026 - Leonel Antonio Perez Rios - Depuración de campos inexistentes en esquema (codigo, ptd) y ajuste de DTOs
  * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para orden personalizado en creación y edición
  * 10/11/2026 - Leonel Antonio Perez Rios - Mapeo de idDependencia, docenciaDirecta y horasPorSemestre
+ * 10/11/2026 - Leonel Antonio Perez Rios - Refactorización de constantes, eliminación de duplicidad y código limpio
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.math.BigDecimal;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,15 +32,19 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.TipoActividadesEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoActividadesRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadAdministracionListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.service.TipoActividadesAdministracionService;
-import lombok.RequiredArgsConstructor;
 import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils;
 import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils.Accion;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class TipoActividadesAdministracionServiceImpl implements TipoActividadesAdministracionService {
+
+    private static final String ESTADO_ACTIVO = "1";
+    private static final String ESTADO_INACTIVO = "0";
+    private static final String VALOR_DEFECTO_CERO = "0";
 
     private final TipoActividadesRepository tipoActividadesRepository;
 
@@ -98,9 +103,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 dto != null ? dto.nombre() : null);
 
         saveActivityTypeWithParent(null, dto);
-
-        log.info("saveActivityType ===> Tipo de actividad padre guardado. nombre={}",
-                dto != null ? dto.nombre() : null);
+        log.info("saveActivityType ===> Tipo de actividad padre guardado exitosamente");
     }
 
     @Override
@@ -116,10 +119,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
         }
 
         saveActivityTypeWithParent(idPadre, dto);
-
-        log.info("saveChildActivityType ===> Tipo de actividad hija guardado. idPadre={}, nombre={}",
-                idPadre,
-                dto != null ? dto.nombre() : null);
+        log.info("saveChildActivityType ===> Tipo de actividad hija guardado exitosamente");
     }
 
     @Override
@@ -143,7 +143,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
         fillActivityType(entity, dto);
         tipoActividadesRepository.save(entity);
 
-        log.info("updateActivityType ===> Tipo de actividad actualizado. id={}", id);
+        log.info("updateActivityType ===> Tipo de actividad actualizado con éxito. id={}", id);
     }
 
     @Override
@@ -183,7 +183,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
             tipoActividadesRepository.delete(entity);
         }
 
-        log.info("deleteActivityType ===> Tipo de actividad eliminado. id={}", id);
+        log.info("deleteActivityType ===> Tipo de actividad eliminado con éxito. id={}", id);
     }
 
     @Override
@@ -261,11 +261,11 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
         entity.setDocenciaDirecta(
                 StringUtils.hasText(dto.docenciaDirecta())
                         ? dto.docenciaDirecta().trim()
-                        : "0");
+                        : VALOR_DEFECTO_CERO);
         entity.setHorasPorSemestre(
                 StringUtils.hasText(dto.horasPorSemestre())
                         ? dto.horasPorSemestre().trim()
-                        : "0");
+                        : VALOR_DEFECTO_CERO);
 
         entity.setMinimoHoras(
                 dto.minimoHoras() != null
@@ -312,15 +312,15 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
 
     private String normalizeStatus(String status) {
         if (!StringUtils.hasText(status)) {
-            return "1";
+            return ESTADO_ACTIVO;
         }
 
         String normalized = status.trim().toUpperCase();
 
-        return "0".equals(normalized)
+        return ESTADO_INACTIVO.equals(normalized)
                 || "INACTIVO".equals(normalized)
                 || "I".equals(normalized)
-                ? "0"
-                : "1";
+                ? ESTADO_INACTIVO
+                : ESTADO_ACTIVO;
     }
 }

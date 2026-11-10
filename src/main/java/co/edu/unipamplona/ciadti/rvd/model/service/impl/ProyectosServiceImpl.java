@@ -8,6 +8,7 @@
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Búsqueda de personas para proyectos
  * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para listado completo jerárquico de proyectos y productos
+ * 10/11/2026 - Leonel Antonio Perez Rios - Refactorización de código limpio, mensajes de error y eliminación de constantes innecesarias
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -53,8 +54,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ProyectosServiceImpl implements ProyectosService {
 
-    private static final String ESTADO_ACTIVO = "1";
-
     private final ProyectosRepository proyectosRepository;
     private final TipoActividadesRepository tipoActividadesRepository;
     private final CoordinacionRepository coordinacionRepository;
@@ -77,17 +76,17 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Override
     @Transactional(readOnly = true)
     public List<ProyectosListaDTO> listAllProjects() {
-        log.debug("listAllProjects ===> Listando todos los proyectos y productos");
+        log.debug("listAllProjects ===> Listando todos los proyectos y subproyectos");
         List<ProyectosListaProjection> rows = proyectosRepository.findAllProjectsList();
         List<ProyectosListaDTO> result = proyectosMapper.toProyectosListaDTOList(rows);
-        log.info("listAllProjects ===> Proyectos y productos listados. total={}", result.size());
+        log.info("listAllProjects ===> Proyectos y subproyectos listados. total={}", result.size());
         return result;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ProyectosListaDTO> listProducts(Long idProyecto) {
-        log.debug("listProducts ===> Listando productos. idProyecto={}", idProyecto);
+        log.debug("listProducts ===> Listando subproyectos. idProyecto={}", idProyecto);
         if (idProyecto == null || !proyectosRepository.existsById(idProyecto)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -95,7 +94,7 @@ public class ProyectosServiceImpl implements ProyectosService {
         }
         List<ProyectosListaProjection> products = proyectosRepository.findProductsByParentProjectId(idProyecto);
         List<ProyectosListaDTO> result = proyectosMapper.toProyectosListaDTOList(products);
-        log.info("listProducts ===> Productos listados. total={}", result.size());
+        log.info("listProducts ===> Subproyectos listados. total={}", result.size());
         return result;
     }
 
@@ -205,11 +204,11 @@ public class ProyectosServiceImpl implements ProyectosService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Proyecto no encontrado"));
 
         if (proyectosRepository.existsByIdProyectoPadre(id)) {
-            throw new ApiException(HttpStatus.CONFLICT, "No se puede eliminar el proyecto porque tiene productos asociados");
+            throw new ApiException(HttpStatus.CONFLICT, "No se puede eliminar el proyecto porque tiene subproyectos asociados");
         }
 
         if (personaProyectoRepository.existsByIdProyecto(id)) {
-            throw new ApiException(HttpStatus.CONFLICT, "No se puede eliminar el proyecto porque tiene docentes asignados");
+            throw new ApiException(HttpStatus.CONFLICT, "No se puede eliminar el proyecto porque tiene participantes asignados");
         }
 
         proyectosRepository.delete(entity);

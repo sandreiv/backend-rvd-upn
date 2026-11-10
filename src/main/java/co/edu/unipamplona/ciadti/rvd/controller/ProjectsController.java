@@ -7,18 +7,35 @@
  * Modificaciones:
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Endpoint de búsqueda de personas para proyectos
- * 10/11/2026 - Leonel Antonio Perez Rios - Endpoint para listar todos los proyectos y productos jerárquicamente
+ * 10/11/2026 - Leonel Antonio Perez Rios - Endpoint para listar todos los proyectos jerárquicamente
+ * 10/11/2026 - Leonel Antonio Perez Rios - Refactorización de código limpio, remoción de imports comodín y estandarización a subproyectos
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
-import co.edu.unipamplona.ciadti.rvd.model.dto.*;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.EliminacionMasivaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaAutorizaConvocatoriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.service.ProyectosService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -28,8 +45,8 @@ public class ProjectsController {
     private final ProyectosService proyectosService;
 
     @Operation(
-            summary = "Lista todos los proyectos y productos",
-            description = "Lista todos los proyectos y sus productos jerárquicamente para visualización en árbol"
+            summary = "Lista todos los proyectos y subproyectos",
+            description = "Lista todos los proyectos jerárquicamente para visualización en árbol"
     )
     @GetMapping("/all")
     public ResponseEntity<List<ProyectosListaDTO>> listAllProjects() {
@@ -38,7 +55,7 @@ public class ProjectsController {
 
     @Operation(
             summary = "Lista proyectos padre",
-            description = "Lista únicamente los proyectos con PROY_IDPROYECTO NULL"
+            description = "Lista únicamente los proyectos principales con PROY_IDPROYECTO nulo"
     )
     @GetMapping("/list")
     public ResponseEntity<List<ProyectosListaDTO>> listProjects() {
@@ -46,10 +63,10 @@ public class ProjectsController {
     }
 
     @Operation(
-            summary = "Lista productos",
-            description = "Lista productos (hijos) del proyecto padre indicado"
+            summary = "Lista subproyectos",
+            description = "Lista subproyectos o productos asociados al proyecto padre indicado"
     )
-    @GetMapping("/list-products")
+    @GetMapping({"/list-products", "/list-subprojects"})
     public ResponseEntity<List<ProyectosListaDTO>> listProducts(@RequestParam Long idProyecto) {
         return ResponseEntity.ok(proyectosService.listProducts(idProyecto));
     }
@@ -73,8 +90,8 @@ public class ProjectsController {
     }
 
     @Operation(
-            summary = "Guarda proyecto o producto",
-            description = "Crea un proyecto (idProyectoPadre null) o producto (con padre)"
+            summary = "Guarda proyecto o subproyecto",
+            description = "Crea un proyecto principal (idProyectoPadre nulo) o subproyecto (con padre)"
     )
     @PostMapping("/save")
     public ResponseEntity<Void> saveProject(@RequestBody ProyectosFormularioDTO dto) {
@@ -83,8 +100,8 @@ public class ProjectsController {
     }
 
     @Operation(
-            summary = "Actualiza proyecto o producto",
-            description = "Actualiza un proyecto o producto existente"
+            summary = "Actualiza proyecto o subproyecto",
+            description = "Actualiza un proyecto o subproyecto existente"
     )
     @PutMapping("/update/{id}")
     public ResponseEntity<Void> updateProject(@PathVariable Long id, @RequestBody ProyectosFormularioDTO dto) {
@@ -93,8 +110,8 @@ public class ProjectsController {
     }
 
     @Operation(
-            summary = "Elimina proyecto o producto",
-            description = "Elimina el proyecto si no tiene productos ni personas asociadas"
+            summary = "Elimina proyecto o subproyecto",
+            description = "Elimina el proyecto si no tiene subproyectos ni participantes asociados"
     )
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
@@ -103,8 +120,8 @@ public class ProjectsController {
     }
 
     @Operation(
-            summary = "Elimina proyectos o productos",
-            description = "Eliminación masiva de proyectos"
+            summary = "Elimina proyectos masivamente",
+            description = "Eliminación masiva de proyectos o subproyectos"
     )
     @PostMapping("/delete-bulk")
     public ResponseEntity<Void> deleteBulkProjects(@RequestBody EliminacionMasivaDTO dto) {
@@ -122,8 +139,8 @@ public class ProjectsController {
     }
 
     @Operation(
-            summary = "Busca personas para proyectos",
-            description = "Busca personas docentes por nombre o documento"
+            summary = "Busca docentes para proyectos",
+            description = "Busca personas docentes por nombre o documento para asignar al proyecto"
     )
     @GetMapping({"/persons/search", "/search-persons", "/participants/search"})
     public ResponseEntity<List<PersonaAutorizaConvocatoriaDTO>> searchPersons(
@@ -146,7 +163,7 @@ public class ProjectsController {
 
     @Operation(
             summary = "Actualiza participante de proyecto",
-            description = "Actualiza datos del docente en el proyecto (rol, horas, etc.)"
+            description = "Actualiza los datos del docente participante en el proyecto"
     )
     @PutMapping({"/participants/update/{id}", "/update-person/{id}"})
     public ResponseEntity<Void> updateProjectParticipant(@PathVariable Long id, @RequestBody PersonaProyectoFormularioDTO dto) {
