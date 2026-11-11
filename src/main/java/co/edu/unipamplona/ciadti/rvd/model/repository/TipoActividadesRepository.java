@@ -217,7 +217,7 @@ public interface TipoActividadesRepository
                 TIAC.TIAC_IDDEPENDENCIA AS idDependencia,
                 TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
                 TIAC.TIAC_COMPONENTE AS componente,
-                TIAC.TIAC_HORASPERSEMESTRE AS horasPorSemestre
+                TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre
             FROM RVDIES.TIPOACTIVIDADES TIAC
             ORDER BY
                 CASE

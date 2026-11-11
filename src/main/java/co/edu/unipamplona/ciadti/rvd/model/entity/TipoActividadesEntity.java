@@ -77,7 +77,7 @@ public class TipoActividadesEntity implements Serializable, Cloneable{
     @Column(name = "TIAC_DOCENCIADIRECTA")
     private String docenciaDirecta;
 
-    @Column(name = "TIAC_HORASPERSEMESTRE")
+    @Column(name = "TIAC_HORASPORSEMESTRE")
     private String horasPorSemestre;
 
 
