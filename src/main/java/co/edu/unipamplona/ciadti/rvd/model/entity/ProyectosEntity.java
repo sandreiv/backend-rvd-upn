@@ -46,8 +46,8 @@ public class ProyectosEntity implements Serializable, Cloneable {
     @Column(name = "COOR_ID", nullable = false)
     private Long idCoordinacion;
 
-    @Column(name = "MTDG_ID")
-    private Long idMateriaTdg;
+    @Column(name = "MAPA_ID")
+    private Long idMateriaParticular;
 
     @Column(name = "PROY_NOMBRE")
     private String nombre;
@@ -77,8 +77,8 @@ public class ProyectosEntity implements Serializable, Cloneable {
     private CoordinacionesEntity coordinacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MTDG_ID", insertable = false, updatable = false)
-    private MateriaTdgEntity materiaTdg;
+    @JoinColumn(name = "MAPA_ID", insertable = false, updatable = false)
+    private MateriaParticularEntity materiaParticular;
 
     @Override
     public Object clone() throws CloneNotSupportedException {
@@ -92,7 +92,7 @@ public class ProyectosEntity implements Serializable, Cloneable {
                 + ", idTipoActividad=" + idTipoActividad
                 + ", idProyectoPadre=" + idProyectoPadre
                 + ", idCoordinacion=" + idCoordinacion
-                + ", idMateriaTdg=" + idMateriaTdg
+                + ", idMateriaParticular=" + idMateriaParticular
                 + ", nombre=" + nombre
                 + ", descripcion=" + descripcion
                 + ", actaConsejo=" + actaConsejo

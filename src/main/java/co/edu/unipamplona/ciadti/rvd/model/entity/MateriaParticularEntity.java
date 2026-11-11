@@ -24,12 +24,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "MATERIATDG", schema = "RVDIES")
-public class MateriaTdgEntity implements Serializable, Cloneable {
+@Table(name = "MATERIAPARTICULAR", schema = "RVDIES")
+public class MateriaParticularEntity implements Serializable, Cloneable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "MTDG_ID", nullable = false)
+    @Column(name = "MAPA_ID", nullable = false)
     private Long id;
 
     @Column(name = "MATE_CODIGOMATERIA")
@@ -38,10 +38,13 @@ public class MateriaTdgEntity implements Serializable, Cloneable {
     @Column(name = "PROG_ID")
     private Long idPrograma;
 
-    @Column(name = "COTC_REGISTRADOPOR")
+    @Column(name = "MAPA_TIPOMATERIA")
+    private String tipoMateria;
+
+    @Column(name = "MAPA_REGISTRADOPOR")
     private String registradoPor;
 
-    @Column(name = "COTC_FECHACAMBIO")
+    @Column(name = "MAPA_FECHACAMBIO")
     private Date fechaCambio;
 
     @Override
@@ -55,6 +58,9 @@ public class MateriaTdgEntity implements Serializable, Cloneable {
                 + "id=" + id
                 + ", codigoMateria=" + codigoMateria
                 + ", idPrograma=" + idPrograma
+                + ", tipoMateria=" + tipoMateria
+                + ", registradoPor=" + registradoPor
+                + ", fechaCambio=" + fechaCambio
                 + '}';
     }
 }

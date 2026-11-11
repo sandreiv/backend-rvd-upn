@@ -6,6 +6,7 @@
  * Fecha de creación: 01/07/2026
  * Modificaciones:
  * 01/07/2026 - Sebastian Jaimes - Creación inicial
+ * 11/11/2026 - Indicador de materia electiva.
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -20,5 +21,6 @@ public record MateriaDTO(
     Long horasDirectas,
     Long capacidad,
     Boolean tieneGrupo,
+    Boolean esElectiva,
     CentroCostoDTO centroCosto
 ) {}

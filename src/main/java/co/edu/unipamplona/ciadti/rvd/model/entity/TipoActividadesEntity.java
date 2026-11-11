@@ -7,6 +7,7 @@
  * Modificaciones:
  * 02/06/2026 - Sebastian Jaimes - Creación inicial
  * 10/11/2026 - Leonel Antonio Perez Rios - Se agregan campos idDependencia, docenciaDirecta y horasPorSemestre
+ * 09/11/2026 - Se agregan idDependencia, docenciaDirecta y horasPorSemestre
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -28,7 +29,7 @@ import lombok.Setter;
 
 @NamedStoredProcedureQuery(
     name = "TipoActividadesEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_TIPOACTIVIDADES",
+    procedureName = "RVDIES.PR_RVDIES_D_TIPOACTIVIDADES",
     parameters = {
         @StoredProcedureParameter(name = "P_TIAC_ID", mode = ParameterMode.IN, type = Long.class),
         @StoredProcedureParameter(name = "P_TIAC_REGISTRADOPOR", mode = ParameterMode.IN, type = String.class),
@@ -105,9 +106,12 @@ public class TipoActividadesEntity implements Serializable, Cloneable {
                 ", idDependencia=" + idDependencia +
                 ", docenciaDirecta=" + docenciaDirecta +
                 ", horasPorSemestre=" + horasPorSemestre +
+                ", idDependencia=" + idDependencia +
+                ", docenciaDirecta=" + docenciaDirecta +
+                ", horasPorSemestre=" + horasPorSemestre +
                 ", registradoPor=" + registradoPor +
                 ", fechaCambio=" + fechaCambio +
                 '}';
     }
 }
-/* 02/06/2026 @:Sebastian Jaimes */
+/* 09/11/2026 */

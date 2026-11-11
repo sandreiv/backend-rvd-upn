@@ -6,6 +6,7 @@
  * Fecha de creación: 17/07/2026
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
+ * 11/11/2026 - Persona activa de una coordinación.
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.repository;
@@ -92,6 +93,17 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
             @Param("idPersona") Long idPersona,
             @Param("idPeriodoUniversidad") Long idPeriodoUniversidad,
             @Param("idConvocatoria") Long idConvocatoria);
+
+    @Query("""
+            SELECT COUNT(peco) > 0
+            FROM PersonaCoordinacionEntity peco
+            WHERE peco.idCoordinacion = :idCoordinacion
+                AND peco.idPersonaGeneral = :idPersona
+                AND (peco.estado IS NULL OR peco.estado = '1')
+            """)
+    boolean existsActiveByCoordinacionAndPersona(
+            @Param("idCoordinacion") Long idCoordinacion,
+            @Param("idPersona") Long idPersona);
 }
 
 /* 17/07/2026 @:Daniel Arias */

@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.MateriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.MateriaListadoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.MateriaPensumProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.MateriaCatalogoAdministracionProjection;
 
 public interface MateriaRepository extends JpaRepository<MateriaEntity, String> {
@@ -102,6 +103,46 @@ public interface MateriaRepository extends JpaRepository<MateriaEntity, String> 
             """, nativeQuery = true)
     List<MateriaCatalogoAdministracionProjection> findAdministrationOptions();
 
-
-
+    @Query(value = """
+            SELECT
+                MATE.MATE_CODIGOMATERIA AS codigoMateria,
+                MATE.MATE_NOMBRE AS nombre,
+                MATE.MATE_HORASPRACTICAS AS horasPracticas,
+                MATE.MATE_HORASTEORICAS AS horasTeoricas,
+                MATE.MATE_HORASTEORICOPRACTICAS AS horasTeoricoPracticas,
+                PEMA.PEMA_PERIODO AS periodo,
+                MATE.MATE_PONDERACIONACADEMICA AS ponderacionAcademica,
+                MATE.MATE_CAPACIDAD AS capacidad,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM ACADEMICO.GRUPO GRUP
+                        WHERE GRUP.MATE_CODIGOMATERIA = MATE.MATE_CODIGOMATERIA
+                            AND GRUP.GRUP_ACTIVO = '1'
+                    ) THEN 1
+                    ELSE 0
+                END AS tieneGrupo,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM ACADEMICO.BANCODEMATERIAS BAMA
+                        WHERE BAMA.BAMA_CODIGOMATERIA = MATE.MATE_CODIGOMATERIA
+                    ) THEN 1
+                    ELSE 0
+                END AS esElectiva
+            FROM ACADEMICO.PENSUMMATERIA PEMA
+            INNER JOIN ACADEMICO.PENSUM PENS
+                ON PENS.PENS_ID = PEMA.PENS_ID
+            INNER JOIN ACADEMICO.MATERIA MATE
+                ON MATE.MATE_CODIGOMATERIA = PEMA.MATE_CODIGOMATERIA
+            WHERE PEMA.PENS_ID = :idPensum
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM RVDIES.MATERIAPARTICULAR MAPA
+                    WHERE MAPA.PROG_ID = PENS.PROG_ID
+                        AND TO_CHAR(MAPA.MATE_CODIGOMATERIA) = PEMA.MATE_CODIGOMATERIA
+                )
+            ORDER BY PEMA.PEMA_PERIODO, MATE.MATE_NOMBRE
+            """, nativeQuery = true)
+    List<MateriaPensumProjection> findByIdPensum(@Param("idPensum") Long idPensum);
 }
