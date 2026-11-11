@@ -15,6 +15,9 @@
  * 09/11/2026 - Árbol de tipos de actividad desde RVDIES.TIPOACTIVIDADES.
  * 09/11/2026 - Restricciones de actividad por tipo de vinculación.
  * 05/11/2026 - Horas mínima y máxima del tipo de vinculación.
+ * 11/11/2026 - Programas por unidad, coordinación y periodo con restricción de director.
+ * 11/11/2026 - Pensum por programa y materias del pensum.
+ * 11/11/2026 - Grupos de la materia en el periodo de la convocatoria y sus extensiones.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -37,7 +40,11 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
@@ -255,5 +262,69 @@ public class LoadController {
     public ResponseEntity<List<RestriccionActividadListadoDTO>> listActivityRestrictions(
             @RequestParam Long idTipoVinculacion) {
         return ResponseEntity.ok(cargaService.listActivityRestrictions(idTipoVinculacion));
+    }
+
+    @Operation(
+        summary = "Lista los programas de una coordinación en una unidad regional y un periodo",
+        description = """
+            Solo programas que existen en RVDIES.PROGRAMACOORDINACION para la coordinación
+            y en ACADEMICO.UNIDADPROGRAMA de la unidad regional.
+            idPersona sale del JWT y debe tener PERSONACOORDINACION activa en esa coordinación.
+            Si el programa tiene restricción activa (RVDIES.RESTRICCIONPROGRAMAS.REPR_ESTADO = 1),
+            solo lo ve el director indicado en esa restricción. Sin restricción activa, lo ve
+            cualquier persona activa de la coordinación. Si no hay programas, responde lista vacía.
+            """
+    )
+    @GetMapping("/list-program")
+    public ResponseEntity<List<ProgramaDTO>> listPrograms(
+            @RequestParam Long idCoordinacion,
+            @RequestParam Long idUnidadRegional,
+            @RequestParam Long idPeriodoUniversidad) {
+        return ResponseEntity.ok(cargaService.listPrograms(idCoordinacion, idUnidadRegional, idPeriodoUniversidad));
+    }
+
+    @Operation(
+        summary = "Lista los pensum de un programa",
+        description = """
+            Lee ACADEMICO.PENSUM filtrado por PROG_ID.
+            Cada ítem trae id, descripción, año de inicio, periodo de inicio y número de periodos.
+            Si el programa no existe, responde 404. Si no tiene pensum, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-pensum")
+    public ResponseEntity<List<PensumListadoDTO>> listPensums(@RequestParam Long idPrograma) {
+        return ResponseEntity.ok(cargaService.listPensums(idPrograma));
+    }
+
+    @Operation(
+        summary = "Lista las materias de un pensum",
+        description = """
+            Lee ACADEMICO.PENSUMMATERIA y ACADEMICO.MATERIA del pensum indicado.
+            Excluye la materia si su código existe en RVDIES.MATERIAPARTICULAR para el programa del pensum.
+            esElectiva es true cuando el código está en ACADEMICO.BANCODEMATERIAS.
+            horasDirectas es la suma de horas prácticas y teóricas.
+            tieneGrupo es true si la materia tiene un grupo activo en ACADEMICO.GRUPO.
+            Si el pensum no existe, responde 404. Si no quedan materias, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-subject")
+    public ResponseEntity<List<MateriaDTO>> listSubjects(@RequestParam Long idPensum) {
+        return ResponseEntity.ok(cargaService.listSubjects(idPensum));
+    }
+
+    @Operation(
+        summary = "Lista los grupos de una materia",
+        description = """
+            Lee ACADEMICO.GRUPO de la materia cuyo PEUN_ID es el periodo de RVDIES.CONVOCATORIA
+            o uno de los periodos de RVDIES.PERIODOEXTENSION de esa convocatoria.
+            Cada ítem trae id, nombre, capacidad y el periodo universitario del grupo.
+            Si la convocatoria no existe, responde 404. Si no hay grupos, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-subject-group")
+    public ResponseEntity<List<GrupoDTO>> listSubjectGroups(
+            @RequestParam Long idConvocatoria,
+            @RequestParam String codigoMateria) {
+        return ResponseEntity.ok(cargaService.listSubjectGroups(idConvocatoria, codigoMateria));
     }
 }

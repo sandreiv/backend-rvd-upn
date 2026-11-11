@@ -62,6 +62,52 @@ public interface ProgramaRepository extends JpaRepository<ProgramaEntity, Long> 
             @Param("idUnidadRegional") Long idUnidadRegional,
             @Param("idNivelEducativo") Long idNivelEducativo);
 
+    @Query(value = """
+            SELECT DISTINCT
+                PROG.PROG_ID AS id,
+                PROG.PROG_NOMBRE AS nombre,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto
+            FROM RVDIES.PROGRAMACOORDINACION PRCO
+            INNER JOIN RVDIES.COORDINACIONES COOR
+                ON COOR.COOR_ID = PRCO.COOR_ID
+            INNER JOIN ACADEMICO.PROGRAMA PROG
+                ON PROG.PROG_ID = PRCO.PROG_ID
+            INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
+                ON UNPR.PROG_ID = PROG.PROG_ID
+                AND UNPR.UNID_ID = :idUnidadRegional
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = PRCO.CECO_ID
+            WHERE PRCO.COOR_ID = :idCoordinacion
+                AND COOR.UNID_IDREGIONAL = :idUnidadRegional
+                AND PRCO.PROG_ID IS NOT NULL
+                AND NVL(PRCO.PRCO_ESTADO, '1') = '1'
+                AND (
+                    NOT EXISTS (
+                        SELECT 1
+                        FROM RVDIES.RESTRICCIONPROGRAMAS REPR
+                        WHERE REPR.PRCO_ID = PRCO.PRCO_ID
+                            AND REPR.REPR_ESTADO = '1'
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM RVDIES.RESTRICCIONPROGRAMAS REPR
+                        INNER JOIN RVDIES.PERSONACOORDINACION PECO
+                            ON PECO.PECO_ID = REPR.PECO_ID
+                        WHERE REPR.PRCO_ID = PRCO.PRCO_ID
+                            AND REPR.REPR_ESTADO = '1'
+                            AND PECO.PEGE_ID = :idPersona
+                            AND PECO.COOR_ID = PRCO.COOR_ID
+                            AND NVL(PECO.PECO_ESTADO, '1') = '1'
+                    )
+                )
+            ORDER BY PROG.PROG_NOMBRE
+            """, nativeQuery = true)
+    List<ProgramaListadoProjection> findByCoordinacionAndUnidadRegional(
+            @Param("idCoordinacion") Long idCoordinacion,
+            @Param("idUnidadRegional") Long idUnidadRegional,
+            @Param("idPersona") Long idPersona);
+
 
 
     @Query(value = """

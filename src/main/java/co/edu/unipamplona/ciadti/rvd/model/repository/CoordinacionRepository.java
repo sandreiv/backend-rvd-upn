@@ -18,6 +18,9 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ResumenSolicitu
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CdpContextProjection;
 
 public interface CoordinacionRepository extends JpaRepository<CoordinacionesEntity, Long> {
+
+    boolean existsByIdAndIdUnidadRegional(Long id, Long idUnidadRegional);
+
     @Query(value = """
             SELECT
                 COOR.COOR_ID AS id,

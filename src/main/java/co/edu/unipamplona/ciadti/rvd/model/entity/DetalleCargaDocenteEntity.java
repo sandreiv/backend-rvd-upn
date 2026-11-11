@@ -80,6 +80,15 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
     @Column(name = "DECD_DESCRIPCION")
     private String descripcion;
 
+    @Column(name = "MATE_MATERIABANCO")
+    private String materiaBanco;
+
+    @Column(name = "DECD_EXTRAS")
+    private String extras;
+
+    @Column(name = "DECD_SEMANAS")
+    private Long semanas;
+
     @Column(name = "DECD_REGISTRADOPOR")
     private String registradoPor;
 
@@ -117,6 +126,9 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
                 + ", idCoordinacion=" + idCoordinacion
                 + ", horas=" + horas
                 + ", descripcion=" + descripcion
+                + ", materiaBanco=" + materiaBanco
+                + ", extras=" + extras
+                + ", semanas=" + semanas
                 + '}';
     }
 }
