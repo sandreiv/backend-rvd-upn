@@ -18,6 +18,6 @@ public record ProyectosFormularioDTO(
     Long idTipoActividad,
     Long idCoordinacion,
     Long idProyectoPadre,
-    Long idMateriaTdg,
+    Long idMateriaParticular,
     String estado
 ) {}

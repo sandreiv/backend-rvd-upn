@@ -346,6 +346,6 @@ public class ProyectosServiceImpl implements ProyectosService {
         entity.setIdTipoActividad(dto.idTipoActividad());
         entity.setIdCoordinacion(dto.idCoordinacion());
         entity.setIdProyectoPadre(dto.idProyectoPadre());
-        entity.setIdMateriaTdg(dto.idMateriaTdg());
+        entity.setIdMateriaParticular(dto.idMateriaParticular());
     }
 }
