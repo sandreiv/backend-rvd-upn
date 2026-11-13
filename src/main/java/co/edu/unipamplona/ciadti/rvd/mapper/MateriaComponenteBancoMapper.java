@@ -43,7 +43,8 @@ public interface MateriaComponenteBancoMapper {
                 projection.getCapacidad(),
                 null,
                 false,
-                null);
+                null,
+                false);
         return new MateriaComponenteBancoDTO(materia, projection.getPeso(), projection.getEstado());
     }
 

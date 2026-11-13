@@ -45,6 +45,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
@@ -306,10 +307,13 @@ public class LoadController {
         summary = "Lista las materias de un pensum",
         description = """
             Lee ACADEMICO.PENSUMMATERIA y ACADEMICO.MATERIA del pensum indicado.
-            Excluye la materia si su código existe en RVDIES.MATERIAPARTICULAR para el programa del pensum.
+            Excluye la materia si está en RVDIES.MATERIAPARTICULAR para el programa del pensum
+            con un tipo distinto de MATERIACOMPARTIDA. Las materias compartidas sí se listan.
             esElectiva es true cuando el código está en ACADEMICO.BANCODEMATERIAS.
             horasDirectas es la suma de horas prácticas y teóricas.
             tieneGrupo es true si la materia tiene un grupo activo en ACADEMICO.GRUPO.
+            esCompartida es true si el código está en RVDIES.MATERIAPARTICULAR del programa
+            con tipo MATERIACOMPARTIDA.
             Si el pensum no existe, responde 404. Si no quedan materias, responde una lista vacía.
             """
     )
@@ -347,6 +351,20 @@ public class LoadController {
             @RequestParam Long idConvocatoria,
             @RequestParam String codigoMateria) {
         return ResponseEntity.ok(cargaService.listSubjectGroups(idConvocatoria, codigoMateria));
+    }
+
+    @Operation(
+        summary = "Lista el horario de clases de un grupo",
+        description = """
+            Lee ACADEMICO.CLASESEMANAL del grupo indicado.
+            Cada clase trae el día, las fechas y los bloques de ACADEMICO.BLOQUEHORAS
+            de BLHO_IDINICIAL y BLHO_IDFINAL, con nombre y hora de inicio y final.
+            Si el grupo no existe, responde 404. Si no tiene clases, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-group-schedule")
+    public ResponseEntity<List<HorarioClaseDTO>> listGroupSchedule(@RequestParam Long idGrupo) {
+        return ResponseEntity.ok(cargaService.listGroupSchedule(idGrupo));
     }
 
     @Operation(

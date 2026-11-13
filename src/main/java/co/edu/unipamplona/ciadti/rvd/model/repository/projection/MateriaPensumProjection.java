@@ -30,4 +30,6 @@ public interface MateriaPensumProjection {
     Long getTieneGrupo();
 
     Long getEsElectiva();
+
+    Long getEsCompartida();
 }

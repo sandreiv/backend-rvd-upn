@@ -43,6 +43,7 @@ import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.BusquedaDocenteMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.DocenteCargaMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.GrupoCargaMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.HorarioClaseMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaComponenteBancoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaPensumMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PensumListadoMapper;
@@ -63,6 +64,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
@@ -80,6 +82,7 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.BancoMateriasRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CargaDocenteRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.DetalleCargaDocenteRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.ClaseSemanalRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.EscalafonRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.EstadosRepository;
@@ -147,6 +150,8 @@ public class CargaServiceImpl implements CargaService {
     private final MateriaPensumMapper materiaPensumMapper;
     private final GrupoRepository grupoRepository;
     private final GrupoCargaMapper grupoCargaMapper;
+    private final ClaseSemanalRepository claseSemanalRepository;
+    private final HorarioClaseMapper horarioClaseMapper;
     private final BancoMateriasRepository bancoMateriasRepository;
     private final MateriaComponenteBancoRepository materiaComponenteBancoRepository;
     private final MateriaComponenteBancoMapper materiaComponenteBancoMapper;
@@ -566,6 +571,19 @@ public class CargaServiceImpl implements CargaService {
         }
         return grupoCargaMapper.toDtoList(
                 grupoRepository.findByMateriaAndConvocatoria(codigoMateria.trim(), idConvocatoria));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<HorarioClaseDTO> listGroupSchedule(Long idGrupo) {
+        if (idGrupo == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El grupo es obligatorio.");
+        }
+        if (!grupoRepository.existsById(idGrupo)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe el grupo.");
+        }
+        log.info("listGroupSchedule ===> Listando horario. idGrupo={}", idGrupo);
+        return horarioClaseMapper.toDtoList(claseSemanalRepository.findHorarioByIdGrupo(idGrupo));
     }
 
     @Override

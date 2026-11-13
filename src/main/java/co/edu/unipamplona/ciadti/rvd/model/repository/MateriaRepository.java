@@ -129,7 +129,17 @@ public interface MateriaRepository extends JpaRepository<MateriaEntity, String> 
                         WHERE BAMA.BAMA_CODIGOMATERIA = MATE.MATE_CODIGOMATERIA
                     ) THEN 1
                     ELSE 0
-                END AS esElectiva
+                END AS esElectiva,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVDIES.MATERIAPARTICULAR MAPA
+                        WHERE MAPA.PROG_ID = PENS.PROG_ID
+                            AND TO_CHAR(MAPA.MATE_CODIGOMATERIA) = PEMA.MATE_CODIGOMATERIA
+                            AND UPPER(TRIM(MAPA.MAPA_TIPOMATERIA)) = 'MATERIACOMPARTIDA'
+                    ) THEN 1
+                    ELSE 0
+                END AS esCompartida
             FROM ACADEMICO.PENSUMMATERIA PEMA
             INNER JOIN ACADEMICO.PENSUM PENS
                 ON PENS.PENS_ID = PEMA.PENS_ID
@@ -141,6 +151,7 @@ public interface MateriaRepository extends JpaRepository<MateriaEntity, String> 
                     FROM RVDIES.MATERIAPARTICULAR MAPA
                     WHERE MAPA.PROG_ID = PENS.PROG_ID
                         AND TO_CHAR(MAPA.MATE_CODIGOMATERIA) = PEMA.MATE_CODIGOMATERIA
+                        AND UPPER(TRIM(MAPA.MAPA_TIPOMATERIA)) <> 'MATERIACOMPARTIDA'
                 )
             ORDER BY PEMA.PEMA_PERIODO, MATE.MATE_NOMBRE
             """, nativeQuery = true)
@@ -164,7 +175,18 @@ public interface MateriaRepository extends JpaRepository<MateriaEntity, String> 
                             AND GRUP.GRUP_ACTIVO = '1'
                     ) THEN 1
                     ELSE 0
-                END AS tieneGrupo
+                END AS tieneGrupo,
+                CAST(NULL AS NUMBER) AS esElectiva,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM RVDIES.MATERIAPARTICULAR MAPA_COMPARTIDA
+                        WHERE MAPA_COMPARTIDA.PROG_ID = PENS.PROG_ID
+                            AND TO_CHAR(MAPA_COMPARTIDA.MATE_CODIGOMATERIA) = PEMA.MATE_CODIGOMATERIA
+                            AND UPPER(TRIM(MAPA_COMPARTIDA.MAPA_TIPOMATERIA)) = 'MATERIACOMPARTIDA'
+                    ) THEN 1
+                    ELSE 0
+                END AS esCompartida
             FROM ACADEMICO.PENSUMMATERIA PEMA
             INNER JOIN ACADEMICO.PENSUM PENS
                 ON PENS.PENS_ID = PEMA.PENS_ID

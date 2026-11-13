@@ -30,6 +30,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.DistribucionActividadFormularioDT
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
@@ -68,6 +69,8 @@ public interface CargaService {
     List<MateriaComponenteBancoDTO> listSubjectComponents(String codigoMateria);
 
     List<GrupoDTO> listSubjectGroups(Long idConvocatoria, String codigoMateria);
+
+    List<HorarioClaseDTO> listGroupSchedule(Long idGrupo);
 
     void saveDetailProfessorPreload(DistribucionActividadFormularioDTO dto);
 
