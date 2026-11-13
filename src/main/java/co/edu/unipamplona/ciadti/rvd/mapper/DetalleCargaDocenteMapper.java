@@ -90,7 +90,8 @@ public interface DetalleCargaDocenteMapper {
                         : new CentroCostoDTO(projection.getIdCentroCosto(), projection.getDescripcionCentroCosto()),
                 projection.getHoras(),
                 pensum(projection),
-                materiaBanco(projection));
+                materiaBanco(projection),
+                projection.getExtras());
     }
 
     private static PensumDTO pensum(DetalleCargaDocenteCargaProjection projection) {
@@ -122,13 +123,19 @@ public interface DetalleCargaDocenteMapper {
         if (projection.getCodigoMateria() == null && projection.getNombreMateria() == null) {
             return null;
         }
-        return new MateriaDetalleDTO(projection.getCodigoMateria(), projection.getNombreMateria());
+        return new MateriaDetalleDTO(
+                projection.getCodigoMateria(),
+                projection.getNombreMateria(),
+                projection.getPonderacionAcademica());
     }
 
     private static MateriaDetalleDTO materiaBanco(DetalleCargaDocenteCargaProjection projection) {
         if (projection.getCodigoMateriaBanco() == null && projection.getNombreMateriaBanco() == null) {
             return null;
         }
-        return new MateriaDetalleDTO(projection.getCodigoMateriaBanco(), projection.getNombreMateriaBanco());
+        return new MateriaDetalleDTO(
+                projection.getCodigoMateriaBanco(),
+                projection.getNombreMateriaBanco(),
+                projection.getPonderacionAcademicaBanco());
     }
 }

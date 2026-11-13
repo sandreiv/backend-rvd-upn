@@ -21,7 +21,8 @@ public record DetalleCargaDocenteActividadDTO(
     CentroCostoDTO centroCosto,
     String horas,
     PensumDTO pensum,
-    MateriaDetalleDTO materiaBanco
+    MateriaDetalleDTO materiaBanco,
+    String extras
 ) {}
 
 /* 17/07/2026 @:Daniel Arias */

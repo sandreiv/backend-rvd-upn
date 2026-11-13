@@ -63,6 +63,8 @@ public interface CargaService {
 
     List<MateriaDTO> listSubjects(Long idPensum);
 
+    List<MateriaDTO> listEducationalPracticeSubject(Long idPensum);
+
     List<MateriaComponenteBancoDTO> listSubjectComponents(String codigoMateria);
 
     List<GrupoDTO> listSubjectGroups(Long idConvocatoria, String codigoMateria);

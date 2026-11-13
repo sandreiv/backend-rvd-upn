@@ -19,5 +19,6 @@ public record DetalleCargaDocenteFormularioDTO(
         Long idPrograma,
         DetalleMateriaFormularioDTO materia,
         DetalleMateriaFormularioDTO materiaBanco,
-        Long idGrupo
+        Long idGrupo,
+        String extras
 ) {}

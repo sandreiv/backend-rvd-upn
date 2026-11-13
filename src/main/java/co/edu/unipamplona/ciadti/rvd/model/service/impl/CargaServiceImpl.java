@@ -527,6 +527,18 @@ public class CargaServiceImpl implements CargaService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<MateriaDTO> listEducationalPracticeSubject(Long idPensum) {
+        if (idPensum == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El pensum es obligatorio.");
+        }
+        if (!pensumRepository.existsById(idPensum)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe el pensum.");
+        }
+        return materiaPensumMapper.toDtoList(materiaRepository.findEducationalPracticeByIdPensum(idPensum));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<MateriaComponenteBancoDTO> listSubjectComponents(String codigoMateria) {
         if (codigoMateria == null || codigoMateria.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El código de la materia es obligatorio.");
@@ -597,6 +609,8 @@ public class CargaServiceImpl implements CargaService {
         if (detalle.idCoordinacion() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La coordinación es obligatoria.");
         }
+
+        
         if (!tipoActividadesRepository.existsById(detalle.idTipoActividad())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el tipo de actividad.");
         }
@@ -606,9 +620,7 @@ public class CargaServiceImpl implements CargaService {
         if (detalle.idPrograma() != null && !programaRepository.existsById(detalle.idPrograma())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el programa.");
         }
-        if (detalle.idGrupo() != null && !grupoRepository.existsById(detalle.idGrupo())) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "No existe el grupo.");
-        }
+
         DetalleCargaDocenteEntity entity = new DetalleCargaDocenteEntity();
         entity.setIdCargaDocente(idCargaDocente);
         entity.setIdTipoActividad(detalle.idTipoActividad());
@@ -619,6 +631,7 @@ public class CargaServiceImpl implements CargaService {
         entity.setCodigoMateria(codigoMateria(detalle.materia()));
         entity.setMateriaBanco(codigoMateria(detalle.materiaBanco()));
         entity.setIdCentroCosto(centroCosto(detalle.materia()));
+        entity.setExtras(detalle.extras());
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
         entity.setFechaCambio(new Date());
         return entity;

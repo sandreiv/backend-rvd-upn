@@ -12,7 +12,8 @@ package co.edu.unipamplona.ciadti.rvd.model.dto;
 
 public record MateriaDetalleDTO(
     String codigoMateria,
-    String nombre
+    String nombre,
+    Long ponderacionAcademica
 ) {}
 
 /* 17/07/2026 @:Daniel Arias */

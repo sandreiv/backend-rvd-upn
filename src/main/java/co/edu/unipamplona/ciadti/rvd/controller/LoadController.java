@@ -354,7 +354,8 @@ public class LoadController {
         description = """
             Inserta cada detalle en RVDIES.DETALLECARGADOCENTE para la carga indicada.
             Guarda tipo de actividad, horas, coordinación, programa, grupo, materia,
-            materia de banco y el centro de costo de la materia.
+            materia de banco, el centro de costo de la materia y el valor de extras en DECD_EXTRAS.
+            extras es obligatorio y admite hasta 30 caracteres.
             idUnidadRegional viaja en el cuerpo y no se persiste: la tabla no tiene esa columna.
             Si la carga, el tipo de actividad, la coordinación, el programa o el grupo no existen, responde 404.
             """
@@ -372,7 +373,8 @@ public class LoadController {
             Cada ítem trae el tipo de actividad guardado en TIAC_ID y su padre, la unidad del grupo,
             el programa y el pensum de ese programa. La materia del pensum es MATE_MATERIABANCO
             cuando la actividad es de banco; si no, es MATE_CODIGOMATERIA. También trae la materia,
-            el componente de banco, el grupo, el centro de costo y las horas.
+            el componente de banco, el grupo, el centro de costo, las horas, el indicativo de si son horas extras
+            y la ponderación académica de la materia y de la materia de banco.
             Si la carga no existe, responde 404. Si no tiene detalles, responde una lista vacía.
             """
     )
@@ -380,4 +382,22 @@ public class LoadController {
     public ResponseEntity<List<DetalleCargaDocenteDTO>> listDetailProfessorLoad(@RequestParam Long idCargaDocente) {
         return ResponseEntity.ok(cargaService.listDetailProfessorLoad(idCargaDocente));
     }
+
+    @Operation(
+        summary = "Lista las materias de práctica educativa de un pensum",
+        description = """
+            Lee ACADEMICO.PENSUMMATERIA y ACADEMICO.MATERIA del pensum indicado.
+            Solo incluye la materia si existe en RVDIES.MATERIAPARTICULAR para el programa del pensum
+            y MAPA_TIPOMATERIA es PRACTICAEDUCATIVA.
+            La respuesta usa el mismo MateriaDTO del listado de materias del pensum,
+            incluida la ponderación académica.
+            Si el pensum no existe, responde 404. Si no hay materias de ese tipo, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-educational-practice-subject")
+    public ResponseEntity<List<MateriaDTO>> listEducationalPracticeSubject(@RequestParam Long idPensum) {
+        return ResponseEntity.ok(cargaService.listEducationalPracticeSubject(idPensum));
+    }
+
+    
 }

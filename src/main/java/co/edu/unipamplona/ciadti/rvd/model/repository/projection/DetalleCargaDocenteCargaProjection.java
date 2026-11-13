@@ -17,6 +17,8 @@ public interface DetalleCargaDocenteCargaProjection {
 
     String getHoras();
 
+    String getExtras();
+
     Long getIdTipoActividad();
 
     Long getIdTipoActividadPadre();
@@ -65,9 +67,13 @@ public interface DetalleCargaDocenteCargaProjection {
 
     String getNombreMateria();
 
+    Long getPonderacionAcademica();
+
     String getCodigoMateriaBanco();
 
     String getNombreMateriaBanco();
+
+    Long getPonderacionAcademicaBanco();
 
     Long getIdCentroCosto();
 
