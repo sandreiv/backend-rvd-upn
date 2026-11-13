@@ -14,14 +14,14 @@ import java.util.List;
 
 public record DetalleCargaDocenteActividadDTO(
     TipoActividadDTO tipoActividad,
-    List<TipoActividadDTO> tipoActividadHija,
     UnidadDTO unidadRegional,
     ProgramaDTO programa,
     MateriaDetalleDTO materia,
     GrupoDTO grupo,
     CentroCostoDTO centroCosto,
     String horas,
-    List<RelacionCargaProyectoListadoDTO> relacionCargaProyecto
+    PensumDTO pensum,
+    MateriaDetalleDTO materiaBanco
 ) {}
 
 /* 17/07/2026 @:Daniel Arias */

@@ -27,6 +27,7 @@ import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.DetalleCargaDocenteEntity;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.GrupoCuposReporteProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.HorasActividadPadreProjection;
@@ -116,6 +117,94 @@ public interface DetalleCargaDocenteRepository
             ORDER BY decd.DECD_ID, recp.RECP_ID
             """, nativeQuery = true)
     List<DetalleCargaDocenteListadoProjection> findByIdCargaDocente(
+            @Param("idCargaDocente") Long idCargaDocente);
+
+    @Query(value = """
+            SELECT
+                cado.CADO_ID AS idCargaDocente,
+                decd.DECD_ID AS idDetalleCargaDocente,
+                decd.DECD_HORAS AS horas,
+                tiac.TIAC_ID AS idTipoActividad,
+                tiac.TIAC_IDPADRE AS idTipoActividadPadre,
+                tiac.TIAC_NOMBRE AS nombreTipoActividad,
+                tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
+                tiac.TIAC_ORDEN AS ordenTipoActividad,
+                tiac.TIAC_COMPONENTE AS componenteTipoActividad,
+                tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
+                tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
+                tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
+                tiac_padre.TIAC_COMPONENTE AS componenteTipoActividadPadre,
+                unid.UNID_ID AS idUnidadRegional,
+                unid.UNID_NOMBRE AS nombreUnidadRegional,
+                prog.PROG_ID AS idPrograma,
+                prog.PROG_NOMBRE AS nombrePrograma,
+                pens.PENS_ID AS idPensum,
+                pens.PENS_DESCRIPCION AS descripcionPensum,
+                pens.PENS_ANOINICIO AS anioInicioPensum,
+                pens.PENS_PERIODOINICIO AS periodoInicioPensum,
+                pens.PENS_NUMPERIODOS AS numPeriodosPensum,
+                grup.GRUP_ID AS idGrupo,
+                grup.GRUP_NOMBRE AS nombreGrupo,
+                grup.GRUP_CAPACIDAD AS capacidadGrupo,
+                NVL(TO_CHAR(decd.MATE_CODIGOMATERIA), grup.MATE_CODIGOMATERIA) AS codigoMateria,
+                mate.MATE_NOMBRE AS nombreMateria,
+                TO_CHAR(decd.MATE_MATERIABANCO) AS codigoMateriaBanco,
+                mate_banco.MATE_NOMBRE AS nombreMateriaBanco,
+                ceco.CECO_ID AS idCentroCosto,
+                ceco.CECO_DESCRIPCION AS descripcionCentroCosto,
+                pepr.PEPR_ID AS idPersonaProyecto,
+                pepr.PROY_ID AS idProyecto,
+                proy.PROY_IDPROYECTO AS idProyectoPadre,
+                proy.PROY_NOMBRE AS nombreProyecto,
+                proy.PROY_DESCRIPCION AS descripcionProyecto,
+                proy_padre.PROY_NOMBRE AS nombreProyectoPadre,
+                proy_padre.PROY_DESCRIPCION AS descripcionProyectoPadre
+            FROM RVDIES.CARGADOCENTE cado
+            INNER JOIN RVDIES.DETALLECARGADOCENTE decd
+                ON decd.CADO_ID = cado.CADO_ID
+            LEFT JOIN RVDIES.TIPOACTIVIDADES tiac
+                ON tiac.TIAC_ID = decd.TIAC_ID
+            LEFT JOIN RVDIES.TIPOACTIVIDADES tiac_padre
+                ON tiac_padre.TIAC_ID = tiac.TIAC_IDPADRE
+            LEFT JOIN ACADEMICO.GRUPO grup
+                ON grup.GRUP_ID = decd.GRUP_ID
+            LEFT JOIN ACADEMICO.MATERIA mate
+                ON mate.MATE_CODIGOMATERIA = NVL(TO_CHAR(decd.MATE_CODIGOMATERIA), grup.MATE_CODIGOMATERIA)
+            LEFT JOIN ACADEMICO.MATERIA mate_banco
+                ON mate_banco.MATE_CODIGOMATERIA = TO_CHAR(decd.MATE_MATERIABANCO)
+            LEFT JOIN ACADEMICO.UNIDAD unid
+                ON unid.UNID_ID = grup.UNID_IDREGIONAL
+            LEFT JOIN ACADEMICO.PROGRAMA prog
+                ON prog.PROG_ID = decd.PROG_ID
+            LEFT JOIN ACADEMICO.PENSUM pens
+                ON pens.PENS_ID = (
+                    SELECT MAX(pensum.PENS_ID) KEEP (
+                        DENSE_RANK FIRST ORDER BY
+                            pensum.PENS_ANOINICIO DESC NULLS LAST,
+                            pensum.PENS_PERIODOINICIO DESC NULLS LAST,
+                            pensum.PENS_ID DESC
+                    )
+                    FROM ACADEMICO.PENSUMMATERIA pema
+                    INNER JOIN ACADEMICO.PENSUM pensum
+                        ON pensum.PENS_ID = pema.PENS_ID
+                    WHERE pensum.PROG_ID = decd.PROG_ID
+                    AND pema.MATE_CODIGOMATERIA = NVL(
+                        TO_CHAR(decd.MATE_MATERIABANCO),
+                        NVL(TO_CHAR(decd.MATE_CODIGOMATERIA), grup.MATE_CODIGOMATERIA)
+                    )
+                )
+            LEFT JOIN CONTABLEV3.CENTROCOSTO ceco
+                ON ceco.CECO_ID = decd.CECO_ID
+            LEFT JOIN RVDIES.PERSONAPROYECTO pepr
+                ON pepr.PEPR_ID = decd.PEPR_ID
+            LEFT JOIN RVDIES.PROYECTOS proy
+                ON proy.PROY_ID = pepr.PROY_ID
+            LEFT JOIN RVDIES.PROYECTOS proy_padre
+                ON proy.PROY_IDPROYECTO = proy_padre.PROY_ID
+            WHERE cado.CADO_ID = :idCargaDocente
+            ORDER BY decd.DECD_ID
+            """, nativeQuery = true)
+    List<DetalleCargaDocenteCargaProjection> findDetalleByIdCargaDocente(
             @Param("idCargaDocente") Long idCargaDocente);
 
     @Query(value = """

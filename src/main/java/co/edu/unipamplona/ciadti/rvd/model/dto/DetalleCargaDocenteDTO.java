@@ -11,11 +11,10 @@
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
 import java.util.List;
-import java.util.Optional;
+
 
 public record DetalleCargaDocenteDTO(
     Long idDetalleCargaDocente,
     Long idCargaDocente,
-    Optional<Integer> esDeNovedad,
     List<DetalleCargaDocenteActividadDTO> detalles
 ){}
