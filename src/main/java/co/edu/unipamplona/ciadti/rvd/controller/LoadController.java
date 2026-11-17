@@ -313,7 +313,8 @@ public class LoadController {
             horasDirectas es la suma de horas prácticas y teóricas.
             tieneGrupo es true si la materia tiene un grupo activo en ACADEMICO.GRUPO.
             esCompartida es true si el código está en RVDIES.MATERIAPARTICULAR del programa
-            con tipo MATERIACOMPARTIDA.
+            con tipo MATERIACOMPARTIDA. docentesPorGrupo sale de MAPA_DOCENTESXGRUPO
+            y solo tiene valor en esas materias compartidas.
             Si el pensum no existe, responde 404. Si no quedan materias, responde una lista vacía.
             """
     )
@@ -372,8 +373,11 @@ public class LoadController {
         description = """
             Inserta cada detalle en RVDIES.DETALLECARGADOCENTE para la carga indicada.
             Guarda tipo de actividad, horas, coordinación, programa, grupo, materia,
-            materia de banco, el centro de costo de la materia y el valor de extras en DECD_EXTRAS.
+            materia de banco, el centro de costo de la materia, extras en DECD_EXTRAS
+            y, si viene, data en DECD_DATA.
             extras es obligatorio y admite hasta 30 caracteres.
+            data es el JSON de atributos del detalle. En una materia compartida incluye
+            idsClaseSemanal con los identificadores de las clases semanales elegidas.
             idUnidadRegional viaja en el cuerpo y no se persiste: la tabla no tiene esa columna.
             Si la carga, el tipo de actividad, la coordinación, el programa o el grupo no existen, responde 404.
             """
@@ -391,8 +395,9 @@ public class LoadController {
             Cada ítem trae el tipo de actividad guardado en TIAC_ID y su padre, la unidad del grupo,
             el programa y el pensum de ese programa. La materia del pensum es MATE_MATERIABANCO
             cuando la actividad es de banco; si no, es MATE_CODIGOMATERIA. También trae la materia,
-            el componente de banco, el grupo, el centro de costo, las horas, el indicativo de si son horas extras
-            y la ponderación académica de la materia y de la materia de banco.
+            el componente de banco, el grupo, el centro de costo, las horas, el indicativo de si son horas extras,
+            la ponderación académica de la materia y de la materia de banco, y las clases semanales
+            guardadas en DECD_DATA, con su día, fechas y bloques de hora inicial y final.
             Si la carga no existe, responde 404. Si no tiene detalles, responde una lista vacía.
             """
     )

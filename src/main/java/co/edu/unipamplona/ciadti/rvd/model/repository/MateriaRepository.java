@@ -139,7 +139,14 @@ public interface MateriaRepository extends JpaRepository<MateriaEntity, String> 
                             AND UPPER(TRIM(MAPA.MAPA_TIPOMATERIA)) = 'MATERIACOMPARTIDA'
                     ) THEN 1
                     ELSE 0
-                END AS esCompartida
+                END AS esCompartida,
+                (
+                    SELECT MAX(MAPA_DOC.MAPA_DOCENTESXGRUPO)
+                    FROM RVDIES.MATERIAPARTICULAR MAPA_DOC
+                    WHERE MAPA_DOC.PROG_ID = PENS.PROG_ID
+                        AND TO_CHAR(MAPA_DOC.MATE_CODIGOMATERIA) = PEMA.MATE_CODIGOMATERIA
+                        AND UPPER(TRIM(MAPA_DOC.MAPA_TIPOMATERIA)) = 'MATERIACOMPARTIDA'
+                ) AS docentesPorGrupo
             FROM ACADEMICO.PENSUMMATERIA PEMA
             INNER JOIN ACADEMICO.PENSUM PENS
                 ON PENS.PENS_ID = PEMA.PENS_ID
@@ -186,7 +193,8 @@ public interface MateriaRepository extends JpaRepository<MateriaEntity, String> 
                             AND UPPER(TRIM(MAPA_COMPARTIDA.MAPA_TIPOMATERIA)) = 'MATERIACOMPARTIDA'
                     ) THEN 1
                     ELSE 0
-                END AS esCompartida
+                END AS esCompartida,
+                CAST(NULL AS NUMBER) AS docentesPorGrupo
             FROM ACADEMICO.PENSUMMATERIA PEMA
             INNER JOIN ACADEMICO.PENSUM PENS
                 ON PENS.PENS_ID = PEMA.PENS_ID

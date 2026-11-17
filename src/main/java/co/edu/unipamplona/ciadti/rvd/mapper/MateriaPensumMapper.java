@@ -44,7 +44,8 @@ public interface MateriaPensumMapper {
                 flag(projection.getTieneGrupo()),
                 flag(projection.getEsElectiva()),
                 null,
-                flag(projection.getEsCompartida()));
+                flag(projection.getEsCompartida()),
+                projection.getDocentesPorGrupo());
     }
 
     default Long calcularHorasDirectas(MateriaPensumProjection projection) {

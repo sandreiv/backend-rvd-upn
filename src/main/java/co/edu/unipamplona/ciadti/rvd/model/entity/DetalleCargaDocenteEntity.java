@@ -8,6 +8,7 @@
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
  * 03/11/2026 - Alineación con RVDIES.DETALLECARGADOCENTE
  * 12/11/2026 - MATE_MATERIABANCO como número, igual que la columna.
+ * 13/11/2026 - DECD_DATA como CLOB.
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -21,6 +22,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -89,6 +91,10 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
 
     @Column(name = "DECD_SEMANAS")
     private Long semanas;
+
+    @Lob
+    @Column(name = "DECD_DATA")
+    private String data;
 
     @Column(name = "DECD_REGISTRADOPOR")
     private String registradoPor;

@@ -41,6 +41,9 @@ public class MateriaParticularEntity implements Serializable, Cloneable {
     @Column(name = "MAPA_TIPOMATERIA")
     private String tipoMateria;
 
+    @Column(name = "MAPA_DOCENTESXGRUPO")   
+    private Long docentesxgrupo;
+
     @Column(name = "MAPA_REGISTRADOPOR")
     private String registradoPor;
 

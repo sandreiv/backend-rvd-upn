@@ -9,6 +9,8 @@
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository.projection;
 
+import java.sql.Clob;
+
 public interface DetalleCargaDocenteCargaProjection {
 
     Long getIdCargaDocente();
@@ -18,6 +20,8 @@ public interface DetalleCargaDocenteCargaProjection {
     String getHoras();
 
     String getExtras();
+
+    Clob getData();
 
     Long getIdTipoActividad();
 

@@ -44,7 +44,8 @@ public interface MateriaComponenteBancoMapper {
                 null,
                 false,
                 null,
-                false);
+                false,
+                null);
         return new MateriaComponenteBancoDTO(materia, projection.getPeso(), projection.getEstado());
     }
 

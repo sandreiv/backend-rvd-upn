@@ -101,6 +101,7 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.TipoActividadesRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionConvocatoriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPersonaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadArbolProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
@@ -614,7 +615,17 @@ public class CargaServiceImpl implements CargaService {
         if (!cargaDocenteRepository.existsById(idCargaDocente)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente con id " + idCargaDocente);
         }
-        return detalleCargaDocenteMapper.toDtoList(detalleCargaDocenteRepository.findDetalleByIdCargaDocente(idCargaDocente));
+        List<DetalleCargaDocenteCargaProjection> detalles =
+                detalleCargaDocenteRepository.findDetalleByIdCargaDocente(idCargaDocente);
+        List<Long> idsClase = detalleCargaDocenteMapper.idsClaseSemanal(detalles);
+        Map<Long, HorarioClaseDTO> clases = new LinkedHashMap<>();
+        if (!idsClase.isEmpty()) {
+            for (HorarioClaseDTO clase : horarioClaseMapper.toDtoList(
+                    claseSemanalRepository.findHorarioByIds(idsClase))) {
+                clases.putIfAbsent(clase.id(), clase);
+            }
+        }
+        return detalleCargaDocenteMapper.toDtoList(detalles, clases);
     }
 
     private DetalleCargaDocenteEntity nuevoDetalle(Long idCargaDocente, DetalleCargaDocenteFormularioDTO detalle) {
@@ -650,6 +661,7 @@ public class CargaServiceImpl implements CargaService {
         entity.setMateriaBanco(codigoMateria(detalle.materiaBanco()));
         entity.setIdCentroCosto(centroCosto(detalle.materia()));
         entity.setExtras(detalle.extras());
+        entity.setData(texto(detalle.data()));
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
         entity.setFechaCambio(new Date());
         return entity;
@@ -668,6 +680,13 @@ public class CargaServiceImpl implements CargaService {
 
     private static Long centroCosto(DetalleMateriaFormularioDTO materia) {
         return materia == null ? null : materia.idCentroCosto();
+    }
+
+    private static String texto(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
     }
 
 

@@ -32,4 +32,6 @@ public interface MateriaPensumProjection {
     Long getEsElectiva();
 
     Long getEsCompartida();
+
+    Long getDocentesPorGrupo();
 }
