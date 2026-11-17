@@ -256,7 +256,6 @@ public class CargaServiceImpl implements CargaService {
     @Override
     @Transactional(readOnly = true)
     public List<TipoActividadListadoDTO> listActivityTypes() {
-        log.info("listActivityTypes ===> Listando tipos de actividad en árbol");
         List<TipoActividadArbolProjection> rows = tipoActividadesRepository.findAllForActivityTree();
         if (rows == null || rows.isEmpty()) {
             return List.of();
@@ -297,8 +296,6 @@ public class CargaServiceImpl implements CargaService {
         if (!tipoVinculacionRepository.existsById(idTipoVinculacion)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el tipo de vinculación.");
         }
-        log.info("listActivityRestrictions ===> Listando restricciones de actividad. idTipoVinculacion={}",
-                idTipoVinculacion);
         return restriccionActividadListadoMapper.toDtoList(
                 restriccionActividadesRepository.findByIdTipoVinculacion(idTipoVinculacion));
     }
@@ -388,8 +385,7 @@ public class CargaServiceImpl implements CargaService {
     @Override
     @Transactional(readOnly = true)
     public List<DocenteCargaDTO> listProfessors(Long idTipoVinculacionConvocatoria) {
-        log.debug("listProfessors ===> Listando docentes. idTipoVinculacionConvocatoria={}",
-                idTipoVinculacionConvocatoria);
+
         if (idTipoVinculacionConvocatoria == null) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -403,8 +399,6 @@ public class CargaServiceImpl implements CargaService {
         List<DocenteCargaDTO> docentes = docenteCargaMapper.toDtoList(
                 cargaDocenteRepository.findProfessorsByTipoVinculacionConvocatoria(
                         idTipoVinculacionConvocatoria));
-        log.info("listProfessors ===> Docentes listados. idTipoVinculacionConvocatoria={}, total={}",
-                idTipoVinculacionConvocatoria, docentes.size());
         return docentes;
     }
 
@@ -570,7 +564,6 @@ public class CargaServiceImpl implements CargaService {
         if (!bancoMateriasRepository.existsById(codigo)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el banco de materias.");
         }
-        log.info("listSubjectComponents ===> Listando componentes del banco. codigoMateria={}", codigo);
         return materiaComponenteBancoMapper.toDtoList(
                 materiaComponenteBancoRepository.findByCodigoBanco(codigo));
     }
@@ -600,7 +593,6 @@ public class CargaServiceImpl implements CargaService {
         if (!grupoRepository.existsById(idGrupo)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el grupo.");
         }
-        log.info("listGroupSchedule ===> Listando horario. idGrupo={}", idGrupo);
         return horarioClaseMapper.toDtoList(claseSemanalRepository.findHorarioByIdGrupo(idGrupo));
     }
 
@@ -617,8 +609,6 @@ public class CargaServiceImpl implements CargaService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente."));
         Long idConvocatoria = convocatoriaDeCarga(carga);
         Map<Long, Long> cargaTitularPorGrupo = cargaTitularPorGrupo(dto.detalles(), idConvocatoria);
-        log.info("saveDetailProfessorPreload ===> Guardando detalles. idCargaDocente={}, idConvocatoria={}, total={}",
-                dto.idCargaDocente(), idConvocatoria, dto.detalles().size());
         for (DetalleCargaDocenteFormularioDTO detalle : dto.detalles()) {
             boolean titular = esTitular(detalle, dto.idCargaDocente(), cargaTitularPorGrupo);
             detalleCargaDocenteRepository.save(nuevoDetalle(dto.idCargaDocente(), detalle, titular));
@@ -656,7 +646,7 @@ public class CargaServiceImpl implements CargaService {
         if (!cargaDocenteRepository.existsById(idCargaDocente)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente con id " + idCargaDocente);
         }
-        log.info("listProfessorSubjects ===> Listando materias de la carga. idCargaDocente={}", idCargaDocente);
+
         return materiaProgramaCargaMapper.toDtoList(
                 detalleCargaDocenteRepository.findMateriasProgramaByIdCargaDocente(idCargaDocente));
     }
@@ -673,8 +663,7 @@ public class CargaServiceImpl implements CargaService {
                     HttpStatus.NOT_FOUND,
                     "No existe el detalle de carga docente con id " + idDetalleCargaDocente);
         }
-        log.info("deleteDetailProfessorLoad ===> Detalle eliminado. idDetalleCargaDocente={}",
-                idDetalleCargaDocente);
+
     }
 
     private Long convocatoriaDeCarga(CargaDocenteEntity carga) {
