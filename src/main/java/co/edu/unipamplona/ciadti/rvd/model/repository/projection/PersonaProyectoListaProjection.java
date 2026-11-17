@@ -26,9 +26,9 @@ public interface PersonaProyectoListaProjection {
     String getCentroCostoNombre();
     String getCentroCostoCodigo();
     Long getIdPrograma();
-    String getData();
+    Object getData();
     default String getFuncion() {
-        return getData();
+        return null;
     }
     String getEstado();
     String getEsActivo();

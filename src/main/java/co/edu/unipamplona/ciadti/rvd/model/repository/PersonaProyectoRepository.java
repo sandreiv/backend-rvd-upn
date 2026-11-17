@@ -117,7 +117,7 @@ public interface PersonaProyectoRepository
                 CECO.CECO_DESCRIPCION AS centroCostoNombre,
                 CECO.CECO_CODIGO AS centroCostoCodigo,
                 PEPR.PROG_ID AS idPrograma,
-                PEPR.PEPR_DATA AS data,
+                TO_CHAR(PEPR.PEPR_DATA) AS data,
                 '1' AS estado,
                 '1' AS esActivo
             FROM RVDIES.PERSONAPROYECTO PEPR

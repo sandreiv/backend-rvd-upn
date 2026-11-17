@@ -32,7 +32,7 @@ public interface PersonaProyectoMapper {
             return null;
         }
 
-        String data = projection.getData();
+        String data = extractStringData(projection.getData());
         String funcion = extractFuncion(data, projection.getFuncion());
         String nivel = extractField(data, "nivel");
 
@@ -93,5 +93,26 @@ public interface PersonaProyectoMapper {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private String extractStringData(Object rawData) {
+        if (rawData == null) {
+            return null;
+        }
+        if (rawData instanceof String str) {
+            return str;
+        }
+        if (rawData instanceof java.sql.Clob clob) {
+            try {
+                long len = clob.length();
+                if (len <= 0) {
+                    return null;
+                }
+                return clob.getSubString(1, (int) Math.min(len, Integer.MAX_VALUE));
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return rawData.toString();
     }
 }
