@@ -8,6 +8,7 @@
  * 12/11/2026 - Listado de detalle de carga docente.
  * 12/11/2026 - tipoActividad es la hoja guardada en TIAC_ID, con su idPadre.
  * 12/11/2026 - Pensum del programa que contiene la materia.
+ * 17/11/2026 - tipoDocente leído de DECD_DATA.
  */
 package co.edu.unipamplona.ciadti.rvd.mapper;
 
@@ -41,6 +42,7 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDoc
 public interface DetalleCargaDocenteMapper {
 
     ObjectMapper JSON = new ObjectMapper();
+    String TITULAR = "TITULAR";
 
     default List<Long> idsClaseSemanal(List<DetalleCargaDocenteCargaProjection> projections) {
         if (projections == null || projections.isEmpty()) {
@@ -120,7 +122,23 @@ public interface DetalleCargaDocenteMapper {
                 pensum(projection),
                 materiaBanco(projection),
                 projection.getExtras(),
-                clases(texto(projection.getData()), clasesSemanales));
+                clases(texto(projection.getData()), clasesSemanales),
+                tipoDocente(texto(projection.getData())));
+    }
+
+    private static String tipoDocente(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode nodo = JSON.readTree(json).get("tipoDocente");
+            if (nodo == null || !nodo.isTextual() || !TITULAR.equals(nodo.asText())) {
+                return null;
+            }
+            return TITULAR;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     private static List<HorarioClaseDTO> clases(String json, Map<Long, HorarioClaseDTO> clasesSemanales) {

@@ -21,6 +21,9 @@
  * 12/11/2026 - Componentes de una materia electiva.
  * 12/11/2026 - Alta de detalles de actividad de la carga docente.
  * 12/11/2026 - Listado de detalle de carga docente.
+ * 17/11/2026 - Indicativo de docente titular en el detalle de la carga.
+ * 17/11/2026 - Materias de la carga con programa y centro de costo.
+ * 17/11/2026 - Borrado de los detalles de una carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -29,6 +32,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,6 +52,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaProgramaCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
@@ -378,6 +383,9 @@ public class LoadController {
             extras es obligatorio y admite hasta 30 caracteres.
             data es el JSON de atributos del detalle. En una materia compartida incluye
             idsClaseSemanal con los identificadores de las clases semanales elegidas.
+            Si el detalle tiene grupo y esta carga es la del detalle más antiguo de ese grupo
+            en la convocatoria, el backend agrega tipoDocente con valor TITULAR.
+            Un tipoDocente enviado por el cliente se ignora.
             idUnidadRegional viaja en el cuerpo y no se persiste: la tabla no tiene esa columna.
             Si la carga, el tipo de actividad, la coordinación, el programa o el grupo no existen, responde 404.
             """
@@ -385,6 +393,20 @@ public class LoadController {
     @PostMapping("/save-detail-professor-load")
     public ResponseEntity<Void> saveDetailProfessorLoad(@RequestBody DistribucionActividadFormularioDTO dto) {
         cargaService.saveDetailProfessorPreload(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Elimina un detalle de carga docente",
+        description = """
+            Elimina un solo registro de RVDIES.DETALLECARGADOCENTE por DECD_ID.
+            Los demás detalles de la carga permanecen.
+            Si el detalle no existe, responde 404.
+            """
+    )
+    @DeleteMapping("/delete-detail-professor-load")
+    public ResponseEntity<Void> deleteDetailProfessorLoad(@RequestParam Long idDetalleCargaDocente) {
+        cargaService.deleteDetailProfessorLoad(idDetalleCargaDocente);
         return ResponseEntity.ok().build();
     }
 
@@ -398,6 +420,7 @@ public class LoadController {
             el componente de banco, el grupo, el centro de costo, las horas, el indicativo de si son horas extras,
             la ponderación académica de la materia y de la materia de banco, y las clases semanales
             guardadas en DECD_DATA, con su día, fechas y bloques de hora inicial y final.
+            Si el detalle guardó tipoDocente TITULAR, la actividad lo devuelve en tipoDocente.
             Si la carga no existe, responde 404. Si no tiene detalles, responde una lista vacía.
             """
     )
@@ -422,5 +445,22 @@ public class LoadController {
         return ResponseEntity.ok(cargaService.listEducationalPracticeSubject(idPensum));
     }
 
+
+    @Operation(
+        summary = "Lista las materias de una carga docente con su programa",
+        description = """
+            Lee las materias guardadas en RVDIES.DETALLECARGADOCENTE de la carga indicada.
+            Cada ítem trae la materia, el programa del detalle, el centro de costo de ese programa
+            en RVDIES.PROGRAMACOORDINACION de la coordinación de la carga y el grupo de ACADEMICO.GRUPO.
+            Si la materia está en varios grupos, hay una fila por grupo.
+            Si el detalle no tiene grupo, grupo viene nulo.
+            Si la carga no existe, responde 404. Si no tiene materias con programa, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-professor-subjects")
+    public ResponseEntity<List<MateriaProgramaCargaDTO>> listProfessorSubjects(
+            @RequestParam Long idCargaDocente) {
+        return ResponseEntity.ok(cargaService.listProfessorSubjects(idCargaDocente));
+    }
     
 }

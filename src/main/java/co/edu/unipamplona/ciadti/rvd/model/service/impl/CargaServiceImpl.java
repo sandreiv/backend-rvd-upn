@@ -19,6 +19,9 @@
  * 12/11/2026 - Componentes de una materia electiva.
  * 12/11/2026 - Alta de detalles de actividad de la carga docente.
  * 12/11/2026 - Listado de detalle de carga docente.
+ * 17/11/2026 - Indicativo de docente titular en DECD_DATA.
+ * 17/11/2026 - Materias de la carga con programa y centro de costo.
+ * 17/11/2026 - Borrado de los detalles de una carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -30,10 +33,16 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +55,7 @@ import co.edu.unipamplona.ciadti.rvd.mapper.GrupoCargaMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.HorarioClaseMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaComponenteBancoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaPensumMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.MateriaProgramaCargaMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PensumListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.ProgramaListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.RestriccionActividadListadoMapper;
@@ -67,6 +77,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaProgramaCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
@@ -78,6 +89,7 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.EscalafonEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.EstadosEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PuntosCategoriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PuntosVigenciaEntity;
+import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionConvocatoriaEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.BancoMateriasRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CargaDocenteRepository;
@@ -102,6 +114,7 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionConvocatori
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoVinculacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPersonaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TitularGrupoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadArbolProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
@@ -120,6 +133,9 @@ import lombok.extern.slf4j.Slf4j;
 public class CargaServiceImpl implements CargaService {
 
     private static final String ORDEN_ESTADO_INICIAL = "1";
+    private static final String TIPO_DOCENTE = "tipoDocente";
+    private static final String TITULAR = "TITULAR";
+    private static final ObjectMapper JSON = new ObjectMapper();
 
 
     private final CoordinacionRepository coordinacionRepository;
@@ -157,6 +173,7 @@ public class CargaServiceImpl implements CargaService {
     private final MateriaComponenteBancoRepository materiaComponenteBancoRepository;
     private final MateriaComponenteBancoMapper materiaComponenteBancoMapper;
     private final DetalleCargaDocenteMapper detalleCargaDocenteMapper;
+    private final MateriaProgramaCargaMapper materiaProgramaCargaMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -596,13 +613,15 @@ public class CargaServiceImpl implements CargaService {
         if (dto.detalles() == null || dto.detalles().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La distribución de actividades es obligatoria.");
         }
-        if (!cargaDocenteRepository.existsById(dto.idCargaDocente())) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente.");
-        }
-        log.info("saveDetailProfessorPreload ===> Guardando detalles. idCargaDocente={}, total={}",
-                dto.idCargaDocente(), dto.detalles().size());
+        CargaDocenteEntity carga = cargaDocenteRepository.findById(dto.idCargaDocente())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente."));
+        Long idConvocatoria = convocatoriaDeCarga(carga);
+        Map<Long, Long> cargaTitularPorGrupo = cargaTitularPorGrupo(dto.detalles(), idConvocatoria);
+        log.info("saveDetailProfessorPreload ===> Guardando detalles. idCargaDocente={}, idConvocatoria={}, total={}",
+                dto.idCargaDocente(), idConvocatoria, dto.detalles().size());
         for (DetalleCargaDocenteFormularioDTO detalle : dto.detalles()) {
-            detalleCargaDocenteRepository.save(nuevoDetalle(dto.idCargaDocente(), detalle));
+            boolean titular = esTitular(detalle, dto.idCargaDocente(), cargaTitularPorGrupo);
+            detalleCargaDocenteRepository.save(nuevoDetalle(dto.idCargaDocente(), detalle, titular));
         }
     }
 
@@ -628,7 +647,87 @@ public class CargaServiceImpl implements CargaService {
         return detalleCargaDocenteMapper.toDtoList(detalles, clases);
     }
 
-    private DetalleCargaDocenteEntity nuevoDetalle(Long idCargaDocente, DetalleCargaDocenteFormularioDTO detalle) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<MateriaProgramaCargaDTO> listProfessorSubjects(Long idCargaDocente) {
+        if (idCargaDocente == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La carga docente es obligatoria.");
+        }
+        if (!cargaDocenteRepository.existsById(idCargaDocente)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente con id " + idCargaDocente);
+        }
+        log.info("listProfessorSubjects ===> Listando materias de la carga. idCargaDocente={}", idCargaDocente);
+        return materiaProgramaCargaMapper.toDtoList(
+                detalleCargaDocenteRepository.findMateriasProgramaByIdCargaDocente(idCargaDocente));
+    }
+
+    @Override
+    @Transactional
+    public void deleteDetailProfessorLoad(Long idDetalleCargaDocente) {
+        if (idDetalleCargaDocente == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El detalle de carga docente es obligatorio.");
+        }
+        int eliminados = detalleCargaDocenteRepository.deleteByIdDetalle(idDetalleCargaDocente);
+        if (eliminados == 0) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "No existe el detalle de carga docente con id " + idDetalleCargaDocente);
+        }
+        log.info("deleteDetailProfessorLoad ===> Detalle eliminado. idDetalleCargaDocente={}",
+                idDetalleCargaDocente);
+    }
+
+    private Long convocatoriaDeCarga(CargaDocenteEntity carga) {
+        if (carga.getIdTipoVinculacionConvocatoria() == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "La carga docente no tiene tipo de vinculación.");
+        }
+        TipoVinculacionConvocatoriaEntity vinculacion = tipoVinculacionConvocatoriaRepository
+                .findById(carga.getIdTipoVinculacionConvocatoria())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "No existe el tipo de vinculación de la convocatoria."));
+        if (vinculacion.getIdConvocatoria() == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la convocatoria de la carga docente.");
+        }
+        return vinculacion.getIdConvocatoria();
+    }
+
+    private Map<Long, Long> cargaTitularPorGrupo(
+            List<DetalleCargaDocenteFormularioDTO> detalles,
+            Long idConvocatoria) {
+        Set<Long> idsGrupo = new LinkedHashSet<>();
+        for (DetalleCargaDocenteFormularioDTO detalle : detalles) {
+            if (detalle != null && detalle.idGrupo() != null) {
+                idsGrupo.add(detalle.idGrupo());
+            }
+        }
+        if (idsGrupo.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> cargaTitularPorGrupo = new LinkedHashMap<>();
+        for (TitularGrupoProjection titular : detalleCargaDocenteRepository.findCargaTitularByGrupos(
+                List.copyOf(idsGrupo), idConvocatoria)) {
+            if (titular.getIdGrupo() != null) {
+                cargaTitularPorGrupo.put(titular.getIdGrupo(), titular.getIdCargaDocente());
+            }
+        }
+        return cargaTitularPorGrupo;
+    }
+
+    private static boolean esTitular(
+            DetalleCargaDocenteFormularioDTO detalle,
+            Long idCargaDocente,
+            Map<Long, Long> cargaTitularPorGrupo) {
+        if (detalle == null || detalle.idGrupo() == null) {
+            return false;
+        }
+        Long cargaTitular = cargaTitularPorGrupo.get(detalle.idGrupo());
+        return cargaTitular == null || cargaTitular.equals(idCargaDocente);
+    }
+
+    private DetalleCargaDocenteEntity nuevoDetalle(
+            Long idCargaDocente,
+            DetalleCargaDocenteFormularioDTO detalle,
+            boolean titular) {
         if (detalle == null || detalle.idTipoActividad() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El tipo de actividad es obligatorio.");
         }
@@ -661,7 +760,7 @@ public class CargaServiceImpl implements CargaService {
         entity.setMateriaBanco(codigoMateria(detalle.materiaBanco()));
         entity.setIdCentroCosto(centroCosto(detalle.materia()));
         entity.setExtras(detalle.extras());
-        entity.setData(texto(detalle.data()));
+        entity.setData(dataConTitular(detalle.data(), titular));
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
         entity.setFechaCambio(new Date());
         return entity;
@@ -682,13 +781,35 @@ public class CargaServiceImpl implements CargaService {
         return materia == null ? null : materia.idCentroCosto();
     }
 
-    private static String texto(String value) {
-        if (value == null || value.isBlank()) {
+    private static String dataConTitular(String data, boolean titular) {
+        ObjectNode nodo = leerData(data);
+        nodo.remove(TIPO_DOCENTE);
+        if (titular) {
+            nodo.put(TIPO_DOCENTE, TITULAR);
+        }
+        if (nodo.isEmpty()) {
             return null;
         }
-        return value;
+        try {
+            return JSON.writeValueAsString(nodo);
+        } catch (JsonProcessingException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "No se pudo guardar el data del detalle.");
+        }
     }
 
-
+    private static ObjectNode leerData(String data) {
+        if (data == null || data.isBlank()) {
+            return JSON.createObjectNode();
+        }
+        try {
+            JsonNode leido = JSON.readTree(data);
+            if (!leido.isObject()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "El data del detalle debe ser un objeto JSON.");
+            }
+            return (ObjectNode) leido;
+        } catch (JsonProcessingException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El data del detalle no es un JSON válido.");
+        }
+    }
 
 }

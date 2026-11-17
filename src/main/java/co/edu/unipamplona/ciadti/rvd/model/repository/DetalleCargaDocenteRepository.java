@@ -14,6 +14,9 @@
  * 07/10/2026 - Andrés Hernández - Adición de detalles efectivos como método general
  * 08/10/2026 - Andrés Hernández - Uso de detalles aprobados para generar el CDP
  * 08/10/2026 - Sebastian Jaimes - Detalles vigentes PTD (DNCD_VIGENTE = 1 o carga)
+ * 17/11/2026 - Carga titular por grupo dentro de la convocatoria.
+ * 17/11/2026 - Materias de la carga con programa y centro de costo del programa.
+ * 17/11/2026 - Borrado de los detalles de una carga docente.
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.repository;
@@ -22,12 +25,15 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.DetalleCargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.MateriaProgramaCargaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TitularGrupoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.GrupoCuposReporteProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.HorasActividadPadreProjection;
@@ -213,6 +219,59 @@ public interface DetalleCargaDocenteRepository
 
     @Query(value = """
             SELECT
+                decd.GRUP_ID AS idGrupo,
+                MIN(cado.CADO_ID) KEEP (DENSE_RANK FIRST ORDER BY decd.DECD_ID) AS idCargaDocente
+            FROM RVDIES.DETALLECARGADOCENTE decd
+            INNER JOIN RVDIES.CARGADOCENTE cado
+                ON cado.CADO_ID = decd.CADO_ID
+            INNER JOIN RVDIES.TIPOVINCULACIONCONVOCATORIA tivc
+                ON tivc.TIVC_ID = cado.TIVC_ID
+            WHERE decd.GRUP_ID IN (:idsGrupo)
+                AND tivc.CONV_ID = :idConvocatoria
+            GROUP BY decd.GRUP_ID
+            ORDER BY decd.GRUP_ID
+            """, nativeQuery = true)
+    List<TitularGrupoProjection> findCargaTitularByGrupos(
+            @Param("idsGrupo") List<Long> idsGrupo,
+            @Param("idConvocatoria") Long idConvocatoria);
+
+    @Query(value = """
+            SELECT DISTINCT
+                TO_CHAR(decd.MATE_CODIGOMATERIA) AS codigoMateria,
+                mate.MATE_NOMBRE AS nombreMateria,
+                mate.MATE_PONDERACIONACADEMICA AS ponderacionAcademica,
+                prog.PROG_ID AS idPrograma,
+                prog.PROG_NOMBRE AS nombrePrograma,
+                ceco.CECO_ID AS idCentroCosto,
+                ceco.CECO_DESCRIPCION AS descripcionCentroCosto,
+                grup.GRUP_ID AS idGrupo,
+                grup.GRUP_NOMBRE AS nombreGrupo,
+                grup.GRUP_CAPACIDAD AS capacidadGrupo
+            FROM RVDIES.CARGADOCENTE cado
+            INNER JOIN RVDIES.DETALLECARGADOCENTE decd
+                ON decd.CADO_ID = cado.CADO_ID
+            INNER JOIN ACADEMICO.PROGRAMA prog
+                ON prog.PROG_ID = decd.PROG_ID
+            LEFT JOIN ACADEMICO.MATERIA mate
+                ON mate.MATE_CODIGOMATERIA = TO_CHAR(decd.MATE_CODIGOMATERIA)
+            LEFT JOIN ACADEMICO.GRUPO grup
+                ON grup.GRUP_ID = decd.GRUP_ID
+            LEFT JOIN RVDIES.PROGRAMACOORDINACION prco
+                ON prco.PROG_ID = decd.PROG_ID
+                AND prco.COOR_ID = cado.COOR_ID
+                AND NVL(prco.PRCO_ESTADO, '1') = '1'
+            LEFT JOIN CONTABLEV3.CENTROCOSTO ceco
+                ON ceco.CECO_ID = prco.CECO_ID
+            WHERE cado.CADO_ID = :idCargaDocente
+                AND decd.MATE_CODIGOMATERIA IS NOT NULL
+                AND decd.PROG_ID IS NOT NULL
+            ORDER BY prog.PROG_NOMBRE, mate.MATE_NOMBRE, grup.GRUP_NOMBRE
+            """, nativeQuery = true)
+    List<MateriaProgramaCargaProjection> findMateriasProgramaByIdCargaDocente(
+            @Param("idCargaDocente") Long idCargaDocente);
+
+    @Query(value = """
+            SELECT
                 TA.TIAC_ID AS idTipoActividad,
                 TA.TIAC_CODIGO AS codigo,
                 TA.TIAC_NOMBRE AS nombre,
@@ -363,6 +422,10 @@ public interface DetalleCargaDocenteRepository
 
     @Procedure(name = "DetalleCargaDocenteEntity.deleteByProcedure")
     BigDecimal deleteByProcedure(@Param("P_DECD_ID") Long id, @Param("P_DECD_REGISTRADOPOR") String registradoPor);
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM DetalleCargaDocenteEntity detalle WHERE detalle.id = :idDetalleCargaDocente")
+    int deleteByIdDetalle(@Param("idDetalleCargaDocente") Long idDetalleCargaDocente);
 
     @Query(value = """
             SELECT COUNT(1)
