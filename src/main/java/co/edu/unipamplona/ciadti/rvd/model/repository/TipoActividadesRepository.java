@@ -22,7 +22,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.query.Procedure;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoActividadesEntity;
-import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadAdministracionListadoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadDetalleProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadArbolProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadProyectoProjection;
@@ -50,6 +50,17 @@ public interface TipoActividadesRepository
             LEFT JOIN RVDIES.TIPOACTIVIDADES PADRE
                 ON PADRE.TIAC_ID = TIAC.TIAC_IDPADRE
             WHERE TIAC.TIAC_ESTADO = '1'
+                AND (
+                    TIAC.TIAC_APLICAPROYECTOS = '1'
+                    OR PADRE.TIAC_APLICAPROYECTOS = '1'
+                    OR EXISTS (
+                        SELECT 1
+                        FROM RVDIES.TIPOACTIVIDADES SUB
+                        WHERE SUB.TIAC_IDPADRE = TIAC.TIAC_ID
+                          AND SUB.TIAC_APLICAPROYECTOS = '1'
+                          AND SUB.TIAC_ESTADO = '1'
+                    )
+                )
             ORDER BY
                 NVL(TIAC.TIAC_IDPADRE, TIAC.TIAC_ID),
                 TIAC.TIAC_IDPADRE NULLS FIRST,
@@ -151,6 +162,7 @@ public interface TipoActividadesRepository
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
                 TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
                 TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
+                TIAC.TIAC_APLICAPROYECTOS AS aplicaProyectos,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             WHERE TIAC.TIAC_IDPADRE IS NULL
@@ -162,7 +174,7 @@ public interface TipoActividadesRepository
                 END,
                 TIAC.TIAC_NOMBRE
             """, nativeQuery = true)
-    List<TipoActividadAdministracionListadoProjection> findAdministrationParentList();
+    List<TipoActividadDetalleProjection> findAdministrationParentList();
 
     @Query(value = """
             SELECT
@@ -177,6 +189,7 @@ public interface TipoActividadesRepository
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
                 TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
                 TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
+                TIAC.TIAC_APLICAPROYECTOS AS aplicaProyectos,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             ORDER BY
@@ -189,7 +202,7 @@ public interface TipoActividadesRepository
                 END,
                 TIAC.TIAC_NOMBRE
             """, nativeQuery = true)
-    List<TipoActividadAdministracionListadoProjection> findAdministrationAllList();
+    List<TipoActividadDetalleProjection> findAdministrationAllList();
 
     @Query(value = """
             SELECT
@@ -204,6 +217,7 @@ public interface TipoActividadesRepository
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
                 TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
                 TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
+                TIAC.TIAC_APLICAPROYECTOS AS aplicaProyectos,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             WHERE TIAC.TIAC_IDPADRE IS NULL
@@ -215,7 +229,7 @@ public interface TipoActividadesRepository
                 END,
                 TIAC.TIAC_NOMBRE
             """, nativeQuery = true)
-    List<TipoActividadAdministracionListadoProjection> findLoadRestrictionParentList();
+    List<TipoActividadDetalleProjection> findLoadRestrictionParentList();
 
     @Query(value = """
             SELECT
@@ -230,6 +244,7 @@ public interface TipoActividadesRepository
                 TIAC.TIAC_MAXIMOHORAS AS maximoHoras,
                 TIAC.TIAC_DOCENCIADIRECTA AS docenciaDirecta,
                 TIAC.TIAC_HORASPORSEMESTRE AS horasPorSemestre,
+                TIAC.TIAC_APLICAPROYECTOS AS aplicaProyectos,
                 TIAC.TIAC_ESTADO AS estado
             FROM RVDIES.TIPOACTIVIDADES TIAC
             WHERE TIAC.TIAC_IDPADRE = :idPadre
@@ -241,7 +256,7 @@ public interface TipoActividadesRepository
                 END,
                 TIAC.TIAC_NOMBRE
             """, nativeQuery = true)
-    List<TipoActividadAdministracionListadoProjection> findAdministrationChildrenList(
+    List<TipoActividadDetalleProjection> findAdministrationChildrenList(
             @Param("idPadre") Long idPadre);
 
     @Query(value = """

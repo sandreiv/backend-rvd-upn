@@ -1,6 +1,6 @@
 package co.edu.unipamplona.ciadti.rvd.model.repository.projection;
 
-public interface TipoActividadAdministracionListadoProjection {
+public interface TipoActividadDetalleProjection {
     Long getId();
     Long getIdPadre();
     Long getIdDependencia();
@@ -12,5 +12,6 @@ public interface TipoActividadAdministracionListadoProjection {
     String getMaximoHoras();
     String getDocenciaDirecta();
     String getHorasPorSemestre();
+    String getAplicaProyectos();
     String getEstado();
 }

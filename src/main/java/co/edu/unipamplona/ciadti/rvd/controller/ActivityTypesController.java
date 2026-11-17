@@ -23,9 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.EliminacionMasivaDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadAdministracionFormularioDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadAdministracionListadoDTO;
-import co.edu.unipamplona.ciadti.rvd.model.service.TipoActividadesAdministracionService;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadDetalleDTO;
+import co.edu.unipamplona.ciadti.rvd.model.service.TipoActividadesService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 
@@ -34,15 +34,15 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/configuration/administration/activity-types")
 public class ActivityTypesController {
 
-    private final TipoActividadesAdministracionService tipoActividadesAdministracionService;
+    private final TipoActividadesService tipoActividadesService;
 
     @Operation(
             summary = "Lista todos los tipos de actividad",
             description = "Lista todos los tipos de actividad en estructura jerárquica completa"
     )
     @GetMapping("/all")
-    public ResponseEntity<List<TipoActividadAdministracionListadoDTO>> listAllActivityTypes() {
-        return ResponseEntity.ok(tipoActividadesAdministracionService.listAllActivityTypes());
+    public ResponseEntity<List<TipoActividadDetalleDTO>> listAllActivityTypes() {
+        return ResponseEntity.ok(tipoActividadesService.listAllActivityTypes());
     }
 
     @Operation(
@@ -50,8 +50,8 @@ public class ActivityTypesController {
             description = "Lista los tipos de actividad principales de administración"
     )
     @GetMapping("/list")
-    public ResponseEntity<List<TipoActividadAdministracionListadoDTO>> listActivityTypes() {
-        return ResponseEntity.ok(tipoActividadesAdministracionService.listParentActivityTypes());
+    public ResponseEntity<List<TipoActividadDetalleDTO>> listActivityTypes() {
+        return ResponseEntity.ok(tipoActividadesService.listParentActivityTypes());
     }
 
     @Operation(
@@ -59,8 +59,8 @@ public class ActivityTypesController {
             description = "Lista los tipos de actividad hijas correspondientes al tipo padre indicado"
     )
     @GetMapping("/{idPadre}/children/list")
-    public ResponseEntity<List<TipoActividadAdministracionListadoDTO>> listChildActivityTypes(@PathVariable Long idPadre) {
-        return ResponseEntity.ok(tipoActividadesAdministracionService.listChildActivityTypes(idPadre));
+    public ResponseEntity<List<TipoActividadDetalleDTO>> listChildActivityTypes(@PathVariable Long idPadre) {
+        return ResponseEntity.ok(tipoActividadesService.listChildActivityTypes(idPadre));
     }
 
     @Operation(
@@ -68,8 +68,8 @@ public class ActivityTypesController {
             description = "Crea un nuevo tipo de actividad principal"
     )
     @PostMapping("/save")
-    public ResponseEntity<Void> saveActivityType(@RequestBody TipoActividadAdministracionFormularioDTO dto) {
-        tipoActividadesAdministracionService.saveActivityType(dto);
+    public ResponseEntity<Void> saveActivityType(@RequestBody TipoActividadFormularioDTO dto) {
+        tipoActividadesService.saveActivityType(dto);
         return ResponseEntity.ok().build();
     }
 
@@ -80,9 +80,9 @@ public class ActivityTypesController {
     @PostMapping("/{idPadre}/children/save")
     public ResponseEntity<Void> saveChildActivityType(
             @PathVariable Long idPadre,
-            @RequestBody TipoActividadAdministracionFormularioDTO dto
+            @RequestBody TipoActividadFormularioDTO dto
     ) {
-        tipoActividadesAdministracionService.saveChildActivityType(idPadre, dto);
+        tipoActividadesService.saveChildActivityType(idPadre, dto);
         return ResponseEntity.ok().build();
     }
 
@@ -93,9 +93,9 @@ public class ActivityTypesController {
     @PutMapping("/update/{id}")
     public ResponseEntity<Void> updateActivityType(
             @PathVariable Long id,
-            @RequestBody TipoActividadAdministracionFormularioDTO dto
+            @RequestBody TipoActividadFormularioDTO dto
     ) {
-        tipoActividadesAdministracionService.updateActivityType(id, dto);
+        tipoActividadesService.updateActivityType(id, dto);
         return ResponseEntity.ok().build();
     }
 
@@ -105,7 +105,7 @@ public class ActivityTypesController {
     )
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteActivityType(@PathVariable Long id) {
-        tipoActividadesAdministracionService.deleteActivityType(id);
+        tipoActividadesService.deleteActivityType(id);
         return ResponseEntity.ok().build();
     }
 
@@ -115,7 +115,7 @@ public class ActivityTypesController {
     )
     @PostMapping("/delete-bulk")
     public ResponseEntity<Void> deleteBulkActivityTypes(@RequestBody EliminacionMasivaDTO dto) {
-        tipoActividadesAdministracionService.deleteBulkActivityTypes(dto.ids());
+        tipoActividadesService.deleteBulkActivityTypes(dto.ids());
         return ResponseEntity.ok().build();
     }
 }

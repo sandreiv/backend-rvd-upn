@@ -31,10 +31,14 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.COOR_ID AS idCoordinacion,
                 COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || PROY.COOR_ID) AS nombreCoordinacion,
                 PROY.PROY_IDPROYECTO AS idProyectoPadre,
-                PROY.MTDG_ID AS idMateriaTdg,
+                PROY.MAPA_ID AS idMateriaTdg,
+                PROY.PROY_CODIGO AS codigo,
                 PROY.PROY_NOMBRE AS nombre,
                 PROY.PROY_DESCRIPCION AS descripcion,
                 PROY.PROY_ACTACONSEJO AS actaConsejo,
+                PROY.PROY_NUMEROACTA AS numeroActa,
+                PROY.PROY_FECHAACTA AS fechaActa,
+                PROY.PROY_ACTIVO AS activo,
                 (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
@@ -56,10 +60,14 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.COOR_ID AS idCoordinacion,
                 COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || PROY.COOR_ID) AS nombreCoordinacion,
                 PROY.PROY_IDPROYECTO AS idProyectoPadre,
-                PROY.MTDG_ID AS idMateriaTdg,
+                PROY.MAPA_ID AS idMateriaTdg,
+                PROY.PROY_CODIGO AS codigo,
                 PROY.PROY_NOMBRE AS nombre,
                 PROY.PROY_DESCRIPCION AS descripcion,
                 PROY.PROY_ACTACONSEJO AS actaConsejo,
+                PROY.PROY_NUMEROACTA AS numeroActa,
+                PROY.PROY_FECHAACTA AS fechaActa,
+                PROY.PROY_ACTIVO AS activo,
                 (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
@@ -83,10 +91,14 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.COOR_ID AS idCoordinacion,
                 COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || PROY.COOR_ID) AS nombreCoordinacion,
                 PROY.PROY_IDPROYECTO AS idProyectoPadre,
-                PROY.MTDG_ID AS idMateriaTdg,
+                PROY.MAPA_ID AS idMateriaTdg,
+                PROY.PROY_CODIGO AS codigo,
                 PROY.PROY_NOMBRE AS nombre,
                 PROY.PROY_DESCRIPCION AS descripcion,
                 PROY.PROY_ACTACONSEJO AS actaConsejo,
+                PROY.PROY_NUMEROACTA AS numeroActa,
+                PROY.PROY_FECHAACTA AS fechaActa,
+                PROY.PROY_ACTIVO AS activo,
                 (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC

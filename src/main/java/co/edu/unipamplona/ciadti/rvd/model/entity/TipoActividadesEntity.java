@@ -80,6 +80,9 @@ public class TipoActividadesEntity implements Serializable, Cloneable {
     @Column(name = "TIAC_HORASPORSEMESTRE")
     private String horasPorSemestre;
 
+    @Column(name = "TIAC_APLICAPROYECTOS")
+    private String aplicaProyectos;
+
     @Column(name = "TIAC_REGISTRADOPOR")
     private String registradoPor;
 
@@ -106,9 +109,7 @@ public class TipoActividadesEntity implements Serializable, Cloneable {
                 ", idDependencia=" + idDependencia +
                 ", docenciaDirecta=" + docenciaDirecta +
                 ", horasPorSemestre=" + horasPorSemestre +
-                ", idDependencia=" + idDependencia +
-                ", docenciaDirecta=" + docenciaDirecta +
-                ", horasPorSemestre=" + horasPorSemestre +
+                ", aplicaProyectos=" + aplicaProyectos +
                 ", registradoPor=" + registradoPor +
                 ", fechaCambio=" + fechaCambio +
                 '}';

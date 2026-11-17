@@ -6,6 +6,7 @@
  * Fecha de creación: 09/11/2026
  * Modificaciones:
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
+ * 13/11/2026 - Mapeo de codigo, numeroActa, fechaActa y activo
  */
 package co.edu.unipamplona.ciadti.rvd.mapper;
 
@@ -26,6 +27,7 @@ public interface ProyectosMapper {
         }
         return new ProyectosListaDTO(
                 projection.getId(),
+                projection.getCodigo(),
                 projection.getIdTipoActividad(),
                 projection.getIdCoordinacion(),
                 projection.getIdProyectoPadre(),
@@ -33,7 +35,9 @@ public interface ProyectosMapper {
                 projection.getNombre(),
                 projection.getDescripcion(),
                 projection.getActaConsejo(),
-                projection.getEstado(),
+                projection.getNumeroActa(),
+                projection.getFechaActa(),
+                projection.getActivo(),
                 toIdNombre(
                         projection.getIdTipoActividad(),
                         projection.getNombreTipoActividad()),

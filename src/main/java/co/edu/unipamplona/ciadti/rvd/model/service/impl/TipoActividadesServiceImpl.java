@@ -1,6 +1,6 @@
 /**
  * Aplicación: rvd
- * Archivo: TipoActividadesAdministracionServiceImpl.java
+ * Archivo: TipoActividadesServiceImpl.java
  * Paquete: co.edu.unipamplona.ciadti.rvd.model.service.impl
  * Autor: GRUPO DE DESARROLLO ESPECÍFICO - CIADTI - Universidad de Pamplona
  * Fecha de creación: 17/07/2026
@@ -26,12 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadAdministracionFormularioDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadAdministracionListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadDetalleDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoActividadesEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoActividadesRepository;
-import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadAdministracionListadoProjection;
-import co.edu.unipamplona.ciadti.rvd.model.service.TipoActividadesAdministracionService;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadDetalleProjection;
+import co.edu.unipamplona.ciadti.rvd.model.service.TipoActividadesService;
 import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils;
 import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils.Accion;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TipoActividadesAdministracionServiceImpl implements TipoActividadesAdministracionService {
+public class TipoActividadesServiceImpl implements TipoActividadesService {
 
     private static final String ESTADO_ACTIVO = "1";
     private static final String ESTADO_INACTIVO = "0";
@@ -50,84 +50,62 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
 
     @Override
     @Transactional(readOnly = true)
-    public List<TipoActividadAdministracionListadoDTO> listParentActivityTypes() {
-        log.debug("listParentActivityTypes ===> Listando tipos de actividad padre");
+    public List<TipoActividadDetalleDTO> listParentActivityTypes() {
 
-        List<TipoActividadAdministracionListadoDTO> result = tipoActividadesRepository.findAdministrationParentList()
+        List<TipoActividadDetalleDTO> result = tipoActividadesRepository.findAdministrationParentList()
                 .stream()
                 .map(this::mapToDto)
                 .toList();
-
-        log.info("listParentActivityTypes ===> Tipos de actividad padre listados. total={}", result.size());
         return result;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TipoActividadAdministracionListadoDTO> listAllActivityTypes() {
-        log.debug("listAllActivityTypes ===> Listando todos los tipos de actividad");
+    public List<TipoActividadDetalleDTO> listAllActivityTypes() {
 
-        List<TipoActividadAdministracionListadoDTO> result = tipoActividadesRepository.findAdministrationAllList()
+        List<TipoActividadDetalleDTO> result = tipoActividadesRepository.findAdministrationAllList()
                 .stream()
                 .map(this::mapToDto)
                 .toList();
-
-        log.info("listAllActivityTypes ===> Todos los tipos de actividad listados. total={}", result.size());
         return result;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TipoActividadAdministracionListadoDTO> listChildActivityTypes(Long idPadre) {
-        log.debug("listChildActivityTypes ===> Listando tipos de actividad hijas. idPadre={}", idPadre);
+    public List<TipoActividadDetalleDTO> listChildActivityTypes(Long idPadre) {
 
         if (idPadre == null || !tipoActividadesRepository.existsById(idPadre)) {
-            log.warn("listChildActivityTypes ===> Tipo de actividad padre no encontrado. idPadre={}", idPadre);
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el tipo de actividad padre");
         }
 
-        List<TipoActividadAdministracionListadoDTO> result = tipoActividadesRepository.findAdministrationChildrenList(idPadre)
+        List<TipoActividadDetalleDTO> result = tipoActividadesRepository.findAdministrationChildrenList(idPadre)
                 .stream()
                 .map(this::mapToDto)
                 .toList();
-
-        log.info("listChildActivityTypes ===> Tipos de actividad hijas listados. idPadre={}, total={}",
-                idPadre, result.size());
         return result;
     }
 
     @Override
     @Transactional
-    public void saveActivityType(TipoActividadAdministracionFormularioDTO dto) {
-        log.info("saveActivityType ===> Guardando tipo de actividad padre. nombre={}",
-                dto != null ? dto.nombre() : null);
+    public void saveActivityType(TipoActividadFormularioDTO dto) {
 
         saveActivityTypeWithParent(null, dto);
-        log.info("saveActivityType ===> Tipo de actividad padre guardado exitosamente");
     }
 
     @Override
     @Transactional
-    public void saveChildActivityType(Long idPadre, TipoActividadAdministracionFormularioDTO dto) {
-        log.info("saveChildActivityType ===> Guardando tipo de actividad hija. idPadre={}, nombre={}",
-                idPadre,
-                dto != null ? dto.nombre() : null);
+    public void saveChildActivityType(Long idPadre, TipoActividadFormularioDTO dto) {
 
         if (idPadre == null || !tipoActividadesRepository.existsById(idPadre)) {
-            log.warn("saveChildActivityType ===> Tipo de actividad padre no encontrado. idPadre={}", idPadre);
             throw new ApiException(HttpStatus.NOT_FOUND, "No existe el tipo de actividad padre");
         }
 
         saveActivityTypeWithParent(idPadre, dto);
-        log.info("saveChildActivityType ===> Tipo de actividad hija guardado exitosamente");
     }
 
     @Override
     @Transactional
-    public void updateActivityType(Long id, TipoActividadAdministracionFormularioDTO dto) {
-        log.info("updateActivityType ===> Actualizando tipo de actividad. id={}, nombre={}",
-                id,
-                dto != null ? dto.nombre() : null);
+    public void updateActivityType(Long id, TipoActividadFormularioDTO dto) {
 
         validateActivityType(dto);
 
@@ -142,14 +120,11 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
 
         fillActivityType(entity, dto);
         tipoActividadesRepository.save(entity);
-
-        log.info("updateActivityType ===> Tipo de actividad actualizado con éxito. id={}", id);
     }
 
     @Override
     @Transactional
     public void deleteActivityType(Long id) {
-        log.info("deleteActivityType ===> Eliminando tipo de actividad. id={}", id);
 
         TipoActividadesEntity entity = tipoActividadesRepository.findById(id)
                 .orElseThrow(() -> {
@@ -161,8 +136,6 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 });
 
         if (tipoActividadesRepository.existsByIdPadre(entity.getId())) {
-            log.warn("deleteActivityType ===> Eliminación bloqueada. El tipo de actividad tiene hijas. id={}",
-                    entity.getId());
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "No se puede eliminar el tipo de actividad porque tiene actividades hijas asociadas"
@@ -182,32 +155,24 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
             log.warn("deleteActivityType ===> Error en procedimiento, eliminando por repositorio: {}", e.getMessage());
             tipoActividadesRepository.delete(entity);
         }
-
-        log.info("deleteActivityType ===> Tipo de actividad eliminado con éxito. id={}", id);
     }
 
     @Override
     @Transactional
     public void deleteBulkActivityTypes(List<Long> ids) {
-        log.info("deleteBulkActivityTypes ===> Eliminación masiva de tipos de actividad. total={}",
-                ids != null ? ids.size() : 0);
 
         if (ids == null || ids.isEmpty()) {
-            log.debug("deleteBulkActivityTypes ===> Lista vacía. No se realiza eliminación");
             return;
         }
 
         for (Long id : ids) {
             deleteActivityType(id);
         }
-
-        log.info("deleteBulkActivityTypes ===> Eliminación masiva de tipos de actividad finalizada. total={}",
-                ids.size());
     }
 
     private void saveActivityTypeWithParent(
             Long idPadre,
-            TipoActividadAdministracionFormularioDTO dto
+            TipoActividadFormularioDTO dto
     ) {
         validateActivityType(dto);
 
@@ -223,10 +188,8 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
         tipoActividadesRepository.save(entity);
     }
 
-    private TipoActividadAdministracionListadoDTO mapToDto(
-            TipoActividadAdministracionListadoProjection item
-    ) {
-        return new TipoActividadAdministracionListadoDTO(
+    private TipoActividadDetalleDTO mapToDto(TipoActividadDetalleProjection item) {
+        return new TipoActividadDetalleDTO(
                 item.getId(),
                 item.getIdPadre(),
                 item.getIdDependencia(),
@@ -238,13 +201,14 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 item.getMaximoHoras(),
                 item.getDocenciaDirecta(),
                 item.getHorasPorSemestre(),
+                item.getAplicaProyectos(),
                 item.getEstado()
         );
     }
 
     private void fillActivityType(
             TipoActividadesEntity entity,
-            TipoActividadAdministracionFormularioDTO dto
+            TipoActividadFormularioDTO dto
     ) {
         entity.setNombre(dto.nombre().trim());
         entity.setDescripcion(dto.descripcion() != null ? dto.descripcion().trim() : null);
@@ -266,6 +230,10 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
                 StringUtils.hasText(dto.horasPorSemestre())
                         ? dto.horasPorSemestre().trim()
                         : VALOR_DEFECTO_CERO);
+        entity.setAplicaProyectos(
+                StringUtils.hasText(dto.aplicaProyectos())
+                        ? dto.aplicaProyectos().trim()
+                        : VALOR_DEFECTO_CERO);
 
         entity.setMinimoHoras(
                 dto.minimoHoras() != null
@@ -286,7 +254,7 @@ public class TipoActividadesAdministracionServiceImpl implements TipoActividades
         entity.setFechaCambio(new Date());
     }
 
-    private void validateActivityType(TipoActividadAdministracionFormularioDTO dto) {
+    private void validateActivityType(TipoActividadFormularioDTO dto) {
         if (dto == null) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,

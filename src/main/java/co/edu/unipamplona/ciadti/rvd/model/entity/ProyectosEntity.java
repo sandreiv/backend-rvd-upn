@@ -55,6 +55,18 @@ public class ProyectosEntity implements Serializable, Cloneable {
     @Column(name = "PROY_DESCRIPCION")
     private String descripcion;
 
+    @Column(name = "PROY_CODIGO")
+    private String codigo;
+
+    @Column(name = "PROY_NUMEROACTA")
+    private String numeroActa;
+
+    @Column(name = "PROY_FECHAACTA")
+    private Date fechaActa;
+
+    @Column(name = "PROY_ACTIVO")
+    private String activo;
+
     @Column(name = "PROY_ACTACONSEJO")
     private String actaConsejo;
 
