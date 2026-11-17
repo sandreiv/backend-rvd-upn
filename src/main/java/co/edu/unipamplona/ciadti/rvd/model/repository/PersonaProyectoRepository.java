@@ -113,6 +113,11 @@ public interface PersonaProyectoRepository
                 PEGE.PEGE_DOCUMENTOIDENTIDAD AS documento,
                 PEPR.PEPR_HORAS AS horas,
                 PEPR.PEPR_OBSERVACION AS observacion,
+                PEPR.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS centroCostoNombre,
+                CECO.CECO_CODIGO AS centroCostoCodigo,
+                PEPR.PROG_ID AS idPrograma,
+                TO_CHAR(PEPR.PEPR_DATA) AS data,
                 '1' AS estado,
                 '1' AS esActivo
             FROM RVDIES.PERSONAPROYECTO PEPR
@@ -120,6 +125,8 @@ public interface PersonaProyectoRepository
                 ON PEGE.PEGE_ID = PEPR.PEGE_ID
             LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
                 ON PENG.PEGE_ID = PEPR.PEGE_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = PEPR.CECO_ID
             WHERE PEPR.PROY_ID = :idProyecto
             ORDER BY nombreCompleto, PEPR.PEPR_ID
             """, nativeQuery = true)

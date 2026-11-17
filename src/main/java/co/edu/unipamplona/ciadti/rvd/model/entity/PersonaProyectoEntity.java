@@ -8,7 +8,6 @@
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
  * 03/11/2026 - Sebastian Jaimes - Alineación con RVDIES.PERSONAPROYECTO
  * 09/11/2026 - Leonel Antonio Perez Rios - Inclusión de rol, relación con PersonaGeneral y remoción de campos inexistentes en BD
- * 10/11/2026 - Leonel Antonio Perez Rios - Remoción del campo inexistente rol/pepr_rol
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -67,6 +66,23 @@ public class PersonaProyectoEntity implements Serializable, Cloneable {
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
+    }
+
+    @Column(name = "PROG_ID")
+    private Long idPrograma;
+
+    @Column(name = "CECO_ID")
+    private Long idCentroCosto;
+
+    @Column(name = "PEPR_DATA")
+    private String data;
+
+    public String getIdData() {
+        return this.data;
+    }
+
+    public void setIdData(String idData) {
+        this.data = idData;
     }
 
     @Override

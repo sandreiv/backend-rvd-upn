@@ -8,6 +8,7 @@
  * 27/07/2026 - Sebastian Jaimes - Creación inicial
  * 09/11/2026 - Leonel Antonio Perez Rios - Adaptación de consultas para gestión de proyectos sin campos de estado inexistentes
  * 10/11/2026 - Leonel Antonio Perez Rios - Adición de consulta para árbol completo de proyectos y productos
+ * 17/11/2026 - Inclusión de idProyectoGrupo y nombreProyectoGrupo
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -31,10 +32,16 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.COOR_ID AS idCoordinacion,
                 COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || PROY.COOR_ID) AS nombreCoordinacion,
                 PROY.PROY_IDPROYECTO AS idProyectoPadre,
-                PROY.MTDG_ID AS idMateriaTdg,
+                PROY.MAPA_ID AS idMateriaTdg,
+                PROY.PRGR_ID AS idProyectoGrupo,
+                PRGR.PRGR_NOMBRE AS nombreProyectoGrupo,
+                PROY.PROY_CODIGO AS codigo,
                 PROY.PROY_NOMBRE AS nombre,
                 PROY.PROY_DESCRIPCION AS descripcion,
                 PROY.PROY_ACTACONSEJO AS actaConsejo,
+                PROY.PROY_NUMEROACTA AS numeroActa,
+                PROY.PROY_FECHAACTA AS fechaActa,
+                PROY.PROY_ACTIVO AS activo,
                 (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
@@ -43,6 +50,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 ON COOR.COOR_ID = PROY.COOR_ID
             LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN RVDIES.PROYECTOGRUPO PRGR
+                ON PRGR.PRGR_ID = PROY.PRGR_ID
             WHERE PROY.PROY_IDPROYECTO IS NULL
             ORDER BY PROY.PROY_NOMBRE
             """, nativeQuery = true)
@@ -56,10 +65,16 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.COOR_ID AS idCoordinacion,
                 COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || PROY.COOR_ID) AS nombreCoordinacion,
                 PROY.PROY_IDPROYECTO AS idProyectoPadre,
-                PROY.MTDG_ID AS idMateriaTdg,
+                PROY.MAPA_ID AS idMateriaTdg,
+                PROY.PRGR_ID AS idProyectoGrupo,
+                PRGR.PRGR_NOMBRE AS nombreProyectoGrupo,
+                PROY.PROY_CODIGO AS codigo,
                 PROY.PROY_NOMBRE AS nombre,
                 PROY.PROY_DESCRIPCION AS descripcion,
                 PROY.PROY_ACTACONSEJO AS actaConsejo,
+                PROY.PROY_NUMEROACTA AS numeroActa,
+                PROY.PROY_FECHAACTA AS fechaActa,
+                PROY.PROY_ACTIVO AS activo,
                 (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
@@ -68,6 +83,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 ON COOR.COOR_ID = PROY.COOR_ID
             LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN RVDIES.PROYECTOGRUPO PRGR
+                ON PRGR.PRGR_ID = PROY.PRGR_ID
             ORDER BY
                 NVL(PROY.PROY_IDPROYECTO, PROY.PROY_ID),
                 PROY.PROY_IDPROYECTO NULLS FIRST,
@@ -83,10 +100,16 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.COOR_ID AS idCoordinacion,
                 COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || PROY.COOR_ID) AS nombreCoordinacion,
                 PROY.PROY_IDPROYECTO AS idProyectoPadre,
-                PROY.MTDG_ID AS idMateriaTdg,
+                PROY.MAPA_ID AS idMateriaTdg,
+                PROY.PRGR_ID AS idProyectoGrupo,
+                PRGR.PRGR_NOMBRE AS nombreProyectoGrupo,
+                PROY.PROY_CODIGO AS codigo,
                 PROY.PROY_NOMBRE AS nombre,
                 PROY.PROY_DESCRIPCION AS descripcion,
                 PROY.PROY_ACTACONSEJO AS actaConsejo,
+                PROY.PROY_NUMEROACTA AS numeroActa,
+                PROY.PROY_FECHAACTA AS fechaActa,
+                PROY.PROY_ACTIVO AS activo,
                 (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
@@ -95,6 +118,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 ON COOR.COOR_ID = PROY.COOR_ID
             LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            LEFT JOIN RVDIES.PROYECTOGRUPO PRGR
+                ON PRGR.PRGR_ID = PROY.PRGR_ID
             WHERE PROY.PROY_IDPROYECTO = :idProyecto
             ORDER BY PROY.PROY_NOMBRE
             """, nativeQuery = true)
