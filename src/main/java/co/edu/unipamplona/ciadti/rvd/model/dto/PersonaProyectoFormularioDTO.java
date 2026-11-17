@@ -10,6 +10,7 @@
  * 09/11/2026 - Leonel Antonio Perez Rios - Ajuste de atributos para participantes de proyectos
  * 10/11/2026 - Leonel Antonio Perez Rios - Inclusión de idTipoActividad y remoción de rol inexistente en BD
  * 13/11/2026 - Inclusión de idCentroCosto, idPrograma, funcion y data
+ * 17/11/2026 - Inclusión de nivel académico
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -20,6 +21,7 @@ public record PersonaProyectoFormularioDTO(
     Long idCentroCosto,
     Long idPrograma,
     String funcion,
+    String nivel,
     String data,
     String horas,
     String observacion,
@@ -34,6 +36,6 @@ public record PersonaProyectoFormularioDTO(
         String estado,
         String esActivo
     ) {
-        this(idProyecto, idPersonaGeneral, null, null, null, null, null, horas, observacion, estado, esActivo);
+        this(idProyecto, idPersonaGeneral, null, null, null, null, null, null, horas, observacion, estado, esActivo);
     }
 }

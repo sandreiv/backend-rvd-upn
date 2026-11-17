@@ -7,6 +7,7 @@
  * Modificaciones:
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 13/11/2026 - Mapeo de centro de costo, programa, funcion y data (extracción de funcion desde JSON)
+ * 17/11/2026 - Extracción de nivel desde JSON data y parseo robusto con Jackson ObjectMapper
  */
 package co.edu.unipamplona.ciadti.rvd.mapper;
 
@@ -14,11 +15,16 @@ import java.util.List;
 
 import org.mapstruct.Mapper;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaProyectoListaProjection;
 
 @Mapper(componentModel = "spring")
 public interface PersonaProyectoMapper {
+
+    ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     default PersonaProyectoListaDTO toPersonaProyectoListaDTO(
             PersonaProyectoListaProjection projection) {
@@ -28,6 +34,7 @@ public interface PersonaProyectoMapper {
 
         String data = projection.getData();
         String funcion = extractFuncion(data, projection.getFuncion());
+        String nivel = extractField(data, "nivel");
 
         return new PersonaProyectoListaDTO(
                 projection.getId(),
@@ -42,6 +49,7 @@ public interface PersonaProyectoMapper {
                 projection.getCentroCostoCodigo(),
                 projection.getIdPrograma(),
                 funcion,
+                nivel,
                 data,
                 projection.getEstado(),
                 projection.getEsActivo()
@@ -57,24 +65,33 @@ public interface PersonaProyectoMapper {
     }
 
     private String extractFuncion(String data, String defaultFuncion) {
-        if (data == null || data.isBlank()) {
+        String extracted = extractField(data, "funcion");
+        if (extracted != null && !extracted.isBlank()) {
+            return extracted;
+        }
+        if (defaultFuncion != null && !defaultFuncion.isBlank()) {
             return defaultFuncion;
         }
-
-        String trimmed = data.trim();
-        if (trimmed.startsWith("{") && trimmed.contains("\"funcion\"")) {
-            int idx = trimmed.indexOf("\"funcion\"");
-            int colonIdx = trimmed.indexOf(":", idx);
-            if (colonIdx != -1) {
-                int quoteStart = trimmed.indexOf("\"", colonIdx);
-                if (quoteStart != -1) {
-                    int quoteEnd = trimmed.indexOf("\"", quoteStart + 1);
-                    if (quoteEnd != -1) {
-                        return trimmed.substring(quoteStart + 1, quoteEnd);
-                    }
-                }
-            }
+        if (data != null && !data.trim().startsWith("{")) {
+            return data.trim();
         }
-        return defaultFuncion != null ? defaultFuncion : trimmed;
+        return null;
+    }
+
+    private String extractField(String data, String field) {
+        if (data == null || data.isBlank()) {
+            return null;
+        }
+        String trimmed = data.trim();
+        if (!trimmed.startsWith("{")) {
+            return null;
+        }
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(trimmed);
+            JsonNode node = root.get(field);
+            return (node != null && !node.isNull()) ? node.asText() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

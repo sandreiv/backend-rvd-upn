@@ -17,12 +17,15 @@ import java.util.List;
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DiaSemanaOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.FuncionProyectoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.NivelProyectoOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaAutorizaConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoGrupoOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadProyectoDTO;
 
 public interface ProyectosService {
@@ -37,9 +40,19 @@ public interface ProyectosService {
 
     List<CoordinacionOpcionDTO> searchCoordinations(String term);
 
-    List<CentroCostoOpcionDTO> listCostCenters();
+    default List<CentroCostoOpcionDTO> listCostCenters() {
+        return listCostCenters(null, null);
+    }
+
+    List<CentroCostoOpcionDTO> listCostCenters(Long idProyecto, Long idCoordinacion);
+
+    List<ProyectoGrupoOpcionDTO> listProjectGroupOptions();
 
     List<FuncionProyectoOpcionDTO> listParticipantFunctions();
+
+    List<NivelProyectoOpcionDTO> listParticipantLevels();
+
+    List<DiaSemanaOpcionDTO> listDaysOfWeek();
 
     List<PersonaAutorizaConvocatoriaDTO> searchPersons(String term);
 

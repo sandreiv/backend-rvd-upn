@@ -8,6 +8,7 @@
  * 27/07/2026 - Sebastian Jaimes - Creación inicial
  * 09/11/2026 - Leonel Antonio Perez Rios - Adaptación de campos (TipoActividad, Coordinacion, ActaConsejo)
  * 13/11/2026 - Adición de codigo, numeroActa, fechaActa y activo
+ * 17/11/2026 - Adición de idProyectoGrupo y nombreProyectoGrupo
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository.projection;
 
@@ -23,6 +24,8 @@ public interface ProyectosListaProjection {
     String getNombreCoordinacion();
     Long getIdProyectoPadre();
     Long getIdMateriaTdg();
+    Long getIdProyectoGrupo();
+    String getNombreProyectoGrupo();
     String getNombre();
     String getDescripcion();
     String getActaConsejo();

@@ -12,14 +12,35 @@
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
-import co.edu.unipamplona.ciadti.rvd.model.dto.*;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DiaSemanaOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.EliminacionMasivaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.FuncionProyectoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.NivelProyectoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaAutorizaConvocatoriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoGrupoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.service.ProyectosService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -58,10 +79,18 @@ public class ProjectsController {
         return ResponseEntity.ok(proyectosService.searchCoordinations(term));
     }
 
-    @Operation(summary = "Lista centros de costo", description = "Lista los centros de costo disponibles para participantes de proyectos")
+    @Operation(summary = "Lista grupos de proyectos", description = "Lista los grupos de proyectos activos para el selector de proyectos")
+    @GetMapping("/groups")
+    public ResponseEntity<List<ProyectoGrupoOpcionDTO>> listProjectGroups() {
+        return ResponseEntity.ok(proyectosService.listProjectGroupOptions());
+    }
+
+    @Operation(summary = "Lista centros de costo", description = "Lista los centros de costo disponibles para participantes de proyectos según coordinación")
     @GetMapping("/cost-centers")
-    public ResponseEntity<List<CentroCostoOpcionDTO>> listCostCenters() {
-        return ResponseEntity.ok(proyectosService.listCostCenters());
+    public ResponseEntity<List<CentroCostoOpcionDTO>> listCostCenters(
+            @RequestParam(required = false) Long idProyecto,
+            @RequestParam(required = false) Long idCoordinacion) {
+        return ResponseEntity.ok(proyectosService.listCostCenters(idProyecto, idCoordinacion));
     }
 
     @Operation(
@@ -71,6 +100,24 @@ public class ProjectsController {
     @GetMapping("/participant-functions")
     public ResponseEntity<List<FuncionProyectoOpcionDTO>> listParticipantFunctions() {
         return ResponseEntity.ok(proyectosService.listParticipantFunctions());
+    }
+
+    @Operation(
+            summary = "Lista niveles de proyectos",
+            description = "Lista los niveles disponibles para proyectos y participantes desde enum de backend"
+    )
+    @GetMapping("/participant-levels")
+    public ResponseEntity<List<NivelProyectoOpcionDTO>> listParticipantLevels() {
+        return ResponseEntity.ok(proyectosService.listParticipantLevels());
+    }
+
+    @Operation(
+            summary = "Lista días de la semana",
+            description = "Lista los días estándar de la semana para asignación de horarios desde enum de backend"
+    )
+    @GetMapping("/days-of-week")
+    public ResponseEntity<List<DiaSemanaOpcionDTO>> listDaysOfWeek() {
+        return ResponseEntity.ok(proyectosService.listDaysOfWeek());
     }
 
     @Operation(summary = "Guarda proyecto o subproyecto", description = "Crea un proyecto principal (idProyectoPadre nulo) o subproyecto (con padre)")

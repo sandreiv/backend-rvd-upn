@@ -13,9 +13,12 @@
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
@@ -23,28 +26,36 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
 import co.edu.unipamplona.ciadti.rvd.mapper.PersonaAutorizaConvocatoriaMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PersonaProyectoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.ProyectosMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoOpcionDTO;
-import java.util.Arrays;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DiaSemanaOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.FuncionProyectoOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.enums.FuncionProyectoEnum;
+import co.edu.unipamplona.ciadti.rvd.model.dto.NivelProyectoOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaAutorizaConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoGrupoOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosListaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PersonaGeneralEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PersonaProyectoEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.ProyectosEntity;
+import co.edu.unipamplona.ciadti.rvd.model.enums.DiaSemanaEnum;
+import co.edu.unipamplona.ciadti.rvd.model.enums.FuncionProyectoEnum;
+import co.edu.unipamplona.ciadti.rvd.model.enums.NivelProyectoEnum;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CentroCostoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaGeneralRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaProyectoRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.ProyectoGrupoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ProyectosRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoActividadesRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaProyectoListaProjection;
@@ -63,11 +74,14 @@ public class ProyectosServiceImpl implements ProyectosService {
     private final TipoActividadesRepository tipoActividadesRepository;
     private final CoordinacionRepository coordinacionRepository;
     private final CentroCostoRepository centroCostoRepository;
+    private final ProyectoGrupoRepository proyectoGrupoRepository;
     private final PersonaProyectoRepository personaProyectoRepository;
     private final PersonaGeneralRepository personaGeneralRepository;
     private final ProyectosMapper proyectosMapper;
     private final PersonaProyectoMapper personaProyectoMapper;
     private final PersonaAutorizaConvocatoriaMapper personaAutorizaConvocatoriaMapper;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
@@ -131,9 +145,30 @@ public class ProyectosServiceImpl implements ProyectosService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CentroCostoOpcionDTO> listCostCenters() {
+    public List<CentroCostoOpcionDTO> listCostCenters(Long idProyecto, Long idCoordinacion) {
+        Long targetCoordinacionId = idCoordinacion;
+        if (targetCoordinacionId == null && idProyecto != null) {
+            targetCoordinacionId = proyectosRepository.findById(idProyecto)
+                    .map(ProyectosEntity::getIdCoordinacion)
+                    .orElse(null);
+        }
+
+        if (targetCoordinacionId != null) {
+            return centroCostoRepository.findByCoordinacionId(targetCoordinacionId).stream()
+                    .map(item -> new CentroCostoOpcionDTO(item.getId(), item.getCodigo(), item.getLabel()))
+                    .toList();
+        }
+
         return centroCostoRepository.findAdministrationOptions().stream()
                 .map(item -> new CentroCostoOpcionDTO(item.getId(), item.getCodigo(), item.getLabel()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProyectoGrupoOpcionDTO> listProjectGroupOptions() {
+        return proyectoGrupoRepository.findAllActiveOrderByNombre().stream()
+                .map(pg -> new ProyectoGrupoOpcionDTO(pg.getId(), pg.getNombre(), pg.getDescripcion()))
                 .toList();
     }
 
@@ -141,6 +176,20 @@ public class ProyectosServiceImpl implements ProyectosService {
     public List<FuncionProyectoOpcionDTO> listParticipantFunctions() {
         return Arrays.stream(FuncionProyectoEnum.values())
                 .map(f -> new FuncionProyectoOpcionDTO(f.name(), f.getDescripcion()))
+                .toList();
+    }
+
+    @Override
+    public List<NivelProyectoOpcionDTO> listParticipantLevels() {
+        return Arrays.stream(NivelProyectoEnum.values())
+                .map(n -> new NivelProyectoOpcionDTO(n.name(), n.getDescripcion()))
+                .toList();
+    }
+
+    @Override
+    public List<DiaSemanaOpcionDTO> listDaysOfWeek() {
+        return Arrays.stream(DiaSemanaEnum.values())
+                .map(d -> new DiaSemanaOpcionDTO(d.name(), d.getNombre(), d.getAbreviacion()))
                 .toList();
     }
 
@@ -258,7 +307,7 @@ public class ProyectosServiceImpl implements ProyectosService {
         entity.setIdCentroCosto(dto.idCentroCosto());
         entity.setIdPrograma(dto.idPrograma());
 
-        String jsonData = buildJsonData(null, dto.data(), dto.funcion());
+        String jsonData = buildJsonData(null, dto.data(), dto.funcion(), dto.nivel());
         entity.setData(jsonData);
 
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
@@ -285,7 +334,7 @@ public class ProyectosServiceImpl implements ProyectosService {
         entity.setIdCentroCosto(dto.idCentroCosto());
         entity.setIdPrograma(dto.idPrograma());
 
-        String jsonDataUpdate = buildJsonData(entity.getData(), dto.data(), dto.funcion());
+        String jsonDataUpdate = buildJsonData(entity.getData(), dto.data(), dto.funcion(), dto.nivel());
         entity.setData(jsonDataUpdate);
 
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.UPDATE));
@@ -348,12 +397,33 @@ public class ProyectosServiceImpl implements ProyectosService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La información del participante es requerida");
         }
 
-        if (dto.idProyecto() == null || !proyectosRepository.existsById(dto.idProyecto())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "El proyecto asociado no existe");
+        if (dto.idProyecto() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El proyecto asociado es requerido");
         }
+
+        ProyectosEntity proyecto = proyectosRepository.findById(dto.idProyecto())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "El proyecto asociado no existe"));
 
         if (dto.idPersonaGeneral() == null || !personaGeneralRepository.existsById(dto.idPersonaGeneral())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La persona no existe en el sistema");
+        }
+
+        if (dto.idCentroCosto() != null) {
+            if (!centroCostoRepository.existsById(dto.idCentroCosto())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "El centro de costo seleccionado no existe");
+            }
+            if (proyecto.getIdCoordinacion() != null) {
+                long count = centroCostoRepository.countByCoordinacionIdAndCentroCostoId(
+                        proyecto.getIdCoordinacion(),
+                        dto.idCentroCosto()
+                );
+                if (count == 0) {
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "El centro de costo seleccionado no pertenece a la coordinación del proyecto"
+                    );
+                }
+            }
         }
 
         if (StringUtils.hasText(dto.horas())) {
@@ -383,31 +453,57 @@ public class ProyectosServiceImpl implements ProyectosService {
         entity.setIdCoordinacion(dto.idCoordinacion());
         entity.setIdProyectoPadre(dto.idProyectoPadre());
         entity.setIdMateriaParticular(dto.idMateriaParticular());
+        entity.setIdProyectoGrupo(dto.idProyectoGrupo());
     }
 
-    private String buildJsonData(String existingData, String incomingData, String funcion) {
-        if (StringUtils.hasText(incomingData)) {
-            String trimmed = incomingData.trim();
-            if (StringUtils.hasText(funcion) && trimmed.startsWith("{") && !trimmed.contains("\"funcion\"")) {
-                String sep = trimmed.length() > 2 ? "," : "";
-                return trimmed.substring(0, trimmed.length() - 1) + sep + "\"funcion\":\"" + funcion.trim() + "\"}";
+    private String buildJsonData(String existingData, String incomingData, String funcion, String nivel) {
+        Map<String, Object> map = new LinkedHashMap<>();
+
+        if (StringUtils.hasText(existingData)) {
+            try {
+                Map<String, Object> existingMap = OBJECT_MAPPER.readValue(existingData.trim(), new TypeReference<Map<String, Object>>() {});
+                if (existingMap != null) {
+                    map.putAll(existingMap);
+                }
+            } catch (Exception ignored) {
             }
-            return trimmed;
+        }
+
+        if (StringUtils.hasText(incomingData)) {
+            try {
+                Map<String, Object> incomingMap = OBJECT_MAPPER.readValue(incomingData.trim(), new TypeReference<Map<String, Object>>() {});
+                if (incomingMap != null) {
+                    if (!incomingMap.containsKey("horario")) {
+                        map.remove("horario");
+                    }
+                    map.putAll(incomingMap);
+                }
+            } catch (Exception ignored) {
+            }
+        } else if (incomingData != null) {
+            map.remove("horario");
         }
 
         if (StringUtils.hasText(funcion)) {
-            String f = funcion.trim();
-            if (StringUtils.hasText(existingData) && existingData.trim().startsWith("{")) {
-                String trimmed = existingData.trim();
-                if (trimmed.contains("\"funcion\"")) {
-                    return trimmed.replaceAll("\"funcion\"\\s*:\\s*\"[^\"]*\"", "\"funcion\":\"" + f + "\"");
-                }
-                String sep = trimmed.length() > 2 ? "," : "";
-                return trimmed.substring(0, trimmed.length() - 1) + sep + "\"funcion\":\"" + f + "\"}";
-            }
-            return "{\"funcion\":\"" + f + "\"}";
+            map.put("funcion", funcion.trim());
+        } else if (funcion != null) {
+            map.remove("funcion");
         }
 
-        return StringUtils.hasText(existingData) ? existingData.trim() : null;
+        if (StringUtils.hasText(nivel)) {
+            map.put("nivel", nivel.trim());
+        } else if (nivel != null) {
+            map.remove("nivel");
+        }
+
+        if (map.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return OBJECT_MAPPER.writeValueAsString(map);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
