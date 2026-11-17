@@ -18,6 +18,9 @@
  * 11/11/2026 - Programas por unidad, coordinación y periodo con restricción de director.
  * 11/11/2026 - Pensum por programa y materias del pensum.
  * 11/11/2026 - Grupos de la materia en el periodo de la convocatoria y sus extensiones.
+ * 12/11/2026 - Componentes de una materia electiva.
+ * 12/11/2026 - Alta de detalles de actividad de la carga docente.
+ * 12/11/2026 - Listado de detalle de carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -25,7 +28,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +36,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DistribucionActividadFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
@@ -41,6 +45,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
@@ -57,6 +63,7 @@ import co.edu.unipamplona.ciadti.rvd.model.service.PeriodoUniversidadService;
 import co.edu.unipamplona.ciadti.rvd.util.ParseUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 
 
 @RequiredArgsConstructor
@@ -300,16 +307,34 @@ public class LoadController {
         summary = "Lista las materias de un pensum",
         description = """
             Lee ACADEMICO.PENSUMMATERIA y ACADEMICO.MATERIA del pensum indicado.
-            Excluye la materia si su código existe en RVDIES.MATERIAPARTICULAR para el programa del pensum.
+            Excluye la materia si está en RVDIES.MATERIAPARTICULAR para el programa del pensum
+            con un tipo distinto de MATERIACOMPARTIDA. Las materias compartidas sí se listan.
             esElectiva es true cuando el código está en ACADEMICO.BANCODEMATERIAS.
             horasDirectas es la suma de horas prácticas y teóricas.
             tieneGrupo es true si la materia tiene un grupo activo en ACADEMICO.GRUPO.
+            esCompartida es true si el código está en RVDIES.MATERIAPARTICULAR del programa
+            con tipo MATERIACOMPARTIDA.
             Si el pensum no existe, responde 404. Si no quedan materias, responde una lista vacía.
             """
     )
     @GetMapping("/list-subject")
     public ResponseEntity<List<MateriaDTO>> listSubjects(@RequestParam Long idPensum) {
         return ResponseEntity.ok(cargaService.listSubjects(idPensum));
+    }
+
+    @Operation(
+        summary = "Lista los componentes de una materia electiva",
+        description = """
+            El código debe existir en ACADEMICO.BANCODEMATERIAS.
+            Devuelve las filas de ACADEMICO.MATERIACOMPONENTEBANCO de ese banco.
+            Cada ítem trae la submateria, el peso (MACB_PESO) y el estado (MACB_ACTIVA).
+            Si el banco no existe, responde 404. Si no tiene componentes, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-subject-components")
+    public ResponseEntity<List<MateriaComponenteBancoDTO>> listSubjectComponents(
+            @RequestParam String codigoMateria) {
+        return ResponseEntity.ok(cargaService.listSubjectComponents(codigoMateria));
     }
 
     @Operation(
@@ -327,4 +352,70 @@ public class LoadController {
             @RequestParam String codigoMateria) {
         return ResponseEntity.ok(cargaService.listSubjectGroups(idConvocatoria, codigoMateria));
     }
+
+    @Operation(
+        summary = "Lista el horario de clases de un grupo",
+        description = """
+            Lee ACADEMICO.CLASESEMANAL del grupo indicado.
+            Cada clase trae el día, las fechas y los bloques de ACADEMICO.BLOQUEHORAS
+            de BLHO_IDINICIAL y BLHO_IDFINAL, con nombre y hora de inicio y final.
+            Si el grupo no existe, responde 404. Si no tiene clases, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-group-schedule")
+    public ResponseEntity<List<HorarioClaseDTO>> listGroupSchedule(@RequestParam Long idGrupo) {
+        return ResponseEntity.ok(cargaService.listGroupSchedule(idGrupo));
+    }
+
+    @Operation(
+        summary = "Guarda la distribución de actividades de un docente",
+        description = """
+            Inserta cada detalle en RVDIES.DETALLECARGADOCENTE para la carga indicada.
+            Guarda tipo de actividad, horas, coordinación, programa, grupo, materia,
+            materia de banco, el centro de costo de la materia y el valor de extras en DECD_EXTRAS.
+            extras es obligatorio y admite hasta 30 caracteres.
+            idUnidadRegional viaja en el cuerpo y no se persiste: la tabla no tiene esa columna.
+            Si la carga, el tipo de actividad, la coordinación, el programa o el grupo no existen, responde 404.
+            """
+    )
+    @PostMapping("/save-detail-professor-load")
+    public ResponseEntity<Void> saveDetailProfessorLoad(@RequestBody DistribucionActividadFormularioDTO dto) {
+        cargaService.saveDetailProfessorPreload(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+        summary = "Lista el detalle de carga de un docente",
+        description = """
+            Lista los detalles de RVDIES.DETALLECARGADOCENTE de la carga indicada.
+            Cada ítem trae el tipo de actividad guardado en TIAC_ID y su padre, la unidad del grupo,
+            el programa y el pensum de ese programa. La materia del pensum es MATE_MATERIABANCO
+            cuando la actividad es de banco; si no, es MATE_CODIGOMATERIA. También trae la materia,
+            el componente de banco, el grupo, el centro de costo, las horas, el indicativo de si son horas extras
+            y la ponderación académica de la materia y de la materia de banco.
+            Si la carga no existe, responde 404. Si no tiene detalles, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-detail-professor-load")
+    public ResponseEntity<List<DetalleCargaDocenteDTO>> listDetailProfessorLoad(@RequestParam Long idCargaDocente) {
+        return ResponseEntity.ok(cargaService.listDetailProfessorLoad(idCargaDocente));
+    }
+
+    @Operation(
+        summary = "Lista las materias de práctica educativa de un pensum",
+        description = """
+            Lee ACADEMICO.PENSUMMATERIA y ACADEMICO.MATERIA del pensum indicado.
+            Solo incluye la materia si existe en RVDIES.MATERIAPARTICULAR para el programa del pensum
+            y MAPA_TIPOMATERIA es PRACTICAEDUCATIVA.
+            La respuesta usa el mismo MateriaDTO del listado de materias del pensum,
+            incluida la ponderación académica.
+            Si el pensum no existe, responde 404. Si no hay materias de ese tipo, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-educational-practice-subject")
+    public ResponseEntity<List<MateriaDTO>> listEducationalPracticeSubject(@RequestParam Long idPensum) {
+        return ResponseEntity.ok(cargaService.listEducationalPracticeSubject(idPensum));
+    }
+
+    
 }

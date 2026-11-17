@@ -7,6 +7,7 @@
  * Modificaciones:
  * 10/06/2026 - Sebastian Jaimes - Creación inicial
  * 03/11/2026 - Alineación con RVDIES.DETALLECARGADOCENTE
+ * 12/11/2026 - MATE_MATERIABANCO como número, igual que la columna.
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -81,7 +82,7 @@ public class DetalleCargaDocenteEntity implements Serializable, Cloneable {
     private String descripcion;
 
     @Column(name = "MATE_MATERIABANCO")
-    private String materiaBanco;
+    private Long materiaBanco;
 
     @Column(name = "DECD_EXTRAS")
     private String extras;

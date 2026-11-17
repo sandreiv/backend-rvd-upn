@@ -22,5 +22,6 @@ public record MateriaDTO(
     Long capacidad,
     Boolean tieneGrupo,
     Boolean esElectiva,
-    CentroCostoDTO centroCosto
+    CentroCostoDTO centroCosto,
+    Boolean esCompartida
 ) {}

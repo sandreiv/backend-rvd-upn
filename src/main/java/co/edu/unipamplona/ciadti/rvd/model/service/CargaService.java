@@ -15,6 +15,9 @@
  * 11/11/2026 - Programas por unidad, coordinación y periodo con restricción de director.
  * 11/11/2026 - Pensum por programa y materias del pensum.
  * 11/11/2026 - Grupos de la materia en el periodo de la convocatoria y sus extensiones.
+ * 12/11/2026 - Componentes de una materia electiva.
+ * 12/11/2026 - Alta de detalles de actividad de la carga docente.
+ * 12/11/2026 - Listado de detalle de carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service;
 
@@ -22,13 +25,17 @@ import java.util.List;
 
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.DistribucionActividadFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
@@ -57,7 +64,17 @@ public interface CargaService {
 
     List<MateriaDTO> listSubjects(Long idPensum);
 
+    List<MateriaDTO> listEducationalPracticeSubject(Long idPensum);
+
+    List<MateriaComponenteBancoDTO> listSubjectComponents(String codigoMateria);
+
     List<GrupoDTO> listSubjectGroups(Long idConvocatoria, String codigoMateria);
+
+    List<HorarioClaseDTO> listGroupSchedule(Long idGrupo);
+
+    void saveDetailProfessorPreload(DistribucionActividadFormularioDTO dto);
+
+    List<DetalleCargaDocenteDTO> listDetailProfessorLoad(Long idCargaDocente);
 
     void addProfessor(CargaDocenteFormularioDTO dto);
 
