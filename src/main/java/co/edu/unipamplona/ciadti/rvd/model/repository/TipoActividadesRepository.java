@@ -38,6 +38,8 @@ public interface TipoActividadesRepository
                 PADRE.TIAC_NOMBRE AS nombrePadre,
                 TIAC.TIAC_DESCRIPCION AS descripcion,
                 COALESCE(TIAC.TIAC_COMPONENTE, PADRE.TIAC_COMPONENTE) AS componente,
+                COALESCE(TIAC.TIAC_MINIMOHORAS, PADRE.TIAC_MINIMOHORAS) AS minimoHoras,
+                COALESCE(TIAC.TIAC_MAXIMOHORAS, PADRE.TIAC_MAXIMOHORAS) AS maximoHoras,
                 CASE
                     WHEN EXISTS (
                         SELECT 1

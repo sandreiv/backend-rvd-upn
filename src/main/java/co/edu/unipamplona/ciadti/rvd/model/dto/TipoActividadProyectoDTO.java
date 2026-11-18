@@ -21,7 +21,9 @@ public record TipoActividadProyectoDTO(
         Boolean esSeleccionable,
         Boolean requiereFuncion,
         Boolean requiereNivel,
-        Boolean requiereHorario
+        Boolean requiereHorario,
+        Integer minimoHoras,
+        Integer maximoHoras
 ) {
     public TipoActividadProyectoDTO(
             Long id,
@@ -34,6 +36,6 @@ public record TipoActividadProyectoDTO(
             Boolean esSeleccionable
     ) {
         this(id, idPadre, nombre, nombrePadre, nombreCompleto, descripcion, componente, esSeleccionable,
-             false, false, false);
+             false, false, false, null, null);
     }
 }

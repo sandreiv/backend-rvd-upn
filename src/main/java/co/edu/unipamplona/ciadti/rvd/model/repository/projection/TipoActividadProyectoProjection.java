@@ -24,4 +24,8 @@ public interface TipoActividadProyectoProjection {
     String getComponente();
 
     Integer getEsSeleccionable();
+
+    String getMinimoHoras();
+
+    String getMaximoHoras();
 }

@@ -137,6 +137,9 @@ public class ProyectosServiceImpl implements ProyectosService {
                     boolean reqNivel = compEnum != null && compEnum.isRequiereNivel();
                     boolean reqHorario = compEnum != null && compEnum.isRequiereHorario();
 
+                    Integer minHoras = parseInteger(row.getMinimoHoras());
+                    Integer maxHoras = parseInteger(row.getMaximoHoras());
+
                     return new TipoActividadProyectoDTO(
                             row.getId(),
                             row.getIdPadre(),
@@ -150,7 +153,9 @@ public class ProyectosServiceImpl implements ProyectosService {
                             Integer.valueOf(1).equals(row.getEsSeleccionable()),
                             reqFuncion,
                             reqNivel,
-                            reqHorario
+                            reqHorario,
+                            minHoras,
+                            maxHoras
                     );
                 })
                 .toList();
@@ -488,13 +493,41 @@ public class ProyectosServiceImpl implements ProyectosService {
             }
         }
 
+        TipoActividadesEntity tipoActividad = null;
+        if (proyecto.getIdTipoActividad() != null) {
+            tipoActividad = tipoActividadesRepository.findById(proyecto.getIdTipoActividad()).orElse(null);
+        }
+
+        Integer minHoras = null;
+        Integer maxHoras = null;
+        if (tipoActividad != null) {
+            minHoras = parseInteger(tipoActividad.getMinimoHoras());
+            maxHoras = parseInteger(tipoActividad.getMaximoHoras());
+            if ((minHoras == null || maxHoras == null) && tipoActividad.getIdPadre() != null) {
+                TipoActividadesEntity padre = tipoActividadesRepository.findById(tipoActividad.getIdPadre()).orElse(null);
+                if (padre != null) {
+                    if (minHoras == null) {
+                        minHoras = parseInteger(padre.getMinimoHoras());
+                    }
+                    if (maxHoras == null) {
+                        maxHoras = parseInteger(padre.getMaximoHoras());
+                    }
+                }
+            }
+        }
+        int effectiveMin = minHoras != null && minHoras > 0 ? minHoras : MIN_HORAS;
+        int effectiveMax = maxHoras != null && maxHoras > 0 ? maxHoras : MAX_HORAS;
+
         if (StringUtils.hasText(dto.horas())) {
             try {
                 int horas = Integer.parseInt(dto.horas().trim());
-                if (horas < MIN_HORAS || horas > MAX_HORAS) {
+                if (horas < effectiveMin || horas > effectiveMax) {
+                    String scope = (tipoActividad != null && StringUtils.hasText(tipoActividad.getNombre()))
+                            ? " para " + tipoActividad.getNombre()
+                            : "";
                     throw new ApiException(
                             HttpStatus.BAD_REQUEST,
-                            "Las horas de dedicación deben estar entre " + MIN_HORAS + " y " + MAX_HORAS
+                            "Las horas de dedicación deben estar entre " + effectiveMin + " y " + effectiveMax + scope
                     );
                 }
             } catch (NumberFormatException e) {
@@ -502,10 +535,6 @@ public class ProyectosServiceImpl implements ProyectosService {
             }
         }
 
-        TipoActividadesEntity tipoActividad = null;
-        if (proyecto.getIdTipoActividad() != null) {
-            tipoActividad = tipoActividadesRepository.findById(proyecto.getIdTipoActividad()).orElse(null);
-        }
         TipoActividadComponenteEnum compEnum = null;
         if (tipoActividad != null) {
             String comp = tipoActividad.getComponente();
@@ -708,5 +737,16 @@ public class ProyectosServiceImpl implements ProyectosService {
             return;
         }
         estudiantesRepository.deleteAllById(ids);
+    }
+
+    private Integer parseInteger(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
