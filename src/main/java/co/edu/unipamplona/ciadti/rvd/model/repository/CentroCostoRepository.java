@@ -41,7 +41,7 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             FROM CONTABLEV3.CENTROCOSTO CECO
             INNER JOIN RVDIES.CENTROCOSTOCOORDINACION CCCO ON CCCO.CECO_ID = CECO.CECO_ID
             WHERE CCCO.COOR_ID = :idCoordinacion
-              AND (CCCO.CCCO_ESTADO = '1' OR CCCO.CCCO_ESTADO = 'S' OR CCCO.CCCO_ESTADO = 'A' OR CCCO.CCCO_ESTADO IS NULL)
+              AND (CCCO.CCCO_ESTADO IN ('1', 'S', 'A') OR CCCO.CCCO_ESTADO IS NULL)
               AND CECO.CECO_DESCRIPCION IS NOT NULL
             ORDER BY CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
@@ -52,7 +52,7 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             FROM RVDIES.CENTROCOSTOCOORDINACION CCCO
             WHERE CCCO.COOR_ID = :idCoordinacion
               AND CCCO.CECO_ID = :idCentroCosto
-              AND (CCCO.CCCO_ESTADO = '1' OR CCCO.CCCO_ESTADO = 'S' OR CCCO.CCCO_ESTADO = 'A' OR CCCO.CCCO_ESTADO IS NULL)
+              AND (CCCO.CCCO_ESTADO IN ('1', 'S', 'A') OR CCCO.CCCO_ESTADO IS NULL)
             """, nativeQuery = true)
     long countByCoordinacionIdAndCentroCostoId(
             @Param("idCoordinacion") Long idCoordinacion,
@@ -74,7 +74,7 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             INNER JOIN CONTABLEV3.CENTROCOSTO CECO
                 ON CECO.CECO_ID = PRCO.CECO_ID
             WHERE ESTU.PROY_ID = :idProyecto
-              AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO = 'S' OR PRCO.PRCO_ESTADO = 'A' OR PRCO.PRCO_ESTADO IS NULL)
+              AND (PRCO.PRCO_ESTADO IN ('1', 'S', 'A') OR PRCO.PRCO_ESTADO IS NULL)
               AND CECO.CECO_DESCRIPCION IS NOT NULL
             ORDER BY CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
@@ -93,7 +93,7 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
                 ON CECO.CECO_ID = PRCO.CECO_ID
             WHERE ESTU.PROY_ID = :idProyecto
               AND CECO.CECO_ID = :idCentroCosto
-              AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO = 'S' OR PRCO.PRCO_ESTADO = 'A' OR PRCO.PRCO_ESTADO IS NULL)
+              AND (PRCO.PRCO_ESTADO IN ('1', 'S', 'A') OR PRCO.PRCO_ESTADO IS NULL)
             """, nativeQuery = true)
     long countByProjectStudentsAndCentroCostoId(
             @Param("idProyecto") Long idProyecto,

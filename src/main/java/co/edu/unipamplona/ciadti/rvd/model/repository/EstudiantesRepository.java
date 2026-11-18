@@ -51,7 +51,7 @@ public interface EstudiantesRepository extends JpaRepository<EstudiantesEntity, 
                 ON PROG.PROG_ID = UNPR.PROG_ID
             LEFT JOIN RVDIES.PROGRAMACOORDINACION PRCO
                 ON PRCO.PROG_ID = PROG.PROG_ID
-                AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO = 'S' OR PRCO.PRCO_ESTADO = 'A' OR PRCO.PRCO_ESTADO IS NULL)
+                AND (PRCO.PRCO_ESTADO IN ('1', 'S', 'A') OR PRCO.PRCO_ESTADO IS NULL)
             LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
                 ON CECO.CECO_ID = PRCO.CECO_ID
             WHERE ESTU.PROY_ID = :idProyecto
@@ -111,6 +111,8 @@ public interface EstudiantesRepository extends JpaRepository<EstudiantesEntity, 
                      OR UPPER(PENG.PENG_SEGUNDONOMBRE) LIKE UPPER('%' || :term || '%')
                      OR UPPER(PENG.PENG_PRIMERAPELLIDO) LIKE UPPER('%' || :term || '%')
                      OR UPPER(PENG.PENG_SEGUNDOAPELLIDO) LIKE UPPER('%' || :term || '%')
+                     OR UPPER(PENG.PENG_PRIMERNOMBRE || ' ' || PENG.PENG_PRIMERAPELLIDO) LIKE UPPER('%' || :term || '%')
+                     OR UPPER(PENG.PENG_PRIMERNOMBRE || ' ' || NVL(PENG.PENG_SEGUNDONOMBRE, '') || ' ' || PENG.PENG_PRIMERAPELLIDO || ' ' || NVL(PENG.PENG_SEGUNDOAPELLIDO, '')) LIKE UPPER('%' || :term || '%')
                     )
             ) T
             WHERE T.rn = 1

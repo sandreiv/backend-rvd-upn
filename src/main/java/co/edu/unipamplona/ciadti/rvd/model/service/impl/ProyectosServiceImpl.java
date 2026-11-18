@@ -20,7 +20,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -92,6 +91,9 @@ public class ProyectosServiceImpl implements ProyectosService {
     private final PersonaAutorizaConvocatoriaMapper personaAutorizaConvocatoriaMapper;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final int MIN_SEARCH_TERM_LENGTH = 2;
+    private static final int MIN_HORAS = 1;
+    private static final int MAX_HORAS = 40;
 
     @Override
     @Transactional(readOnly = true)
@@ -242,7 +244,7 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Transactional(readOnly = true)
     public List<PersonaAutorizaConvocatoriaDTO> searchPersons(String term) {
         String normalized = StringUtils.hasText(term) ? term.trim() : null;
-        if (!StringUtils.hasText(normalized) || normalized.length() < 2) {
+        if (!StringUtils.hasText(normalized) || normalized.length() < MIN_SEARCH_TERM_LENGTH) {
             return Collections.emptyList();
         }
 
@@ -489,10 +491,10 @@ public class ProyectosServiceImpl implements ProyectosService {
         if (StringUtils.hasText(dto.horas())) {
             try {
                 int horas = Integer.parseInt(dto.horas().trim());
-                if (horas < 1 || horas > 40) {
+                if (horas < MIN_HORAS || horas > MAX_HORAS) {
                     throw new ApiException(
                             HttpStatus.BAD_REQUEST,
-                            "Las horas de dedicación deben estar entre 1 y 40"
+                            "Las horas de dedicación deben estar entre " + MIN_HORAS + " y " + MAX_HORAS
                     );
                 }
             } catch (NumberFormatException e) {
@@ -646,7 +648,7 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Transactional(readOnly = true)
     public List<EstudianteBusquedaDTO> searchStudents(String term) {
         String normalized = StringUtils.hasText(term) ? term.trim() : null;
-        if (!StringUtils.hasText(normalized) || normalized.length() < 2) {
+        if (!StringUtils.hasText(normalized) || normalized.length() < MIN_SEARCH_TERM_LENGTH) {
             return Collections.emptyList();
         }
         return estudiantesRepository.searchStudents(normalized).stream()
@@ -703,7 +705,7 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Transactional
     public void deleteBulkProjectStudents(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "No se proporcionaron identificadores para eliminar");
+            return;
         }
         estudiantesRepository.deleteAllById(ids);
     }

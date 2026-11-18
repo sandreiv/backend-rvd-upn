@@ -75,6 +75,8 @@ public interface PersonaGeneralRepository
                 OR UPPER(peng.segundoNombre) LIKE UPPER(CONCAT('%', :term, '%'))
                 OR UPPER(peng.primerApellido) LIKE UPPER(CONCAT('%', :term, '%'))
                 OR UPPER(peng.segundoApellido) LIKE UPPER(CONCAT('%', :term, '%'))
+                OR UPPER(CONCAT(peng.primerNombre, ' ', peng.primerApellido)) LIKE UPPER(CONCAT('%', :term, '%'))
+                OR UPPER(CONCAT(peng.primerNombre, ' ', COALESCE(peng.segundoNombre, ''), ' ', peng.primerApellido, ' ', COALESCE(peng.segundoApellido, ''))) LIKE UPPER(CONCAT('%', :term, '%'))
             ORDER BY peng.primerApellido, peng.primerNombre
             """)
     List<PersonaGeneralEntity> searchByTerm(@Param("term") String term);
