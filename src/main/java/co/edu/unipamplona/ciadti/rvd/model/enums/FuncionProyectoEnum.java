@@ -13,7 +13,7 @@ import lombok.Getter;
 
 @Getter
 public enum FuncionProyectoEnum {
-    INVESTIGADOR_PRINCIPAL("Investigador principal"),
+    INVESTIGADOR("Investigador principal"),
     COINVESTIGADOR("Coinvestigador"),
     ASESOR("Asesor o Asistente de investigación");
 
