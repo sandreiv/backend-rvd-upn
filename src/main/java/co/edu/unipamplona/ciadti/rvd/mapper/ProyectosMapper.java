@@ -47,7 +47,8 @@ public interface ProyectosMapper {
                 toIdNombre(
                         projection.getIdCoordinacion(),
                         projection.getNombreCoordinacion()),
-                projection.getTotalDocentes()
+                projection.getTotalDocentes(),
+                projection.getTotalEstudiantes()
         );
     }
 

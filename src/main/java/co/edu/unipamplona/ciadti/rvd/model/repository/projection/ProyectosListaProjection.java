@@ -33,4 +33,5 @@ public interface ProyectosListaProjection {
     Date getFechaActa();
     String getActivo();
     Integer getTotalDocentes();
+    Integer getTotalEstudiantes();
 }

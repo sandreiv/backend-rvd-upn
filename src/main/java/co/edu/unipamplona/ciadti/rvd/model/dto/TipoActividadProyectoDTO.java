@@ -6,6 +6,7 @@
  * Fecha de creación: 10/11/2026
  * Modificaciones:
  * 10/11/2026 - Leonel Antonio Perez Rios - DTO para opciones jerárquicas de tipo de actividad
+ * 17/11/2026 - Requisitos booleanos para participantes según el componente
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -17,5 +18,22 @@ public record TipoActividadProyectoDTO(
         String nombreCompleto,
         String descripcion,
         String componente,
-        Boolean esSeleccionable
-) {}
+        Boolean esSeleccionable,
+        Boolean requiereFuncion,
+        Boolean requiereNivel,
+        Boolean requiereHorario
+) {
+    public TipoActividadProyectoDTO(
+            Long id,
+            Long idPadre,
+            String nombre,
+            String nombrePadre,
+            String nombreCompleto,
+            String descripcion,
+            String componente,
+            Boolean esSeleccionable
+    ) {
+        this(id, idPadre, nombre, nombrePadre, nombreCompleto, descripcion, componente, esSeleccionable,
+             false, false, false);
+    }
+}

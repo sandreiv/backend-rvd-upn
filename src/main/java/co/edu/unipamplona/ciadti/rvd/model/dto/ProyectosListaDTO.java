@@ -31,7 +31,8 @@ public record ProyectosListaDTO(
     String activo,
     IdNombreDTO tipoActividad,
     IdNombreDTO coordinacion,
-    Integer totalDocentes
+    Integer totalDocentes,
+    Integer totalEstudiantes
 ) {
     public ProyectosListaDTO(
         Long id,
@@ -48,10 +49,11 @@ public record ProyectosListaDTO(
         String activo,
         IdNombreDTO tipoActividad,
         IdNombreDTO coordinacion,
-        Integer totalDocentes
+        Integer totalDocentes,
+        Integer totalEstudiantes
     ) {
         this(id, codigo, idTipoActividad, idCoordinacion, idProyectoPadre, idMateriaTdg,
              null, null, nombre, descripcion, actaConsejo, numeroActa, fechaActa,
-             activo, tipoActividad, coordinacion, totalDocentes);
+             activo, tipoActividad, coordinacion, totalDocentes, totalEstudiantes);
     }
 }

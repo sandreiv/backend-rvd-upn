@@ -66,6 +66,19 @@ public interface PersonaGeneralRepository
             @Param("nombre") String nombre,
             @Param("documento") String documento);
 
+    @Query("""
+            SELECT DISTINCT pege FROM PersonaGeneralEntity pege
+            INNER JOIN FETCH pege.personaNaturalGeneral peng
+            WHERE :term IS NULL
+                OR UPPER(pege.documentoIdentidad) LIKE UPPER(CONCAT('%', :term, '%'))
+                OR UPPER(peng.primerNombre) LIKE UPPER(CONCAT('%', :term, '%'))
+                OR UPPER(peng.segundoNombre) LIKE UPPER(CONCAT('%', :term, '%'))
+                OR UPPER(peng.primerApellido) LIKE UPPER(CONCAT('%', :term, '%'))
+                OR UPPER(peng.segundoApellido) LIKE UPPER(CONCAT('%', :term, '%'))
+            ORDER BY peng.primerApellido, peng.primerNombre
+            """)
+    List<PersonaGeneralEntity> searchByTerm(@Param("term") String term);
+
     @Query(value = """
             SELECT DISTINCT
                 PEGE.PEGE_ID AS idPersonaGeneral,

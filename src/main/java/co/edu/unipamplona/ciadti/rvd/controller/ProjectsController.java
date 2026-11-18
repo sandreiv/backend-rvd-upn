@@ -12,35 +12,14 @@
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
-import java.util.List;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.DiaSemanaOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.EliminacionMasivaDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.FuncionProyectoOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.NivelProyectoOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaAutorizaConvocatoriaDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoFormularioDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoGrupoOpcionDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosFormularioDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectosListaDTO;
-import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadProyectoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.*;
 import co.edu.unipamplona.ciadti.rvd.model.service.ProyectosService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -71,6 +50,12 @@ public class ProjectsController {
     @GetMapping("/activity-types")
     public ResponseEntity<List<TipoActividadProyectoDTO>> listProjectActivityTypes() {
         return ResponseEntity.ok(proyectosService.listProjectActivityTypes());
+    }
+
+    @Operation(summary = "Lista componentes de actividades", description = "Lista los componentes de actividades y los campos requeridos para participantes")
+    @GetMapping("/activity-components")
+    public ResponseEntity<List<TipoActividadComponenteDTO>> listActivityComponents() {
+        return ResponseEntity.ok(proyectosService.listActivityComponents());
     }
 
     @Operation(summary = "Busca coordinaciones para proyectos", description = "Busca coordinaciones activas por nombre de unidad de área o identificador")
@@ -186,6 +171,39 @@ public class ProjectsController {
     @PostMapping({"/participants/delete-bulk", "/delete-persons-bulk"})
     public ResponseEntity<Void> deleteBulkProjectParticipants(@RequestBody EliminacionMasivaDTO dto) {
         proyectosService.deleteBulkProjectParticipants(dto.ids());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Lista estudiantes de un proyecto", description = "Lista los estudiantes asociados a un proyecto")
+    @GetMapping({"/students/list", "/list-students"})
+    public ResponseEntity<List<EstudianteProyectoListaDTO>> listProjectStudents(@RequestParam Long idProyecto) {
+        return ResponseEntity.ok(proyectosService.listProjectStudents(idProyecto));
+    }
+
+    @Operation(summary = "Busca estudiantes para asociar a proyecto", description = "Busca personas/estudiantes por documento, código o nombre")
+    @GetMapping({"/students/search", "/search-students"})
+    public ResponseEntity<List<EstudianteBusquedaDTO>> searchStudents(@RequestParam(required = false) String term) {
+        return ResponseEntity.ok(proyectosService.searchStudents(term));
+    }
+
+    @Operation(summary = "Asigna estudiante a proyecto", description = "Registra un estudiante asociado al proyecto")
+    @PostMapping({"/students/save", "/save-student"})
+    public ResponseEntity<Void> saveProjectStudent(@RequestBody EstudianteProyectoFormularioDTO dto) {
+        proyectosService.saveProjectStudent(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Elimina estudiante de proyecto", description = "Elimina la asociación de un estudiante a un proyecto")
+    @DeleteMapping({"/students/delete/{id}", "/delete-student/{id}"})
+    public ResponseEntity<Void> deleteProjectStudent(@PathVariable Long id) {
+        proyectosService.deleteProjectStudent(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Elimina estudiantes masivamente", description = "Eliminación masiva de estudiantes de proyecto")
+    @PostMapping({"/students/delete-bulk", "/delete-students-bulk"})
+    public ResponseEntity<Void> deleteBulkProjectStudents(@RequestBody EliminacionMasivaDTO dto) {
+        proyectosService.deleteBulkProjectStudents(dto.ids());
         return ResponseEntity.ok().build();
     }
 }

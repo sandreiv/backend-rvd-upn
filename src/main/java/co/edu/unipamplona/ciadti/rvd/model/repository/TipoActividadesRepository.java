@@ -37,7 +37,7 @@ public interface TipoActividadesRepository
                 TIAC.TIAC_NOMBRE AS nombre,
                 PADRE.TIAC_NOMBRE AS nombrePadre,
                 TIAC.TIAC_DESCRIPCION AS descripcion,
-                TIAC.TIAC_COMPONENTE AS componente,
+                COALESCE(TIAC.TIAC_COMPONENTE, PADRE.TIAC_COMPONENTE) AS componente,
                 CASE
                     WHEN EXISTS (
                         SELECT 1

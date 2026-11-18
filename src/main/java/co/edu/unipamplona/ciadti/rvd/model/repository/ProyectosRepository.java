@@ -42,7 +42,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.PROY_NUMEROACTA AS numeroActa,
                 PROY.PROY_FECHAACTA AS fechaActa,
                 PROY.PROY_ACTIVO AS activo,
-                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
+                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes,
+                (SELECT COUNT(1) FROM RVDIES.ESTUDIANTES ESTU WHERE ESTU.PROY_ID = PROY.PROY_ID) AS totalEstudiantes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
                 ON TIAC.TIAC_ID = PROY.TIAC_ID
@@ -75,7 +76,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.PROY_NUMEROACTA AS numeroActa,
                 PROY.PROY_FECHAACTA AS fechaActa,
                 PROY.PROY_ACTIVO AS activo,
-                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
+                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes,
+                (SELECT COUNT(1) FROM RVDIES.ESTUDIANTES ESTU WHERE ESTU.PROY_ID = PROY.PROY_ID) AS totalEstudiantes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
                 ON TIAC.TIAC_ID = PROY.TIAC_ID
@@ -110,7 +112,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.PROY_NUMEROACTA AS numeroActa,
                 PROY.PROY_FECHAACTA AS fechaActa,
                 PROY.PROY_ACTIVO AS activo,
-                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes
+                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes,
+                (SELECT COUNT(1) FROM RVDIES.ESTUDIANTES ESTU WHERE ESTU.PROY_ID = PROY.PROY_ID) AS totalEstudiantes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
                 ON TIAC.TIAC_ID = PROY.TIAC_ID

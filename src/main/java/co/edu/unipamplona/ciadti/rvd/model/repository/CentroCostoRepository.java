@@ -7,6 +7,7 @@
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
  * 17/11/2026 - Consulta de centros de costo por coordinación y validación de pertenencia
+ * 18/11/2026 - Consulta de centros de costo asociados a programas de estudiantes del proyecto por PEGE_ID / ESTP_ID
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -55,6 +56,47 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             """, nativeQuery = true)
     long countByCoordinacionIdAndCentroCostoId(
             @Param("idCoordinacion") Long idCoordinacion,
+            @Param("idCentroCosto") Long idCentroCosto
+    );
+
+    @Query(value = """
+            SELECT DISTINCT
+                CECO.CECO_ID AS id,
+                CECO.CECO_DESCRIPCION AS label,
+                CECO.CECO_CODIGO AS codigo
+            FROM RVDIES.ESTUDIANTES ESTU
+            INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP
+                ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
+            INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
+                ON UNPR.UNPR_ID = ESTP.UNPR_ID
+            INNER JOIN RVDIES.PROGRAMACOORDINACION PRCO
+                ON PRCO.PROG_ID = UNPR.PROG_ID
+            INNER JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = PRCO.CECO_ID
+            WHERE ESTU.PROY_ID = :idProyecto
+              AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO = 'S' OR PRCO.PRCO_ESTADO = 'A' OR PRCO.PRCO_ESTADO IS NULL)
+              AND CECO.CECO_DESCRIPCION IS NOT NULL
+            ORDER BY CECO.CECO_DESCRIPCION
+            """, nativeQuery = true)
+    List<CatalogoAdministracionProjection> findCostCentersByProjectStudents(@Param("idProyecto") Long idProyecto);
+
+    @Query(value = """
+            SELECT COUNT(DISTINCT CECO.CECO_ID)
+            FROM RVDIES.ESTUDIANTES ESTU
+            INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP
+                ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
+            INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
+                ON UNPR.UNPR_ID = ESTP.UNPR_ID
+            INNER JOIN RVDIES.PROGRAMACOORDINACION PRCO
+                ON PRCO.PROG_ID = UNPR.PROG_ID
+            INNER JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = PRCO.CECO_ID
+            WHERE ESTU.PROY_ID = :idProyecto
+              AND CECO.CECO_ID = :idCentroCosto
+              AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO = 'S' OR PRCO.PRCO_ESTADO = 'A' OR PRCO.PRCO_ESTADO IS NULL)
+            """, nativeQuery = true)
+    long countByProjectStudentsAndCentroCostoId(
+            @Param("idProyecto") Long idProyecto,
             @Param("idCentroCosto") Long idCentroCosto
     );
 }
