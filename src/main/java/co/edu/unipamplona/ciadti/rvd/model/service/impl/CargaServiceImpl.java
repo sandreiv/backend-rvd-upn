@@ -22,6 +22,7 @@
  * 17/11/2026 - Indicativo de docente titular en DECD_DATA.
  * 17/11/2026 - Materias de la carga con programa y centro de costo.
  * 17/11/2026 - Borrado de los detalles de una carga docente.
+ * 17/11/2026 - Proyectos de la persona de la carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -56,6 +57,7 @@ import co.edu.unipamplona.ciadti.rvd.mapper.HorarioClaseMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaComponenteBancoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaPensumMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.MateriaProgramaCargaMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.PersonaProyectoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PensumListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.ProgramaListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.RestriccionActividadListadoMapper;
@@ -78,6 +80,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaProgramaCargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
@@ -102,6 +105,7 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.GrupoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.MateriaComponenteBancoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.MateriaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PensumRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaProyectoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PeriodoUniversidadRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaCoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaGeneralRepository;
@@ -174,6 +178,8 @@ public class CargaServiceImpl implements CargaService {
     private final MateriaComponenteBancoMapper materiaComponenteBancoMapper;
     private final DetalleCargaDocenteMapper detalleCargaDocenteMapper;
     private final MateriaProgramaCargaMapper materiaProgramaCargaMapper;
+    private final PersonaProyectoRepository personaProyectoRepository;
+    private final PersonaProyectoMapper personaProyectoMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -652,6 +658,24 @@ public class CargaServiceImpl implements CargaService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<PersonaProyectoDTO> listProfessorProjects(Long idCargaDocente) {
+        if (idCargaDocente == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La carga docente es obligatoria.");
+        }
+        CargaDocenteEntity carga = cargaDocenteRepository.findById(idCargaDocente)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "No existe la carga docente con id " + idCargaDocente));
+        if (carga.getIdPersonaGeneral() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La carga docente no tiene persona.");
+        }
+        log.info("listProfessorProjects ===> Listando proyectos de la persona. idCargaDocente={}, idPersonaGeneral={}",
+                idCargaDocente, carga.getIdPersonaGeneral());
+        return personaProyectoMapper.toDtoList(
+                personaProyectoRepository.findCargaByIdPersonaGeneral(carga.getIdPersonaGeneral()));
+    }
+
+    @Override
     @Transactional
     public void deleteDetailProfessorLoad(Long idDetalleCargaDocente) {
         if (idDetalleCargaDocente == null) {
@@ -663,7 +687,31 @@ public class CargaServiceImpl implements CargaService {
                     HttpStatus.NOT_FOUND,
                     "No existe el detalle de carga docente con id " + idDetalleCargaDocente);
         }
+        log.info("deleteDetailProfessorLoad ===> Detalle eliminado. idDetalleCargaDocente={}",
+                idDetalleCargaDocente);
+    }
 
+    @Override
+    @Transactional
+    public void deleteDetailProfessorLoadBulk(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Los detalles de carga docente son obligatorios.");
+        }
+        if (ids.stream().anyMatch(Objects::isNull)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El detalle de carga docente es obligatorio.");
+        }
+        List<Long> unicos = ids.stream().distinct().toList();
+        for (Long id : unicos) {
+            if (!detalleCargaDocenteRepository.existsById(id)) {
+                throw new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "No existe el detalle de carga docente con id " + id);
+            }
+        }
+        log.info("deleteDetailProfessorLoadBulk ===> Eliminando detalles. total={}", unicos.size());
+        for (Long id : unicos) {
+            deleteDetailProfessorLoad(id);
+        }
     }
 
     private Long convocatoriaDeCarga(CargaDocenteEntity carga) {

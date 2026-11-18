@@ -92,13 +92,7 @@ public interface DetalleCargaDocenteMapper {
     private static DetalleCargaDocenteActividadDTO toActividad(
             DetalleCargaDocenteCargaProjection projection,
             Map<Long, HorarioClaseDTO> clasesSemanales) {
-        TipoActividadDTO actividad = tipoActividad(
-                projection.getIdTipoActividad(),
-                projection.getIdTipoActividadPadre(),
-                projection.getNombreTipoActividad(),
-                projection.getDescripcionTipoActividad(),
-                projection.getOrdenTipoActividad(),
-                projection.getComponenteTipoActividad());
+        TipoActividadDTO actividad = tipoActividad(projection);
         return new DetalleCargaDocenteActividadDTO(
                 actividad,
                 projection.getIdUnidadRegional() == null
@@ -201,17 +195,24 @@ public interface DetalleCargaDocenteMapper {
                 projection.getNumPeriodosPensum());
     }
 
-    private static TipoActividadDTO tipoActividad(
-            Long id,
-            Long idPadre,
-            String nombre,
-            String descripcion,
-            String orden,
-            String componente) {
-        if (id == null) {
+    private static TipoActividadDTO tipoActividad(DetalleCargaDocenteCargaProjection projection) {
+        if (projection.getIdTipoActividad() == null) {
             return null;
         }
-        return new TipoActividadDTO(id, idPadre, nombre, descripcion, orden, null, componente);
+        return new TipoActividadDTO(
+                projection.getIdTipoActividad(),
+                projection.getIdTipoActividadPadre(),
+                projection.getNombreTipoActividad(),
+                projection.getDescripcionTipoActividad(),
+                projection.getOrdenTipoActividad(),
+                projection.getEstadoTipoActividad(),
+                projection.getMinimoHorasTipoActividad(),
+                projection.getMaximoHorasTipoActividad(),
+                projection.getIdDependenciaTipoActividad(),
+                projection.getDocenciaDirectaTipoActividad(),
+                projection.getComponenteTipoActividad(),
+                projection.getHorasPorSemestreTipoActividad(),
+                projection.getAplicaProyectosTipoActividad());
     }
 
     private static MateriaDetalleDTO materia(DetalleCargaDocenteCargaProjection projection) {

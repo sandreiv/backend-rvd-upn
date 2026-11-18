@@ -8,9 +8,13 @@
  * 09/11/2026 - Leonel Antonio Perez Rios - Creación inicial
  * 13/11/2026 - Mapeo de centro de costo, programa, funcion y data (extracción de funcion desde JSON)
  * 17/11/2026 - Extracción de nivel desde JSON data y parseo robusto con Jackson ObjectMapper
+ * 17/11/2026 - Proyectos de la persona de una carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.mapper;
 
+import java.sql.Clob;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.mapstruct.Mapper;
@@ -18,7 +22,12 @@ import org.mapstruct.Mapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioProyectoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaProyectoCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaProyectoListaProjection;
 
 @Mapper(componentModel = "spring")
@@ -62,6 +71,124 @@ public interface PersonaProyectoMapper {
             return List.of();
         }
         return list.stream().map(this::toPersonaProyectoListaDTO).toList();
+    }
+
+    default List<PersonaProyectoDTO> toDtoList(List<PersonaProyectoCargaProjection> projections) {
+        if (projections == null || projections.isEmpty()) {
+            return List.of();
+        }
+        return projections.stream().map(this::toDto).toList();
+    }
+
+    default PersonaProyectoDTO toDto(PersonaProyectoCargaProjection projection) {
+        if (projection == null) {
+            return null;
+        }
+        String data = texto(projection.getData());
+        JsonNode json = leer(data);
+        return new PersonaProyectoDTO(
+                projection.getId(),
+                projection.getIdPersonaGeneral(),
+                projection.getIdPrograma(),
+                projection.getIdCentroCosto(),
+                projection.getHoras(),
+                projection.getObservacion(),
+                new ProyectoDTO(
+                        projection.getIdProyecto(),
+                        projection.getIdProyectoPadre(),
+                        tipoActividad(projection),
+                        projection.getIdCoordinacion(),
+                        projection.getIdMateriaParticular(),
+                        projection.getIdProyectoGrupo(),
+                        projection.getNombre(),
+                        projection.getDescripcion(),
+                        projection.getActaConsejo(),
+                        projection.getNumeroActa(),
+                        projection.getFechaActa(),
+                        projection.getCodigo(),
+                        projection.getActivo()),
+                campo(json, "funcion"),
+                campo(json, "nivel"),
+                horario(json));
+    }
+
+    private static TipoActividadDTO tipoActividad(PersonaProyectoCargaProjection projection) {
+        if (projection.getIdTipoActividad() == null) {
+            return null;
+        }
+        return new TipoActividadDTO(
+                projection.getIdTipoActividad(),
+                projection.getIdTipoActividadPadre(),
+                projection.getNombreTipoActividad(),
+                projection.getDescripcionTipoActividad(),
+                projection.getOrdenTipoActividad(),
+                projection.getEstadoTipoActividad(),
+                projection.getMinimoHorasTipoActividad(),
+                projection.getMaximoHorasTipoActividad(),
+                projection.getIdDependenciaTipoActividad(),
+                projection.getDocenciaDirectaTipoActividad(),
+                projection.getComponenteTipoActividad(),
+                projection.getHorasPorSemestreTipoActividad(),
+                projection.getAplicaProyectosTipoActividad());
+    }
+
+    private static JsonNode leer(String data) {
+        if (data == null || data.isBlank() || !data.trim().startsWith("{")) {
+            return null;
+        }
+        try {
+            return OBJECT_MAPPER.readTree(data.trim());
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static String campo(JsonNode json, String nombre) {
+        if (json == null) {
+            return null;
+        }
+        JsonNode nodo = json.get(nombre);
+        if (nodo == null || nodo.isNull() || !nodo.isTextual() || nodo.asText().isBlank()) {
+            return null;
+        }
+        return nodo.asText();
+    }
+
+    private static List<HorarioProyectoDTO> horario(JsonNode json) {
+        if (json == null) {
+            return List.of();
+        }
+        JsonNode nodos = json.get("horario");
+        if (nodos == null || !nodos.isArray()) {
+            return List.of();
+        }
+        List<HorarioProyectoDTO> horarios = new ArrayList<>();
+        for (JsonNode nodo : nodos) {
+            if (nodo == null || !nodo.isObject()) {
+                continue;
+            }
+            horarios.add(new HorarioProyectoDTO(
+                    campo(nodo, "dia"),
+                    campo(nodo, "horaInicio"),
+                    campo(nodo, "horaFin")));
+        }
+        return horarios;
+    }
+
+    private static String texto(Clob clob) {
+        if (clob == null) {
+            return null;
+        }
+        try {
+            long length = clob.length();
+            if (length == 0) {
+                return "";
+            }
+            int size = length > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) length;
+            return clob.getSubString(1, size);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("No se pudo leer PEPR_DATA.", ex);
+        }
     }
 
     private String extractFuncion(String data, String defaultFuncion) {

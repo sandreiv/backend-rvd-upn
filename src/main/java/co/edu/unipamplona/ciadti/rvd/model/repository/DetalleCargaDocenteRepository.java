@@ -56,12 +56,10 @@ public interface DetalleCargaDocenteRepository
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
                 tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
                 tiac.TIAC_ORDEN AS ordenTipoActividad,
-                tiac.TIAC_CODIGO AS codigoTipoActividad,
                 tiac.TIAC_COMPONENTE AS componenteTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
                 tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
                 tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
-                tiac_padre.TIAC_CODIGO AS codigoTipoActividadPadre,
                 tiac_padre.TIAC_COMPONENTE AS componenteTipoActividadPadre,
                 unid.UNID_ID AS idUnidadRegional,
                 unid.UNID_NOMBRE AS nombreUnidadRegional,
@@ -137,7 +135,14 @@ public interface DetalleCargaDocenteRepository
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
                 tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
                 tiac.TIAC_ORDEN AS ordenTipoActividad,
+                tiac.TIAC_ESTADO AS estadoTipoActividad,
+                tiac.TIAC_MINIMOHORAS AS minimoHorasTipoActividad,
+                tiac.TIAC_MAXIMOHORAS AS maximoHorasTipoActividad,
+                tiac.TIAC_IDDEPENDENCIA AS idDependenciaTipoActividad,
+                tiac.TIAC_DOCENCIADIRECTA AS docenciaDirectaTipoActividad,
                 tiac.TIAC_COMPONENTE AS componenteTipoActividad,
+                tiac.TIAC_HORASPORSEMESTRE AS horasPorSemestreTipoActividad,
+                tiac.TIAC_APLICAPROYECTOS AS aplicaProyectosTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
                 tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
                 tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
@@ -273,7 +278,6 @@ public interface DetalleCargaDocenteRepository
     @Query(value = """
             SELECT
                 TA.TIAC_ID AS idTipoActividad,
-                TA.TIAC_CODIGO AS codigo,
                 TA.TIAC_NOMBRE AS nombre,
                 SUM(
                     NVL(
@@ -294,7 +298,6 @@ public interface DetalleCargaDocenteRepository
             WHERE CARG.CARG_ID = :cargId
             GROUP BY
                 TA.TIAC_ID,
-                TA.TIAC_CODIGO,
                 TA.TIAC_NOMBRE
             ORDER BY
                 TA.TIAC_NOMBRE
@@ -304,7 +307,6 @@ public interface DetalleCargaDocenteRepository
 
     @Query(value = """
             SELECT
-                PADRE.TIAC_CODIGO AS codigo,
                 PADRE.TIAC_NOMBRE AS nombre,
                 NVL(HORAS.totalHoras, 0) AS horas
             FROM RVD.TIPOACTIVIDADES PADRE
@@ -347,9 +349,6 @@ public interface DetalleCargaDocenteRepository
     @Query(value = """
             SELECT
                 CADO.CADO_ID AS idCargaDocente,
-                UPPER(TRIM(
-                    NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)
-                )) AS codigoPadre,
                 SUM(
                     NVL(
                         TO_NUMBER(
@@ -367,10 +366,10 @@ public interface DetalleCargaDocenteRepository
             LEFT JOIN RVD.TIPOACTIVIDADES TIAC_PADRE
                 ON TIAC_PADRE.TIAC_ID = TIAC.TIAC_IDPADRE
             WHERE CADO.CARG_ID = :idCarga
-            AND NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO) IS NOT NULL
+
             GROUP BY
                 CADO.CADO_ID,
-                UPPER(TRIM(NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)))
+
             """, nativeQuery = true)
     List<HorasCodigoActividadReporteProjection> findHorasPorCodigoPadreByCarga(
             @Param("idCarga") Long idCarga);
@@ -437,7 +436,6 @@ public interface DetalleCargaDocenteRepository
             LEFT JOIN RVD.TIPOACTIVIDADES TIAC_PADRE
                 ON TIAC_PADRE.TIAC_ID = TIAC.TIAC_IDPADRE
             WHERE DECD.CADO_ID = :idCargaDocente
-            AND UPPER(TRIM(NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO))) IN ('CTEI', 'ISU')
             AND NVL(
                     TO_NUMBER(
                         REPLACE(TRIM(DECD.DECD_HORAS), ',', '.')
@@ -457,9 +455,7 @@ public interface DetalleCargaDocenteRepository
                 decd.DECD_ID AS idDetalleNovedadCargaDocente,
                 decd.DECD_HORAS AS horas,
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
-                tiac.TIAC_CODIGO AS codigoTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
-                tiac_padre.TIAC_CODIGO AS codigoTipoActividadPadre,
                 unid.UNID_NOMBRE AS nombreUnidadRegional,
                 prog.PROG_NOMBRE AS nombrePrograma,
                 grup.GRUP_NOMBRE AS nombreGrupo,
@@ -551,9 +547,6 @@ public interface DetalleCargaDocenteRepository
                     DNCD.PROG_ID AS idPrograma,
                     DNCD.GRUP_ID AS idGrupo,
                     DNCD.CECO_ID AS idCentroCosto,
-                    UPPER(TRIM(
-                        NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)
-                    )) AS codigoPadre,
                     GRUP.GRUP_CUPOS AS cupos
                 
                 FROM CARGAS_RESUELTAS CR
@@ -585,9 +578,6 @@ public interface DetalleCargaDocenteRepository
                     DECD.PROG_ID AS idPrograma,
                     DECD.GRUP_ID AS idGrupo,
                     DECD.CECO_ID AS idCentroCosto,
-                    UPPER(TRIM(
-                        NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)
-                    )) AS codigoPadre,
                     GRUP.GRUP_CUPOS AS cupos
                 
                 FROM CARGAS_RESUELTAS CR
@@ -703,12 +693,10 @@ public interface DetalleCargaDocenteRepository
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
                 tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
                 tiac.TIAC_ORDEN AS ordenTipoActividad,
-                tiac.TIAC_CODIGO AS codigoTipoActividad,
                 tiac.TIAC_COMPONENTE AS componenteTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
                 tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
                 tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
-                tiac_padre.TIAC_CODIGO AS codigoTipoActividadPadre,
                 tiac_padre.TIAC_COMPONENTE AS componenteTipoActividadPadre,
                 unid.UNID_ID AS idUnidadRegional,
                 unid.UNID_NOMBRE AS nombreUnidadRegional,

@@ -24,6 +24,7 @@
  * 17/11/2026 - Indicativo de docente titular en el detalle de la carga.
  * 17/11/2026 - Materias de la carga con programa y centro de costo.
  * 17/11/2026 - Borrado de los detalles de una carga docente.
+ * 17/11/2026 - Proyectos de la persona de la carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -42,6 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DistribucionActividadFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.EliminacionMasivaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
@@ -55,6 +57,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaProgramaCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PeriodoUniversidadDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
@@ -411,6 +414,21 @@ public class LoadController {
     }
 
     @Operation(
+        summary = "Elimina varios detalles de carga docente",
+        description = """
+            Elimina los registros de RVDIES.DETALLECARGADOCENTE cuyos DECD_ID llegan en ids.
+            Acepta uno o varios. Un id repetido se elimina una sola vez.
+            Si la lista está vacía o trae un id nulo, responde 400.
+            Si algún detalle no existe, no elimina ninguno y responde 404.
+            """
+    )
+    @PostMapping("/delete-detail-professor-load-bulk")
+    public ResponseEntity<Void> deleteDetailProfessorLoadBulk(@RequestBody EliminacionMasivaDTO dto) {
+        cargaService.deleteDetailProfessorLoadBulk(dto == null ? null : dto.ids());
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(
         summary = "Lista el detalle de carga de un docente",
         description = """
             Lista los detalles de RVDIES.DETALLECARGADOCENTE de la carga indicada.
@@ -461,6 +479,23 @@ public class LoadController {
     public ResponseEntity<List<MateriaProgramaCargaDTO>> listProfessorSubjects(
             @RequestParam Long idCargaDocente) {
         return ResponseEntity.ok(cargaService.listProfessorSubjects(idCargaDocente));
+    }
+
+    @Operation(
+        summary = "Lista los proyectos de la persona de una carga docente",
+        description = """
+            Toma el PEGE_ID de RVDIES.CARGADOCENTE y lista RVDIES.PERSONAPROYECTO de esa persona.
+            Cada ítem trae horas, observación, programa, centro de costo y el proyecto
+            de RVDIES.PROYECTOS con su padre, el tipo de actividad, la coordinación, la materia particular,
+            grupo, acta, código y estado activo.
+            PEPR_DATA se devuelve desglosado en funcion, nivel y horario.
+            Si la carga no existe, responde 404. Si no tiene persona, responde 400.
+            Si la persona no tiene proyectos, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-professor-projects")
+    public ResponseEntity<List<PersonaProyectoDTO>> listProfessorProjects(@RequestParam Long idCargaDocente) {
+        return ResponseEntity.ok(cargaService.listProfessorProjects(idCargaDocente));
     }
     
 }
