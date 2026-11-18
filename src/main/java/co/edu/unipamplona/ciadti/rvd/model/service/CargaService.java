@@ -18,6 +18,9 @@
  * 12/11/2026 - Componentes de una materia electiva.
  * 12/11/2026 - Alta de detalles de actividad de la carga docente.
  * 12/11/2026 - Listado de detalle de carga docente.
+ * 17/11/2026 - Materias de la carga con programa y centro de costo.
+ * 17/11/2026 - Borrado de los detalles de una carga docente.
+ * 17/11/2026 - Proyectos de la persona de la carga docente.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service;
 
@@ -37,7 +40,9 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaProgramaCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
 
@@ -75,6 +80,14 @@ public interface CargaService {
     void saveDetailProfessorPreload(DistribucionActividadFormularioDTO dto);
 
     List<DetalleCargaDocenteDTO> listDetailProfessorLoad(Long idCargaDocente);
+
+    List<MateriaProgramaCargaDTO> listProfessorSubjects(Long idCargaDocente);
+
+    List<PersonaProyectoDTO> listProfessorProjects(Long idCargaDocente);
+
+    void deleteDetailProfessorLoad(Long idDetalleCargaDocente);
+
+    void deleteDetailProfessorLoadBulk(List<Long> ids);
 
     void addProfessor(CargaDocenteFormularioDTO dto);
 

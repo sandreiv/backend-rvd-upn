@@ -23,5 +23,6 @@ public record MateriaDTO(
     Boolean tieneGrupo,
     Boolean esElectiva,
     CentroCostoDTO centroCosto,
-    Boolean esCompartida
+    Boolean esCompartida,
+    Long docentesPorGrupo
 ) {}

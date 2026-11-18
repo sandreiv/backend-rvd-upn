@@ -14,6 +14,9 @@
  * 07/10/2026 - Andrés Hernández - Adición de detalles efectivos como método general
  * 08/10/2026 - Andrés Hernández - Uso de detalles aprobados para generar el CDP
  * 08/10/2026 - Sebastian Jaimes - Detalles vigentes PTD (DNCD_VIGENTE = 1 o carga)
+ * 17/11/2026 - Carga titular por grupo dentro de la convocatoria.
+ * 17/11/2026 - Materias de la carga con programa y centro de costo del programa.
+ * 17/11/2026 - Borrado de los detalles de una carga docente.
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.repository;
@@ -22,12 +25,15 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.DetalleCargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.MateriaProgramaCargaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TitularGrupoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.GrupoCuposReporteProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.HorasActividadPadreProjection;
@@ -50,12 +56,10 @@ public interface DetalleCargaDocenteRepository
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
                 tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
                 tiac.TIAC_ORDEN AS ordenTipoActividad,
-                tiac.TIAC_CODIGO AS codigoTipoActividad,
                 tiac.TIAC_COMPONENTE AS componenteTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
                 tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
                 tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
-                tiac_padre.TIAC_CODIGO AS codigoTipoActividadPadre,
                 tiac_padre.TIAC_COMPONENTE AS componenteTipoActividadPadre,
                 unid.UNID_ID AS idUnidadRegional,
                 unid.UNID_NOMBRE AS nombreUnidadRegional,
@@ -125,12 +129,20 @@ public interface DetalleCargaDocenteRepository
                 decd.DECD_ID AS idDetalleCargaDocente,
                 decd.DECD_HORAS AS horas,
                 decd.DECD_EXTRAS AS extras,
+                decd.DECD_DATA AS data,
                 tiac.TIAC_ID AS idTipoActividad,
                 tiac.TIAC_IDPADRE AS idTipoActividadPadre,
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
                 tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
                 tiac.TIAC_ORDEN AS ordenTipoActividad,
+                tiac.TIAC_ESTADO AS estadoTipoActividad,
+                tiac.TIAC_MINIMOHORAS AS minimoHorasTipoActividad,
+                tiac.TIAC_MAXIMOHORAS AS maximoHorasTipoActividad,
+                tiac.TIAC_IDDEPENDENCIA AS idDependenciaTipoActividad,
+                tiac.TIAC_DOCENCIADIRECTA AS docenciaDirectaTipoActividad,
                 tiac.TIAC_COMPONENTE AS componenteTipoActividad,
+                tiac.TIAC_HORASPORSEMESTRE AS horasPorSemestreTipoActividad,
+                tiac.TIAC_APLICAPROYECTOS AS aplicaProyectosTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
                 tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
                 tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
@@ -212,8 +224,60 @@ public interface DetalleCargaDocenteRepository
 
     @Query(value = """
             SELECT
+                decd.GRUP_ID AS idGrupo,
+                MIN(cado.CADO_ID) KEEP (DENSE_RANK FIRST ORDER BY decd.DECD_ID) AS idCargaDocente
+            FROM RVDIES.DETALLECARGADOCENTE decd
+            INNER JOIN RVDIES.CARGADOCENTE cado
+                ON cado.CADO_ID = decd.CADO_ID
+            INNER JOIN RVDIES.TIPOVINCULACIONCONVOCATORIA tivc
+                ON tivc.TIVC_ID = cado.TIVC_ID
+            WHERE decd.GRUP_ID IN (:idsGrupo)
+                AND tivc.CONV_ID = :idConvocatoria
+            GROUP BY decd.GRUP_ID
+            ORDER BY decd.GRUP_ID
+            """, nativeQuery = true)
+    List<TitularGrupoProjection> findCargaTitularByGrupos(
+            @Param("idsGrupo") List<Long> idsGrupo,
+            @Param("idConvocatoria") Long idConvocatoria);
+
+    @Query(value = """
+            SELECT DISTINCT
+                TO_CHAR(decd.MATE_CODIGOMATERIA) AS codigoMateria,
+                mate.MATE_NOMBRE AS nombreMateria,
+                mate.MATE_PONDERACIONACADEMICA AS ponderacionAcademica,
+                prog.PROG_ID AS idPrograma,
+                prog.PROG_NOMBRE AS nombrePrograma,
+                ceco.CECO_ID AS idCentroCosto,
+                ceco.CECO_DESCRIPCION AS descripcionCentroCosto,
+                grup.GRUP_ID AS idGrupo,
+                grup.GRUP_NOMBRE AS nombreGrupo,
+                grup.GRUP_CAPACIDAD AS capacidadGrupo
+            FROM RVDIES.CARGADOCENTE cado
+            INNER JOIN RVDIES.DETALLECARGADOCENTE decd
+                ON decd.CADO_ID = cado.CADO_ID
+            INNER JOIN ACADEMICO.PROGRAMA prog
+                ON prog.PROG_ID = decd.PROG_ID
+            LEFT JOIN ACADEMICO.MATERIA mate
+                ON mate.MATE_CODIGOMATERIA = TO_CHAR(decd.MATE_CODIGOMATERIA)
+            LEFT JOIN ACADEMICO.GRUPO grup
+                ON grup.GRUP_ID = decd.GRUP_ID
+            LEFT JOIN RVDIES.PROGRAMACOORDINACION prco
+                ON prco.PROG_ID = decd.PROG_ID
+                AND prco.COOR_ID = cado.COOR_ID
+                AND NVL(prco.PRCO_ESTADO, '1') = '1'
+            LEFT JOIN CONTABLEV3.CENTROCOSTO ceco
+                ON ceco.CECO_ID = prco.CECO_ID
+            WHERE cado.CADO_ID = :idCargaDocente
+                AND decd.MATE_CODIGOMATERIA IS NOT NULL
+                AND decd.PROG_ID IS NOT NULL
+            ORDER BY prog.PROG_NOMBRE, mate.MATE_NOMBRE, grup.GRUP_NOMBRE
+            """, nativeQuery = true)
+    List<MateriaProgramaCargaProjection> findMateriasProgramaByIdCargaDocente(
+            @Param("idCargaDocente") Long idCargaDocente);
+
+    @Query(value = """
+            SELECT
                 TA.TIAC_ID AS idTipoActividad,
-                TA.TIAC_CODIGO AS codigo,
                 TA.TIAC_NOMBRE AS nombre,
                 SUM(
                     NVL(
@@ -234,7 +298,6 @@ public interface DetalleCargaDocenteRepository
             WHERE CARG.CARG_ID = :cargId
             GROUP BY
                 TA.TIAC_ID,
-                TA.TIAC_CODIGO,
                 TA.TIAC_NOMBRE
             ORDER BY
                 TA.TIAC_NOMBRE
@@ -244,7 +307,6 @@ public interface DetalleCargaDocenteRepository
 
     @Query(value = """
             SELECT
-                PADRE.TIAC_CODIGO AS codigo,
                 PADRE.TIAC_NOMBRE AS nombre,
                 NVL(HORAS.totalHoras, 0) AS horas
             FROM RVD.TIPOACTIVIDADES PADRE
@@ -287,9 +349,6 @@ public interface DetalleCargaDocenteRepository
     @Query(value = """
             SELECT
                 CADO.CADO_ID AS idCargaDocente,
-                UPPER(TRIM(
-                    NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)
-                )) AS codigoPadre,
                 SUM(
                     NVL(
                         TO_NUMBER(
@@ -307,10 +366,10 @@ public interface DetalleCargaDocenteRepository
             LEFT JOIN RVD.TIPOACTIVIDADES TIAC_PADRE
                 ON TIAC_PADRE.TIAC_ID = TIAC.TIAC_IDPADRE
             WHERE CADO.CARG_ID = :idCarga
-            AND NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO) IS NOT NULL
+
             GROUP BY
                 CADO.CADO_ID,
-                UPPER(TRIM(NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)))
+
             """, nativeQuery = true)
     List<HorasCodigoActividadReporteProjection> findHorasPorCodigoPadreByCarga(
             @Param("idCarga") Long idCarga);
@@ -363,6 +422,10 @@ public interface DetalleCargaDocenteRepository
     @Procedure(name = "DetalleCargaDocenteEntity.deleteByProcedure")
     BigDecimal deleteByProcedure(@Param("P_DECD_ID") Long id, @Param("P_DECD_REGISTRADOPOR") String registradoPor);
 
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM DetalleCargaDocenteEntity detalle WHERE detalle.id = :idDetalleCargaDocente")
+    int deleteByIdDetalle(@Param("idDetalleCargaDocente") Long idDetalleCargaDocente);
+
     @Query(value = """
             SELECT COUNT(1)
             FROM RVD.DETALLECARGADOCENTE DECD
@@ -373,7 +436,6 @@ public interface DetalleCargaDocenteRepository
             LEFT JOIN RVD.TIPOACTIVIDADES TIAC_PADRE
                 ON TIAC_PADRE.TIAC_ID = TIAC.TIAC_IDPADRE
             WHERE DECD.CADO_ID = :idCargaDocente
-            AND UPPER(TRIM(NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO))) IN ('CTEI', 'ISU')
             AND NVL(
                     TO_NUMBER(
                         REPLACE(TRIM(DECD.DECD_HORAS), ',', '.')
@@ -393,9 +455,7 @@ public interface DetalleCargaDocenteRepository
                 decd.DECD_ID AS idDetalleNovedadCargaDocente,
                 decd.DECD_HORAS AS horas,
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
-                tiac.TIAC_CODIGO AS codigoTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
-                tiac_padre.TIAC_CODIGO AS codigoTipoActividadPadre,
                 unid.UNID_NOMBRE AS nombreUnidadRegional,
                 prog.PROG_NOMBRE AS nombrePrograma,
                 grup.GRUP_NOMBRE AS nombreGrupo,
@@ -487,9 +547,6 @@ public interface DetalleCargaDocenteRepository
                     DNCD.PROG_ID AS idPrograma,
                     DNCD.GRUP_ID AS idGrupo,
                     DNCD.CECO_ID AS idCentroCosto,
-                    UPPER(TRIM(
-                        NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)
-                    )) AS codigoPadre,
                     GRUP.GRUP_CUPOS AS cupos
                 
                 FROM CARGAS_RESUELTAS CR
@@ -521,9 +578,6 @@ public interface DetalleCargaDocenteRepository
                     DECD.PROG_ID AS idPrograma,
                     DECD.GRUP_ID AS idGrupo,
                     DECD.CECO_ID AS idCentroCosto,
-                    UPPER(TRIM(
-                        NVL(TIAC_PADRE.TIAC_CODIGO, TIAC.TIAC_CODIGO)
-                    )) AS codigoPadre,
                     GRUP.GRUP_CUPOS AS cupos
                 
                 FROM CARGAS_RESUELTAS CR
@@ -639,12 +693,10 @@ public interface DetalleCargaDocenteRepository
                 tiac.TIAC_NOMBRE AS nombreTipoActividad,
                 tiac.TIAC_DESCRIPCION AS descripcionTipoActividad,
                 tiac.TIAC_ORDEN AS ordenTipoActividad,
-                tiac.TIAC_CODIGO AS codigoTipoActividad,
                 tiac.TIAC_COMPONENTE AS componenteTipoActividad,
                 tiac_padre.TIAC_NOMBRE AS nombreTipoActividadPadre,
                 tiac_padre.TIAC_DESCRIPCION AS descripcionTipoActividadPadre,
                 tiac_padre.TIAC_ORDEN AS ordenTipoActividadPadre,
-                tiac_padre.TIAC_CODIGO AS codigoTipoActividadPadre,
                 tiac_padre.TIAC_COMPONENTE AS componenteTipoActividadPadre,
                 unid.UNID_ID AS idUnidadRegional,
                 unid.UNID_NOMBRE AS nombreUnidadRegional,

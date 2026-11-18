@@ -6,8 +6,11 @@
  * Fecha de creación: 12/11/2026
  * Modificaciones:
  * 12/11/2026 - Listado de detalle de carga desde RVDIES.
+ * 18/11/2026 - Columnas de RVDIES.TIPOACTIVIDADES en el tipo de actividad.
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository.projection;
+
+import java.sql.Clob;
 
 public interface DetalleCargaDocenteCargaProjection {
 
@@ -19,6 +22,8 @@ public interface DetalleCargaDocenteCargaProjection {
 
     String getExtras();
 
+    Clob getData();
+
     Long getIdTipoActividad();
 
     Long getIdTipoActividadPadre();
@@ -29,7 +34,21 @@ public interface DetalleCargaDocenteCargaProjection {
 
     String getOrdenTipoActividad();
 
+    String getEstadoTipoActividad();
+
+    String getMinimoHorasTipoActividad();
+
+    String getMaximoHorasTipoActividad();
+
+    Long getIdDependenciaTipoActividad();
+
+    String getDocenciaDirectaTipoActividad();
+
     String getComponenteTipoActividad();
+
+    String getHorasPorSemestreTipoActividad();
+
+    Long getAplicaProyectosTipoActividad();
 
     String getNombreTipoActividadPadre();
 
