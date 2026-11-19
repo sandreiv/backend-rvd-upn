@@ -21,6 +21,8 @@
  * 17/11/2026 - Materias de la carga con programa y centro de costo.
  * 17/11/2026 - Borrado de los detalles de una carga docente.
  * 17/11/2026 - Proyectos de la persona de la carga docente.
+ * 19/11/2026 - Centros de costo de la coordinación y de sus programas.
+ * 19/11/2026 - Listado de todos los centros de costo.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service;
 
@@ -28,6 +30,8 @@ import java.util.List;
 
 
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionCentrosCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DistribucionActividadFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
@@ -84,6 +88,10 @@ public interface CargaService {
     List<MateriaProgramaCargaDTO> listProfessorSubjects(Long idCargaDocente);
 
     List<PersonaProyectoDTO> listProfessorProjects(Long idCargaDocente);
+
+    CoordinacionCentrosCostoDTO listCoordinationCostCenters(Long idCoordinacion);
+
+    List<CentroCostoDTO> listCostCenters();
 
     void deleteDetailProfessorLoad(Long idDetalleCargaDocente);
 

@@ -22,8 +22,12 @@ import org.mapstruct.Mapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioProyectoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaParticularDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoListaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadDTO;
@@ -98,7 +102,7 @@ public interface PersonaProyectoMapper {
                         projection.getIdProyectoPadre(),
                         tipoActividad(projection),
                         projection.getIdCoordinacion(),
-                        projection.getIdMateriaParticular(),
+                        materiaParticular(projection),
                         projection.getIdProyectoGrupo(),
                         projection.getNombre(),
                         projection.getDescripcion(),
@@ -130,6 +134,55 @@ public interface PersonaProyectoMapper {
                 projection.getComponenteTipoActividad(),
                 projection.getHorasPorSemestreTipoActividad(),
                 projection.getAplicaProyectosTipoActividad());
+    }
+
+    private static MateriaParticularDTO materiaParticular(PersonaProyectoCargaProjection projection) {
+        if (projection.getIdMateriaParticular() == null) {
+            return null;
+        }
+        Long practicas = projection.getHorasPracticasMateriaParticular();
+        Long teoricas = projection.getHorasTeoricasMateriaParticular();
+        long horasDirectas = (practicas == null ? 0L : practicas) + (teoricas == null ? 0L : teoricas);
+        boolean compartida = projection.getTipoMateriaParticular() != null
+                && "MATERIACOMPARTIDA".equalsIgnoreCase(projection.getTipoMateriaParticular().trim());
+        MateriaDTO materia = projection.getCodigoMateriaParticular() == null
+                && projection.getNombreMateriaParticular() == null
+                        ? null
+                        : new MateriaDTO(
+                                projection.getCodigoMateriaParticular(),
+                                projection.getNombreMateriaParticular(),
+                                practicas,
+                                teoricas,
+                                projection.getHorasTeoricoPracticasMateriaParticular(),
+                                null,
+                                projection.getPonderacionMateriaParticular(),
+                                horasDirectas,
+                                projection.getCapacidadMateriaParticular(),
+                                flag(projection.getTieneGrupoMateriaParticular()),
+                                flag(projection.getEsElectivaMateriaParticular()),
+                                null,
+                                compartida,
+                                projection.getDocentesPorGrupoMateriaParticular());
+        ProgramaDTO programa = projection.getIdProgramaMateriaParticular() == null
+                ? null
+                : new ProgramaDTO(
+                        projection.getIdProgramaMateriaParticular(),
+                        projection.getNombreProgramaMateriaParticular(),
+                        projection.getIdCentroCostoProgramaMateriaParticular() == null
+                                ? null
+                                : new CentroCostoDTO(
+                                        projection.getIdCentroCostoProgramaMateriaParticular(),
+                                        projection.getDescripcionCentroCostoProgramaMateriaParticular()));
+        return new MateriaParticularDTO(
+                projection.getIdMateriaParticular(),
+                materia,
+                programa,
+                projection.getTipoMateriaParticular(),
+                projection.getDocentesPorGrupoMateriaParticular());
+    }
+
+    private static Boolean flag(Long value) {
+        return value != null && value == 1L;
     }
 
     private static JsonNode leer(String data) {

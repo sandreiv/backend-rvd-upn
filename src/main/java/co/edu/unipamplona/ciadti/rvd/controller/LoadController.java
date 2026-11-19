@@ -25,6 +25,8 @@
  * 17/11/2026 - Materias de la carga con programa y centro de costo.
  * 17/11/2026 - Borrado de los detalles de una carga docente.
  * 17/11/2026 - Proyectos de la persona de la carga docente.
+ * 19/11/2026 - Centros de costo de la coordinación y de sus programas.
+ * 19/11/2026 - Listado de todos los centros de costo.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -49,6 +51,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.HorasContratoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ContratoCalculoContext;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ConvocatoriaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorContratacionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionCentrosCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
@@ -486,8 +490,8 @@ public class LoadController {
         description = """
             Toma el PEGE_ID de RVDIES.CARGADOCENTE y lista RVDIES.PERSONAPROYECTO de esa persona.
             Cada ítem trae horas, observación, programa, centro de costo y el proyecto
-            de RVDIES.PROYECTOS con su padre, el tipo de actividad, la coordinación, la materia particular,
-            grupo, acta, código y estado activo.
+            de RVDIES.PROYECTOS con su padre, el tipo de actividad, la coordinación, la materia particular
+            (materia, programa y centro de costo), el grupo, el acta, el código y el estado activo.
             PEPR_DATA se devuelve desglosado en funcion, nivel y horario.
             Si la carga no existe, responde 404. Si no tiene persona, responde 400.
             Si la persona no tiene proyectos, responde una lista vacía.
@@ -497,5 +501,36 @@ public class LoadController {
     public ResponseEntity<List<PersonaProyectoDTO>> listProfessorProjects(@RequestParam Long idCargaDocente) {
         return ResponseEntity.ok(cargaService.listProfessorProjects(idCargaDocente));
     }
-    
+
+    // Estos también se utilizan en la configuración de los proyectos
+    @Operation(
+        summary = "Lista los centros de costo de una coordinación y de sus programas",
+        description = """
+            Recibe el id de la coordinación.
+            nombre es el de ACADEMICO.UNIDAD de UNID_IDAREA.
+            centrosCosto sale de RVDIES.CENTROCOSTOCOORDINACION.
+            programas agrupa RVDIES.PROGRAMACOORDINACION: cada programa trae los centros de costo
+            de CONTABLEV3.CENTROCOSTO asociados a esa coordinación.
+            Si la coordinación no existe, responde 404.
+            Si no tiene centros de costo o programas, esas listas van vacías.
+            """
+    )
+    @GetMapping("/list-coordination-cost-centers")
+    public ResponseEntity<CoordinacionCentrosCostoDTO> listCoordinationCostCenters(
+            @RequestParam Long idCoordinacion) {
+        return ResponseEntity.ok(cargaService.listCoordinationCostCenters(idCoordinacion));
+    }
+
+    @Operation(
+        summary = "Lista todos los centros de costo",
+        description = """
+            Lee todas las filas de CONTABLEV3.CENTROCOSTO.
+            Cada ítem trae el id y la descripción.
+            Si la tabla no tiene filas, responde una lista vacía.
+            """
+    )
+    @GetMapping("/list-cost-centers")
+    public ResponseEntity<List<CentroCostoDTO>> listCostCenters() {
+        return ResponseEntity.ok(cargaService.listCostCenters());
+    }
 }

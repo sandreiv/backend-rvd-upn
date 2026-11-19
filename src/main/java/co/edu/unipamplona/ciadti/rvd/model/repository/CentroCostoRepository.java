@@ -8,6 +8,7 @@
  * 17/07/2026 - Daniel Arias - Creación inicial
  * 17/11/2026 - Consulta de centros de costo por coordinación y validación de pertenencia
  * 18/11/2026 - Consulta de centros de costo asociados a programas de estudiantes del proyecto por PEGE_ID / ESTP_ID
+ * 19/11/2026 - Listado de todos los centros de costo.
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -32,6 +33,16 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             ORDER BY CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
     List<CatalogoAdministracionProjection> findAdministrationOptions();
+
+    @Query(value = """
+            SELECT
+                CECO.CECO_ID AS id,
+                CECO.CECO_DESCRIPCION AS label,
+                CECO.CECO_CODIGO AS codigo
+            FROM CONTABLEV3.CENTROCOSTO CECO
+            ORDER BY CECO.CECO_DESCRIPCION, CECO.CECO_ID
+            """, nativeQuery = true)
+    List<CatalogoAdministracionProjection> findAllCostCenters();
 
     @Query(value = """
             SELECT DISTINCT
