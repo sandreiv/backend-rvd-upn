@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
@@ -379,7 +380,7 @@ public class ProyectosServiceImpl implements ProyectosService {
         PersonaProyectoEntity entity = personaProyectoRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
 
-        validateParticipant(dto);
+        validateParticipant(dto, entity);
         entity.setIdProyecto(dto.idProyecto());
         entity.setIdPersonaGeneral(dto.idPersonaGeneral());
         entity.setHoras(StringUtils.hasText(dto.horas()) ? dto.horas().trim() : entity.getHoras());
@@ -447,6 +448,10 @@ public class ProyectosServiceImpl implements ProyectosService {
     }
 
     private void validateParticipant(PersonaProyectoFormularioDTO dto) {
+        validateParticipant(dto, null);
+    }
+
+    private void validateParticipant(PersonaProyectoFormularioDTO dto, PersonaProyectoEntity existingEntity) {
         if (dto == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La información del participante es requerida");
         }
@@ -553,7 +558,92 @@ public class ProyectosServiceImpl implements ProyectosService {
             if (compEnum.isRequiereNivel() && !StringUtils.hasText(dto.nivel())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "El nivel académico es obligatorio para este tipo de actividad");
             }
+            if (compEnum.isRequiereHorario()) {
+                validateScheduleHours(dto, existingEntity);
+            }
         }
+    }
+
+    private void validateScheduleHours(PersonaProyectoFormularioDTO dto, PersonaProyectoEntity existingEntity) {
+        if (!StringUtils.hasText(dto.horas())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Las horas de dedicación son obligatorias");
+        }
+
+        double assignedHours;
+        try {
+            assignedHours = Double.parseDouble(dto.horas().trim());
+        } catch (NumberFormatException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Las horas deben ser un número válido");
+        }
+
+        String dataJson = StringUtils.hasText(dto.data())
+                ? dto.data().trim()
+                : (existingEntity != null ? existingEntity.getData() : null);
+
+        if (!StringUtils.hasText(dataJson)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Debe configurar el horario semanal para este tipo de actividad y debe sumar las " + formatHours(assignedHours) + " horas asignadas"
+            );
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(dataJson);
+            JsonNode horarioNode = root.get("horario");
+            if (horarioNode == null || !horarioNode.isArray() || horarioNode.isEmpty()) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Debe configurar el horario semanal para este tipo de actividad y debe sumar las " + formatHours(assignedHours) + " horas asignadas"
+                );
+            }
+
+            int totalMinutes = 0;
+            for (JsonNode slot : horarioNode) {
+                String inicio = slot.hasNonNull("horaInicio") ? slot.get("horaInicio").asText().trim() : null;
+                String fin = slot.hasNonNull("horaFin") ? slot.get("horaFin").asText().trim() : null;
+                if (!StringUtils.hasText(inicio) || !StringUtils.hasText(fin)) {
+                    continue;
+                }
+                int diff = calculateSlotMinutes(inicio, fin);
+                if (diff > 0) {
+                    totalMinutes += diff;
+                }
+            }
+
+            double totalHours = totalMinutes / 60.0;
+            if (Math.abs(totalHours - assignedHours) >= 0.01) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Las horas del horario semanal (" + formatHours(totalHours) + " hrs) deben ser iguales a las horas asignadas (" + formatHours(assignedHours) + " hrs)"
+                );
+            }
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Formato de horario semanal inválido");
+        }
+    }
+
+    private int calculateSlotMinutes(String inicio, String fin) {
+        try {
+            String[] parts1 = inicio.split(":");
+            String[] parts2 = fin.split(":");
+            int h1 = Integer.parseInt(parts1[0].trim());
+            int m1 = parts1.length > 1 ? Integer.parseInt(parts1[1].trim()) : 0;
+            int h2 = Integer.parseInt(parts2[0].trim());
+            int m2 = parts2.length > 1 ? Integer.parseInt(parts2[1].trim()) : 0;
+            int diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+            return Math.max(diff, 0);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private String formatHours(double hours) {
+        if (Math.abs(hours - Math.round(hours)) < 0.001) {
+            return String.valueOf((long) Math.round(hours));
+        }
+        return String.format(java.util.Locale.US, "%.1f", hours);
     }
 
     private TipoActividadComponenteEnum resolveComponentEnum(Long idProyecto) {
