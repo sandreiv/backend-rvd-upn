@@ -40,9 +40,11 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
                 CECO.CECO_DESCRIPCION AS label,
                 CECO.CECO_CODIGO AS codigo
             FROM CONTABLEV3.CENTROCOSTO CECO
+            WHERE UPPER(CECO.CECO_DESCRIPCION) LIKE UPPER('%' || :texto || '%')
+                OR UPPER(CECO.CECO_CODIGO) LIKE UPPER('%' || :texto || '%')
             ORDER BY CECO.CECO_DESCRIPCION, CECO.CECO_ID
             """, nativeQuery = true)
-    List<CatalogoAdministracionProjection> findAllCostCenters();
+    List<CatalogoAdministracionProjection> findByTexto(@Param("texto") String texto);
 
     @Query(value = """
             SELECT DISTINCT

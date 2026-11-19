@@ -6,6 +6,7 @@
  * Fecha de creación: 12/11/2026
  * Modificaciones:
  * 13/11/2026 - data guarda el JSON de DECD_DATA.
+ * 19/11/2026 - descripcion opcional de DECD_DESCRIPCION.
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -21,5 +22,6 @@ public record DetalleCargaDocenteFormularioDTO(
         DetalleMateriaFormularioDTO materiaBanco,
         Long idGrupo,
         String extras,
-        String data
+        String data,
+        String descripcion
 ) {}

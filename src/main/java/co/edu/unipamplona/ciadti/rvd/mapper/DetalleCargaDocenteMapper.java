@@ -116,6 +116,7 @@ public interface DetalleCargaDocenteMapper {
                 pensum(projection),
                 materiaBanco(projection),
                 projection.getExtras(),
+                projection.getDescripcion(),
                 clases(texto(projection.getData()), clasesSemanales),
                 tipoDocente(texto(projection.getData())));
     }

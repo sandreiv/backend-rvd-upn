@@ -7,6 +7,7 @@
  * Modificaciones:
  * 13/11/2026 - data expone DECD_DATA.
  * 17/11/2026 - tipoDocente expone el indicativo TITULAR guardado en DECD_DATA.
+ * 19/11/2026 - descripcion expone DECD_DESCRIPCION.
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.dto;
@@ -25,6 +26,7 @@ public record DetalleCargaDocenteActividadDTO(
     PensumDTO pensum,
     MateriaDetalleDTO materiaBanco,
     String extras,
+    String descripcion,
     List<HorarioClaseDTO> clasesSemanales,
     String tipoDocente
 ) {}

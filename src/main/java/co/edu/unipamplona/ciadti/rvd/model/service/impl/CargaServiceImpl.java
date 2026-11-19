@@ -708,9 +708,13 @@ public class CargaServiceImpl implements CargaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CentroCostoDTO> listCostCenters() {
-        log.info("listCostCenters ===> Listando centros de costo.");
-        return centroCostoMapper.toDtoList(centroCostoRepository.findAllCostCenters());
+    public List<CentroCostoDTO> listCostCenters(String texto) {
+        String textoParam = NormalizarParametros.normalizeParam(texto);
+        if (textoParam == null) {
+            return List.of();
+        }
+        log.info("listCostCenters ===> Buscando centros de costo. texto={}", textoParam);
+        return centroCostoMapper.toDtoList(centroCostoRepository.findByTexto(textoParam));
     }
 
     @Override
@@ -835,6 +839,7 @@ public class CargaServiceImpl implements CargaService {
         entity.setMateriaBanco(codigoMateria(detalle.materiaBanco()));
         entity.setIdCentroCosto(centroCosto(detalle.materia()));
         entity.setExtras(detalle.extras());
+        entity.setDescripcion(descripcion(detalle.descripcion()));
         entity.setData(dataConTitular(detalle.data(), titular));
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
         entity.setFechaCambio(new Date());
@@ -854,6 +859,17 @@ public class CargaServiceImpl implements CargaService {
 
     private static Long centroCosto(DetalleMateriaFormularioDTO materia) {
         return materia == null ? null : materia.idCentroCosto();
+    }
+
+    private static String descripcion(String descripcion) {
+        if (descripcion == null || descripcion.isBlank()) {
+            return null;
+        }
+        String valor = descripcion.trim();
+        if (valor.length() > 250) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La descripción admite hasta 250 caracteres.");
+        }
+        return valor;
     }
 
     private static String dataConTitular(String data, boolean titular) {
