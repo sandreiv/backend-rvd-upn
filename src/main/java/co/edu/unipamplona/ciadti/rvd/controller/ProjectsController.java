@@ -97,9 +97,7 @@ public class ProjectsController {
 
     @Operation(summary = "Lista centros de costo", description = "Lista los centros de costo disponibles para participantes de proyectos según coordinación")
     @GetMapping("/cost-centers")
-    public ResponseEntity<List<CentroCostoOpcionDTO>> listCostCenters(
-            @RequestParam(required = false) Long idProyecto,
-            @RequestParam(required = false) Long idCoordinacion) {
+    public ResponseEntity<List<CentroCostoOpcionDTO>> listCostCenters(@RequestParam(required = false) Long idProyecto, @RequestParam(required = false) Long idCoordinacion) {
         return ResponseEntity.ok(proyectosService.listCostCenters(idProyecto, idCoordinacion));
     }
 
