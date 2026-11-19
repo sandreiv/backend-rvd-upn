@@ -129,6 +129,7 @@ public interface DetalleCargaDocenteRepository
                 decd.DECD_ID AS idDetalleCargaDocente,
                 decd.DECD_HORAS AS horas,
                 decd.DECD_EXTRAS AS extras,
+                decd.DECD_DESCRIPCION AS descripcion,
                 decd.DECD_DATA AS data,
                 tiac.TIAC_ID AS idTipoActividad,
                 tiac.TIAC_IDPADRE AS idTipoActividadPadre,

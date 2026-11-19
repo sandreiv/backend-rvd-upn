@@ -385,8 +385,9 @@ public class LoadController {
         description = """
             Inserta cada detalle en RVDIES.DETALLECARGADOCENTE para la carga indicada.
             Guarda tipo de actividad, horas, coordinación, programa, grupo, materia,
-            materia de banco, el centro de costo de la materia, extras en DECD_EXTRAS
-            y, si viene, data en DECD_DATA.
+            materia de banco, el centro de costo de la materia, extras en DECD_EXTRAS,
+            la descripción opcional en DECD_DESCRIPCION y, si viene, data en DECD_DATA.
+            La descripción admite hasta 250 caracteres. Si no viene o está en blanco, se guarda nula.
             extras es obligatorio y admite hasta 30 caracteres.
             data es el JSON de atributos del detalle. En una materia compartida incluye
             idsClaseSemanal con los identificadores de las clases semanales elegidas.
@@ -440,7 +441,7 @@ public class LoadController {
             el programa y el pensum de ese programa. La materia del pensum es MATE_MATERIABANCO
             cuando la actividad es de banco; si no, es MATE_CODIGOMATERIA. También trae la materia,
             el componente de banco, el grupo, el centro de costo, las horas, el indicativo de si son horas extras,
-            la ponderación académica de la materia y de la materia de banco, y las clases semanales
+            la descripción del detalle, la ponderación académica de la materia y de la materia de banco, y las clases semanales
             guardadas en DECD_DATA, con su día, fechas y bloques de hora inicial y final.
             Si el detalle guardó tipoDocente TITULAR, la actividad lo devuelve en tipoDocente.
             Si la carga no existe, responde 404. Si no tiene detalles, responde una lista vacía.
@@ -522,15 +523,18 @@ public class LoadController {
     }
 
     @Operation(
-        summary = "Lista todos los centros de costo",
+        summary = "Busca centros de costo por texto",
         description = """
-            Lee todas las filas de CONTABLEV3.CENTROCOSTO.
+            Recibe el texto escrito en la barra de búsqueda.
+            Busca en CONTABLEV3.CENTROCOSTO por descripción o código, sin importar mayúsculas
+            ni la posición del texto. Cada carácter adicional acota el resultado.
             Cada ítem trae el id y la descripción.
-            Si la tabla no tiene filas, responde una lista vacía.
+            Si el texto no viene o está en blanco, responde una lista vacía.
             """
     )
     @GetMapping("/list-cost-centers")
-    public ResponseEntity<List<CentroCostoDTO>> listCostCenters() {
-        return ResponseEntity.ok(cargaService.listCostCenters());
+    public ResponseEntity<List<CentroCostoDTO>> listCostCenters(
+            @RequestParam(required = false) String texto) {
+        return ResponseEntity.ok(cargaService.listCostCenters(texto));
     }
 }

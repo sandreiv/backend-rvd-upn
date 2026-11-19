@@ -22,6 +22,8 @@ public interface DetalleCargaDocenteCargaProjection {
 
     String getExtras();
 
+    String getDescripcion();
+
     Clob getData();
 
     Long getIdTipoActividad();

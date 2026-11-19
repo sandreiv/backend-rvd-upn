@@ -91,7 +91,7 @@ public interface CargaService {
 
     CoordinacionCentrosCostoDTO listCoordinationCostCenters(Long idCoordinacion);
 
-    List<CentroCostoDTO> listCostCenters();
+    List<CentroCostoDTO> listCostCenters(String texto);
 
     void deleteDetailProfessorLoad(Long idDetalleCargaDocente);
 
