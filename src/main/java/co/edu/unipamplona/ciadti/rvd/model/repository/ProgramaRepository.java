@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.ProgramaEntity;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ProgramaCentroCostoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ProgramaListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CatalogoAdministracionProjection;
 
@@ -119,7 +120,24 @@ public interface ProgramaRepository extends JpaRepository<ProgramaEntity, Long> 
             WHERE PROG.PROG_NOMBRE IS NOT NULL
             ORDER BY PROG.PROG_NOMBRE
             """, nativeQuery = true)
-    List<CatalogoAdministracionProjection> findAdministrationOptions();        
+    List<CatalogoAdministracionProjection> findAdministrationOptions();
 
-
+    @Query(value = """
+            SELECT DISTINCT
+                PROG.PROG_ID AS idPrograma,
+                PROG.PROG_NOMBRE AS nombrePrograma,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto
+            FROM RVDIES.PROGRAMACOORDINACION PRCO
+            INNER JOIN ACADEMICO.PROGRAMA PROG
+                ON PROG.PROG_ID = PRCO.PROG_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
+                ON CECO.CECO_ID = PRCO.CECO_ID
+            WHERE PRCO.COOR_ID = :idCoordinacion
+                AND PRCO.PROG_ID IS NOT NULL
+                AND NVL(PRCO.PRCO_ESTADO, '1') = '1'
+            ORDER BY PROG.PROG_NOMBRE, CECO.CECO_DESCRIPCION
+            """, nativeQuery = true)
+    List<ProgramaCentroCostoProjection> findCentrosCostoByIdCoordinacion(
+            @Param("idCoordinacion") Long idCoordinacion);
 }

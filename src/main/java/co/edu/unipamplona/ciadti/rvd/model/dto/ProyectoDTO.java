@@ -7,6 +7,7 @@
  * Modificaciones:
  * 17/11/2026 - Alineación con RVDIES.PROYECTOS.
  * 18/11/2026 - tipoActividad reemplaza el id suelto.
+ * 19/11/2026 - materiaParticular reemplaza el id suelto.
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -17,7 +18,7 @@ public record ProyectoDTO(
         Long idProyectoPadre,
         TipoActividadDTO tipoActividad,
         Long idCoordinacion,
-        Long idMateriaParticular,
+        MateriaParticularDTO materiaParticular,
         Long idProyectoGrupo,
         String nombre,
         String descripcion,

@@ -63,6 +63,36 @@ public interface PersonaProyectoCargaProjection {
 
     Long getIdMateriaParticular();
 
+    String getCodigoMateriaParticular();
+
+    String getNombreMateriaParticular();
+
+    Long getHorasPracticasMateriaParticular();
+
+    Long getHorasTeoricasMateriaParticular();
+
+    Long getHorasTeoricoPracticasMateriaParticular();
+
+    Long getPonderacionMateriaParticular();
+
+    Long getCapacidadMateriaParticular();
+
+    Long getTieneGrupoMateriaParticular();
+
+    Long getEsElectivaMateriaParticular();
+
+    String getTipoMateriaParticular();
+
+    Long getDocentesPorGrupoMateriaParticular();
+
+    Long getIdProgramaMateriaParticular();
+
+    String getNombreProgramaMateriaParticular();
+
+    Long getIdCentroCostoProgramaMateriaParticular();
+
+    String getDescripcionCentroCostoProgramaMateriaParticular();
+
     Long getIdProyectoGrupo();
 
     String getNombre();

@@ -87,7 +87,37 @@ public interface PersonaProyectoRepository
                 tiac.TIAC_HORASPORSEMESTRE AS horasPorSemestreTipoActividad,
                 tiac.TIAC_APLICAPROYECTOS AS aplicaProyectosTipoActividad,
                 proy.COOR_ID AS idCoordinacion,
-                proy.MAPA_ID AS idMateriaParticular,
+                mapa.MAPA_ID AS idMateriaParticular,
+                TO_CHAR(mapa.MATE_CODIGOMATERIA) AS codigoMateriaParticular,
+                mate_mapa.MATE_NOMBRE AS nombreMateriaParticular,
+                mate_mapa.MATE_HORASPRACTICAS AS horasPracticasMateriaParticular,
+                mate_mapa.MATE_HORASTEORICAS AS horasTeoricasMateriaParticular,
+                mate_mapa.MATE_HORASTEORICOPRACTICAS AS horasTeoricoPracticasMateriaParticular,
+                mate_mapa.MATE_PONDERACIONACADEMICA AS ponderacionMateriaParticular,
+                mate_mapa.MATE_CAPACIDAD AS capacidadMateriaParticular,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM ACADEMICO.GRUPO grup_mapa
+                        WHERE grup_mapa.MATE_CODIGOMATERIA = mate_mapa.MATE_CODIGOMATERIA
+                            AND grup_mapa.GRUP_ACTIVO = '1'
+                    ) THEN 1
+                    ELSE 0
+                END AS tieneGrupoMateriaParticular,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM ACADEMICO.BANCODEMATERIAS bama
+                        WHERE bama.BAMA_CODIGOMATERIA = mate_mapa.MATE_CODIGOMATERIA
+                    ) THEN 1
+                    ELSE 0
+                END AS esElectivaMateriaParticular,
+                mapa.MAPA_TIPOMATERIA AS tipoMateriaParticular,
+                mapa.MAPA_DOCENTESXGRUPO AS docentesPorGrupoMateriaParticular,
+                prog_mapa.PROG_ID AS idProgramaMateriaParticular,
+                prog_mapa.PROG_NOMBRE AS nombreProgramaMateriaParticular,
+                ceco_mapa.CECO_ID AS idCentroCostoProgramaMateriaParticular,
+                ceco_mapa.CECO_DESCRIPCION AS descripcionCentroCostoProgramaMateriaParticular,
                 proy.PRGR_ID AS idProyectoGrupo,
                 proy.PROY_NOMBRE AS nombre,
                 proy.PROY_DESCRIPCION AS descripcion,
@@ -101,6 +131,18 @@ public interface PersonaProyectoRepository
                 ON proy.PROY_ID = pepr.PROY_ID
             LEFT JOIN RVDIES.TIPOACTIVIDADES tiac
                 ON tiac.TIAC_ID = proy.TIAC_ID
+            LEFT JOIN RVDIES.MATERIAPARTICULAR mapa
+                ON mapa.MAPA_ID = proy.MAPA_ID
+            LEFT JOIN ACADEMICO.MATERIA mate_mapa
+                ON mate_mapa.MATE_CODIGOMATERIA = TO_CHAR(mapa.MATE_CODIGOMATERIA)
+            LEFT JOIN ACADEMICO.PROGRAMA prog_mapa
+                ON prog_mapa.PROG_ID = mapa.PROG_ID
+            LEFT JOIN RVDIES.PROGRAMACOORDINACION prco_mapa
+                ON prco_mapa.PROG_ID = mapa.PROG_ID
+                AND prco_mapa.COOR_ID = proy.COOR_ID
+                AND NVL(prco_mapa.PRCO_ESTADO, '1') = '1'
+            LEFT JOIN CONTABLEV3.CENTROCOSTO ceco_mapa
+                ON ceco_mapa.CECO_ID = prco_mapa.CECO_ID
             WHERE pepr.PEGE_ID = :idPersonaGeneral
             ORDER BY proy.PROY_NOMBRE, pepr.PEPR_ID
             """, nativeQuery = true)

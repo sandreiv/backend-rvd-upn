@@ -23,6 +23,8 @@
  * 17/11/2026 - Materias de la carga con programa y centro de costo.
  * 17/11/2026 - Borrado de los detalles de una carga docente.
  * 17/11/2026 - Proyectos de la persona de la carga docente.
+ * 19/11/2026 - Centros de costo de la coordinación y de sus programas.
+ * 19/11/2026 - Listado de todos los centros de costo.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -61,6 +63,8 @@ import co.edu.unipamplona.ciadti.rvd.mapper.PersonaProyectoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PensumListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.ProgramaListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.RestriccionActividadListadoMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.CentroCostoMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionCentrosCostoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.DetalleCargaDocenteMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.TipoActividadListadoMapper;
@@ -74,6 +78,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.DistribucionActividadFormularioDT
 import co.edu.unipamplona.ciadti.rvd.model.dto.DocenteCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionCentrosCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.GrupoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
@@ -87,6 +93,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosPrecargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
+import co.edu.unipamplona.ciadti.rvd.model.entity.CoordinacionesEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.DetalleCargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.EscalafonEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.EstadosEntity;
@@ -96,6 +103,7 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionConvocatoriaEnt
 import co.edu.unipamplona.ciadti.rvd.model.entity.TipoVinculacionEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.BancoMateriasRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CargaDocenteRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.CentroCostoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.DetalleCargaDocenteRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ClaseSemanalRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
@@ -180,6 +188,9 @@ public class CargaServiceImpl implements CargaService {
     private final MateriaProgramaCargaMapper materiaProgramaCargaMapper;
     private final PersonaProyectoRepository personaProyectoRepository;
     private final PersonaProyectoMapper personaProyectoMapper;
+    private final CentroCostoRepository centroCostoRepository;
+    private final CoordinacionCentrosCostoMapper coordinacionCentrosCostoMapper;
+    private final CentroCostoMapper centroCostoMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -673,6 +684,33 @@ public class CargaServiceImpl implements CargaService {
                 idCargaDocente, carga.getIdPersonaGeneral());
         return personaProyectoMapper.toDtoList(
                 personaProyectoRepository.findCargaByIdPersonaGeneral(carga.getIdPersonaGeneral()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CoordinacionCentrosCostoDTO listCoordinationCostCenters(Long idCoordinacion) {
+        if (idCoordinacion == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La coordinación es obligatoria.");
+        }
+        CoordinacionesEntity coordinacion = coordinacionRepository.findById(idCoordinacion)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND, "No existe la coordinación con id " + idCoordinacion));
+        String nombre = coordinacion.getUnidadArea() == null
+                ? null
+                : coordinacion.getUnidadArea().getNombre();
+        log.info("listCoordinationCostCenters ===> Listando centros de costo. idCoordinacion={}", idCoordinacion);
+        return coordinacionCentrosCostoMapper.toDto(
+                idCoordinacion,
+                nombre,
+                centroCostoRepository.findByCoordinacionId(idCoordinacion),
+                programaRepository.findCentrosCostoByIdCoordinacion(idCoordinacion));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CentroCostoDTO> listCostCenters() {
+        log.info("listCostCenters ===> Listando centros de costo.");
+        return centroCostoMapper.toDtoList(centroCostoRepository.findAllCostCenters());
     }
 
     @Override
