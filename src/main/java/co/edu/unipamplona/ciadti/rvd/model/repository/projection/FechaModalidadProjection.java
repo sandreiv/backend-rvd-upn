@@ -9,6 +9,7 @@ public interface FechaModalidadProjection {
     LocalDate getFechaInicio();
     LocalDate getFechaFin();
     String getSemanas();
+    String getOnceMeses();
     String getMinimo();
     String getMaximo();
 }
