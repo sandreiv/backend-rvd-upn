@@ -9,10 +9,12 @@
  * 12/11/2026 - tipoActividad es la hoja guardada en TIAC_ID, con su idPadre.
  * 12/11/2026 - Pensum del programa que contiene la materia.
  * 17/11/2026 - tipoDocente leído de DECD_DATA.
+ * 19/11/2026 - termino y actoAdministrativo leídos de DECD_DATA.
  */
 package co.edu.unipamplona.ciadti.rvd.mapper;
 
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -26,6 +28,7 @@ import org.mapstruct.Mapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import co.edu.unipamplona.ciadti.rvd.model.dto.ActoAdministrativoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteActividadDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
@@ -34,6 +37,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDetalleDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TerminoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.UnidadDTO;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
@@ -93,6 +97,7 @@ public interface DetalleCargaDocenteMapper {
             DetalleCargaDocenteCargaProjection projection,
             Map<Long, HorarioClaseDTO> clasesSemanales) {
         TipoActividadDTO actividad = tipoActividad(projection);
+        String data = texto(projection.getData());
         return new DetalleCargaDocenteActividadDTO(
                 actividad,
                 projection.getIdUnidadRegional() == null
@@ -117,8 +122,10 @@ public interface DetalleCargaDocenteMapper {
                 materiaBanco(projection),
                 projection.getExtras(),
                 projection.getDescripcion(),
-                clases(texto(projection.getData()), clasesSemanales),
-                tipoDocente(texto(projection.getData())));
+                clases(data, clasesSemanales),
+                tipoDocente(data),
+                termino(data),
+                actoAdministrativo(data));
     }
 
     private static String tipoDocente(String json) {
@@ -132,6 +139,72 @@ public interface DetalleCargaDocenteMapper {
             }
             return TITULAR;
         } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static TerminoDTO termino(String json) {
+        JsonNode nodo = objeto(json, "termino");
+        if (nodo == null) {
+            return null;
+        }
+        Date desde = fecha(nodo.get("desde"));
+        Date hasta = fecha(nodo.get("hasta"));
+        if (desde == null && hasta == null) {
+            return null;
+        }
+        return new TerminoDTO(desde, hasta);
+    }
+
+    private static ActoAdministrativoDTO actoAdministrativo(String json) {
+        JsonNode nodo = objeto(json, "actoAdministrativo");
+        if (nodo == null) {
+            return null;
+        }
+        Long numero = numero(nodo.get("numero"));
+        Date fecha = fecha(nodo.get("fecha"));
+        if (numero == null && fecha == null) {
+            return null;
+        }
+        return new ActoAdministrativoDTO(numero, fecha);
+    }
+
+    private static JsonNode objeto(String json, String campo) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode nodo = JSON.readTree(json).get(campo);
+            return nodo != null && nodo.isObject() ? nodo : null;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static Date fecha(JsonNode nodo) {
+        if (nodo == null || nodo.isNull() || !nodo.isTextual() || nodo.asText().isBlank()) {
+            return null;
+        }
+        try {
+            return Date.valueOf(nodo.asText().trim());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private static Long numero(JsonNode nodo) {
+        if (nodo == null || nodo.isNull()) {
+            return null;
+        }
+        if (nodo.isNumber()) {
+            return nodo.longValue();
+        }
+        if (!nodo.isTextual() || nodo.asText().isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(nodo.asText().trim());
+        } catch (NumberFormatException ex) {
             return null;
         }
     }

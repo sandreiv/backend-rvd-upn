@@ -444,6 +444,9 @@ public class LoadController {
             la descripción del detalle, la ponderación académica de la materia y de la materia de banco, y las clases semanales
             guardadas en DECD_DATA, con su día, fechas y bloques de hora inicial y final.
             Si el detalle guardó tipoDocente TITULAR, la actividad lo devuelve en tipoDocente.
+            Si DECD_DATA trae termino, la actividad lo devuelve con desde y hasta.
+            Si trae actoAdministrativo, lo devuelve con numero y fecha.
+            Si alguno no está, ese objeto llega nulo.
             Si la carga no existe, responde 404. Si no tiene detalles, responde una lista vacía.
             """
     )

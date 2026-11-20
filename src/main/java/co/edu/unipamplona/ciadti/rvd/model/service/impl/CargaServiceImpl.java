@@ -674,16 +674,15 @@ public class CargaServiceImpl implements CargaService {
         if (idCargaDocente == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La carga docente es obligatoria.");
         }
+
         CargaDocenteEntity carga = cargaDocenteRepository.findById(idCargaDocente)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND, "No existe la carga docente con id " + idCargaDocente));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la carga docente con id " + idCargaDocente));
+
         if (carga.getIdPersonaGeneral() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La carga docente no tiene persona.");
         }
-        log.info("listProfessorProjects ===> Listando proyectos de la persona. idCargaDocente={}, idPersonaGeneral={}",
-                idCargaDocente, carga.getIdPersonaGeneral());
-        return personaProyectoMapper.toDtoList(
-                personaProyectoRepository.findCargaByIdPersonaGeneral(carga.getIdPersonaGeneral()));
+
+        return personaProyectoMapper.toDtoList(personaProyectoRepository.findCargaByIdPersonaGeneral(carga.getIdPersonaGeneral()));
     }
 
     @Override
