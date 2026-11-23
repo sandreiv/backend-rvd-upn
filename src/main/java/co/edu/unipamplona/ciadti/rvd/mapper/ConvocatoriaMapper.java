@@ -21,6 +21,7 @@ public interface ConvocatoriaMapper {
     @Mapping(source = "convocatoria.estado", target = "estado")
     @Mapping(source = "convocatoria.idRelacion", target = "idRelacion")
     @Mapping(source = "convocatoria.esIntersemestral", target = "esIntersemestral")
+    @Mapping(target = "nombreCompleto", ignore = true)
     ConvocatoriaDTO toListDto(ConvocatoriaEntity convocatoria);
 
     @Named("formatPeriodoUniversidad")
