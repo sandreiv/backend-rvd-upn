@@ -18,4 +18,8 @@ public interface ProgramaCentroCostoProjection {
     Long getIdCentroCosto();
 
     String getDescripcionCentroCosto();
+
+    default String getNombreGrupo() {
+        return null;
+    }
 }

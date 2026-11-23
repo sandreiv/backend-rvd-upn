@@ -16,6 +16,7 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionLis
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPersonaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ResumenSolicitudCdpProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CdpContextProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionSupervisionProjection;
 
 public interface CoordinacionRepository extends JpaRepository<CoordinacionesEntity, Long> {
 
@@ -1297,5 +1298,46 @@ public interface CoordinacionRepository extends JpaRepository<CoordinacionesEnti
             @Param("idPersonaGeneral") Long idPersonaGeneral,
             @Param("idCoordinacionFacultad") Long idCoordinacionFacultad
     );
+
+    @Query(value = """
+            SELECT
+                C.COOR_ID AS id,
+                C.COOR_IDPADRE AS idPadre,
+                COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || C.COOR_ID) AS nombre,
+                C.COOR_ESACADEMICA AS esAcademica,
+                LEVEL AS nivel,
+                CASE WHEN C.COOR_ID IN (
+                    SELECT P2.COOR_ID
+                    FROM RVDIES.PERSONACOORDINACION P2
+                    WHERE P2.PEGE_ID = :idPersona AND NVL(P2.PECO_ESTADO, '1') = '1'
+                ) THEN 1 ELSE 0 END AS esGestionable
+            FROM RVDIES.COORDINACIONES C
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = C.UNID_IDAREA
+            START WITH C.COOR_ID IN (
+                SELECT P.COOR_ID
+                FROM RVDIES.PERSONACOORDINACION P
+                WHERE P.PEGE_ID = :idPersona AND NVL(P.PECO_ESTADO, '1') = '1'
+            )
+            CONNECT BY PRIOR C.COOR_ID = C.COOR_IDPADRE
+            ORDER SIBLINGS BY UNID_AREA.UNID_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionSupervisionProjection> findSupervisionCoordinationsByPersona(@Param("idPersona") Long idPersona);
+
+    @Query(value = """
+            SELECT
+                C.COOR_ID AS id,
+                C.COOR_IDPADRE AS idPadre,
+                COALESCE(UNID_AREA.UNID_NOMBRE, 'Coordinación ' || C.COOR_ID) AS nombre,
+                C.COOR_ESACADEMICA AS esAcademica,
+                1 AS nivel,
+                1 AS esGestionable
+            FROM RVDIES.COORDINACIONES C
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = C.UNID_IDAREA
+            WHERE C.COOR_IDPADRE IS NULL
+            ORDER BY UNID_AREA.UNID_NOMBRE
+            """, nativeQuery = true)
+    List<CoordinacionSupervisionProjection> findTopLevelSupervisionCoordinations();
 
 }

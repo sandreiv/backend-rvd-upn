@@ -11,6 +11,7 @@
  * 10/11/2026 - Leonel Antonio Perez Rios - Remoción del campo inexistente rol
  * 13/11/2026 - Inclusión de centro de costo, programa, funcion y data
  * 17/11/2026 - Inclusión de nivel académico
+ * 20/11/2026 - Inclusión de programaNombre
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -26,6 +27,7 @@ public record PersonaProyectoListaDTO(
     String centroCostoNombre,
     String centroCostoCodigo,
     Long idPrograma,
+    String programaNombre,
     String funcion,
     String nivel,
     String data,
@@ -44,6 +46,6 @@ public record PersonaProyectoListaDTO(
         String esActivo
     ) {
         this(id, idProyecto, idPersonaGeneral, nombreCompleto, documento, horas, observacion,
-             null, null, null, null, null, null, null, estado, esActivo);
+             null, null, null, null, null, null, null, null, estado, esActivo);
     }
 }

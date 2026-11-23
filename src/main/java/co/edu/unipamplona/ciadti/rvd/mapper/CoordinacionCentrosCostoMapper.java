@@ -58,7 +58,7 @@ public interface CoordinacionCentrosCostoMapper {
             }
             ProgramaCentrosCostoDTO programa = agrupados.computeIfAbsent(
                     fila.getIdPrograma(),
-                    id -> new ProgramaCentrosCostoDTO(id, fila.getNombrePrograma(), new ArrayList<>()));
+                    id -> new ProgramaCentrosCostoDTO(id, fila.getNombrePrograma(), fila.getNombreGrupo(), new ArrayList<>()));
             if (fila.getIdCentroCosto() != null && programa.centrosCosto().stream()
                     .noneMatch(centro -> fila.getIdCentroCosto().equals(centro.id()))) {
                 programa.centrosCosto().add(

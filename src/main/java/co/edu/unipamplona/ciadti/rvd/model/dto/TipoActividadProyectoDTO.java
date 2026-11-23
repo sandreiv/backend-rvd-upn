@@ -7,6 +7,7 @@
  * Modificaciones:
  * 10/11/2026 - Leonel Antonio Perez Rios - DTO para opciones jerárquicas de tipo de actividad
  * 17/11/2026 - Requisitos booleanos para participantes según el componente
+ * 20/11/2026 - Inclusión de aplicaPrograma según componente
  */
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
@@ -22,6 +23,7 @@ public record TipoActividadProyectoDTO(
         Boolean requiereFuncion,
         Boolean requiereNivel,
         Boolean requiereHorario,
+        Boolean aplicaPrograma,
         Integer minimoHoras,
         Integer maximoHoras
 ) {
@@ -36,6 +38,6 @@ public record TipoActividadProyectoDTO(
             Boolean esSeleccionable
     ) {
         this(id, idPadre, nombre, nombrePadre, nombreCompleto, descripcion, componente, esSeleccionable,
-             false, false, false, null, null);
+             false, false, false, false, null, null);
     }
 }

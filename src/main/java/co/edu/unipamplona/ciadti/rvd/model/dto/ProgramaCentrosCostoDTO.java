@@ -14,5 +14,10 @@ import java.util.List;
 public record ProgramaCentrosCostoDTO(
         Long id,
         String nombre,
+        String grupo,
         List<CentroCostoDTO> centrosCosto
-) {}
+) {
+    public ProgramaCentrosCostoDTO(Long id, String nombre, List<CentroCostoDTO> centrosCosto) {
+        this(id, nombre, null, centrosCosto);
+    }
+}

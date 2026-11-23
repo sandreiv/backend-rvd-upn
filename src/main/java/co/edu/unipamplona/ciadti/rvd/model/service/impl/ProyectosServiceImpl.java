@@ -10,6 +10,8 @@
  * 10/11/2026 - Leonel Antonio Perez Rios - Soporte para listado completo jerárquico de proyectos y productos
  * 10/11/2026 - Leonel Antonio Perez Rios - Refactorización de código limpio, mensajes de error y eliminación de constantes innecesarias
  * 13/11/2026 - Remoción de logs (se gestionan por aspecto) y soporte de centro de costo y funcion en data
+ * 19/11/2026 - Inclusión de centros de costo de programas de la coordinación y subcoordinaciones para proyectos
+ * 19/11/2026 - Refactorización para evitar problema N+1 en listados, borrado masivo y validaciones
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -20,6 +22,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -31,11 +34,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import co.edu.unipamplona.ciadti.rvd.exception.ApiException;
+import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionCentrosCostoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PersonaAutorizaConvocatoriaMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.PersonaProyectoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.ProyectosMapper;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionCentrosCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionSupervisionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DiaSemanaOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.EstudianteBusquedaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.EstudianteProyectoFormularioDTO;
@@ -62,15 +69,21 @@ import co.edu.unipamplona.ciadti.rvd.model.enums.TipoActividadComponenteEnum;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CentroCostoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.EstudiantesRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaCoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaGeneralRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaProyectoRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.ProgramaRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ProyectoGrupoRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.ProyectosRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.TipoActividadesRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CatalogoAdministracionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionSupervisionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaProyectoListaProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ProgramaCentroCostoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.ProyectosListaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadProyectoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.service.ProyectosService;
+import co.edu.unipamplona.ciadti.rvd.config.security.SecurityUtils;
 import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils;
 import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils.Accion;
 import lombok.RequiredArgsConstructor;
@@ -82,19 +95,27 @@ public class ProyectosServiceImpl implements ProyectosService {
     private final ProyectosRepository proyectosRepository;
     private final TipoActividadesRepository tipoActividadesRepository;
     private final CoordinacionRepository coordinacionRepository;
+    private final PersonaCoordinacionRepository personaCoordinacionRepository;
     private final CentroCostoRepository centroCostoRepository;
     private final ProyectoGrupoRepository proyectoGrupoRepository;
     private final PersonaProyectoRepository personaProyectoRepository;
     private final EstudiantesRepository estudiantesRepository;
     private final PersonaGeneralRepository personaGeneralRepository;
+    private final ProgramaRepository programaRepository;
     private final ProyectosMapper proyectosMapper;
     private final PersonaProyectoMapper personaProyectoMapper;
     private final PersonaAutorizaConvocatoriaMapper personaAutorizaConvocatoriaMapper;
+    private final CoordinacionCentrosCostoMapper coordinacionCentrosCostoMapper;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final int MIN_SEARCH_TERM_LENGTH = 2;
     private static final int MIN_HORAS = 1;
     private static final int MAX_HORAS = 40;
+
+    private record ParticipantValidationResult(
+            ProyectosEntity proyecto,
+            TipoActividadComponenteEnum componenteEnum
+    ) {}
 
     @Override
     @Transactional(readOnly = true)
@@ -106,8 +127,40 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Override
     @Transactional(readOnly = true)
     public List<ProyectosListaDTO> listAllProjects() {
-        List<ProyectosListaProjection> rows = proyectosRepository.findAllProjectsList();
+        return listAllProjects(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProyectosListaDTO> listAllProjects(Long idCoordinacion) {
+        List<ProyectosListaProjection> rows = proyectosRepository.findAllProjectsList(idCoordinacion);
         return proyectosMapper.toProyectosListaDTOList(rows);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CoordinacionSupervisionDTO> listSupervisionCoordinations() {
+        Long idPersona = SecurityUtils.currentIdPersona().orElse(null);
+        List<CoordinacionSupervisionProjection> rows = Collections.emptyList();
+        if (idPersona != null) {
+            rows = coordinacionRepository.findSupervisionCoordinationsByPersona(idPersona);
+        }
+        if (rows == null || rows.isEmpty()) {
+            rows = coordinacionRepository.findTopLevelSupervisionCoordinations();
+        }
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return rows.stream()
+                .map(r -> new CoordinacionSupervisionDTO(
+                        r.getId(),
+                        r.getIdPadre(),
+                        r.getNombre(),
+                        r.getEsAcademica(),
+                        r.getNivel(),
+                        r.getEsGestionable() != null && r.getEsGestionable() == 1
+                ))
+                .toList();
     }
 
     @Override
@@ -137,6 +190,7 @@ public class ProyectosServiceImpl implements ProyectosService {
                     boolean reqFuncion = compEnum != null && compEnum.isRequiereFuncion();
                     boolean reqNivel = compEnum != null && compEnum.isRequiereNivel();
                     boolean reqHorario = compEnum != null && compEnum.isRequiereHorario();
+                    boolean aplicaPrograma = compEnum != null && compEnum.isAplicaPrograma();
 
                     Integer minHoras = parseInteger(row.getMinimoHoras());
                     Integer maxHoras = parseInteger(row.getMaximoHoras());
@@ -155,6 +209,7 @@ public class ProyectosServiceImpl implements ProyectosService {
                             reqFuncion,
                             reqNivel,
                             reqHorario,
+                            aplicaPrograma,
                             minHoras,
                             maxHoras
                     );
@@ -170,7 +225,8 @@ public class ProyectosServiceImpl implements ProyectosService {
                         c.getDescripcion(),
                         c.isRequiereFuncion(),
                         c.isRequiereNivel(),
-                        c.isRequiereHorario()
+                        c.isRequiereHorario(),
+                        c.isAplicaPrograma()
                 ))
                 .toList();
     }
@@ -186,7 +242,7 @@ public class ProyectosServiceImpl implements ProyectosService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CentroCostoOpcionDTO> listCostCenters(Long idProyecto, Long idCoordinacion) {
+    public CoordinacionCentrosCostoDTO listCostCenters(Long idProyecto, Long idCoordinacion) {
         Long targetCoordinacionId = idCoordinacion;
         if (targetCoordinacionId == null && idProyecto != null) {
             targetCoordinacionId = proyectosRepository.findById(idProyecto)
@@ -194,27 +250,44 @@ public class ProyectosServiceImpl implements ProyectosService {
                     .orElse(null);
         }
 
-        Map<Long, CentroCostoOpcionDTO> optionsMap = new LinkedHashMap<>();
-
+        String nombreCoordinacion = null;
         if (targetCoordinacionId != null) {
-            centroCostoRepository.findByCoordinacionId(targetCoordinacionId).forEach(item ->
-                    optionsMap.put(item.getId(), new CentroCostoOpcionDTO(item.getId(), item.getCodigo(), item.getLabel()))
-            );
+            nombreCoordinacion = coordinacionRepository.findById(targetCoordinacionId)
+                    .map(c -> c.getUnidadArea() != null ? c.getUnidadArea().getNombre() : "Coordinación " + c.getId())
+                    .orElse(null);
+        }
+
+        List<CatalogoAdministracionProjection> directCostCenters;
+        if (targetCoordinacionId != null) {
+            directCostCenters = centroCostoRepository.findCentrosCostoByCoordinacionIdIncludingChildren(targetCoordinacionId);
         } else {
-            centroCostoRepository.findAdministrationOptions().forEach(item ->
-                    optionsMap.put(item.getId(), new CentroCostoOpcionDTO(item.getId(), item.getCodigo(), item.getLabel()))
-            );
+            directCostCenters = centroCostoRepository.findAdministrationOptions();
         }
 
-        if (idProyecto != null) {
-            centroCostoRepository.findCostCentersByProjectStudents(idProyecto).forEach(item -> {
-                if (!optionsMap.containsKey(item.getId())) {
-                    optionsMap.put(item.getId(), new CentroCostoOpcionDTO(item.getId(), item.getCodigo(), item.getLabel()));
-                }
-            });
+        List<ProgramaCentroCostoProjection> programasFilas = Collections.emptyList();
+        if (targetCoordinacionId != null || idProyecto != null) {
+            programasFilas = programaRepository.findCentrosCostoByCoordinacionAndProyecto(targetCoordinacionId, idProyecto);
         }
 
-        return new ArrayList<>(optionsMap.values());
+        return coordinacionCentrosCostoMapper.toDto(
+                targetCoordinacionId,
+                nombreCoordinacion,
+                directCostCenters,
+                programasFilas
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CentroCostoDTO> searchCostCenters(String term) {
+        String normalized = StringUtils.hasText(term) ? term.trim() : null;
+        if (!StringUtils.hasText(normalized) || normalized.length() < MIN_SEARCH_TERM_LENGTH) {
+            return Collections.emptyList();
+        }
+
+        return centroCostoRepository.findByTexto(normalized).stream()
+                .map(item -> new CentroCostoDTO(item.getId(), item.getLabel()))
+                .toList();
     }
 
     @Override
@@ -262,6 +335,7 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Transactional
     public void saveProject(ProyectosFormularioDTO dto) {
         validateProject(dto);
+        validateCoordinacionGestionable(dto.idCoordinacion());
 
         ProyectosEntity entity = new ProyectosEntity();
         mapDtoToEntity(dto, entity);
@@ -284,7 +358,12 @@ public class ProyectosServiceImpl implements ProyectosService {
                         "No existe el proyecto con id " + id
                 ));
 
+        validateCoordinacionGestionable(entity.getIdCoordinacion());
         validateProject(dto);
+        if (dto.idCoordinacion() != null && !dto.idCoordinacion().equals(entity.getIdCoordinacion())) {
+            validateCoordinacionGestionable(dto.idCoordinacion());
+        }
+
         mapDtoToEntity(dto, entity);
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.UPDATE));
         entity.setFechaCambio(new Date());
@@ -304,6 +383,8 @@ public class ProyectosServiceImpl implements ProyectosService {
                         HttpStatus.NOT_FOUND,
                         "No existe el proyecto con id " + id
                 ));
+
+        validateCoordinacionGestionable(entity.getIdCoordinacion());
 
         if (proyectosRepository.existsByIdProyectoPadre(id)) {
             throw new ApiException(
@@ -329,11 +410,38 @@ public class ProyectosServiceImpl implements ProyectosService {
             return;
         }
 
-        for (Long id : ids) {
-            if (id != null && proyectosRepository.existsById(id)) {
-                deleteProject(id);
-            }
+        List<Long> cleanIds = ids.stream().filter(Objects::nonNull).distinct().toList();
+        if (cleanIds.isEmpty()) {
+            return;
         }
+
+        List<ProyectosEntity> proyectos = proyectosRepository.findAllById(cleanIds);
+        for (ProyectosEntity proy : proyectos) {
+            validateCoordinacionGestionable(proy.getIdCoordinacion());
+        }
+
+        if (proyectosRepository.existsByIdProyectoPadreIn(cleanIds)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "No se pueden eliminar los proyectos seleccionados porque uno o más tienen subproyectos asociados"
+            );
+        }
+
+        if (personaProyectoRepository.existsByIdProyectoIn(cleanIds)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "No se pueden eliminar los proyectos seleccionados porque uno o más tienen participantes vinculados"
+            );
+        }
+
+        if (estudiantesRepository.existsByIdProyectoIn(cleanIds)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "No se pueden eliminar los proyectos seleccionados porque uno o más tienen estudiantes asociados"
+            );
+        }
+
+        proyectosRepository.deleteAllById(cleanIds);
     }
 
     @Override
@@ -350,7 +458,8 @@ public class ProyectosServiceImpl implements ProyectosService {
     @Override
     @Transactional
     public void saveProjectParticipant(PersonaProyectoFormularioDTO dto) {
-        validateParticipant(dto);
+        ParticipantValidationResult result = validateParticipant(dto);
+        validateCoordinacionGestionable(result.proyecto().getIdCoordinacion());
 
         PersonaProyectoEntity entity = new PersonaProyectoEntity();
         entity.setIdProyecto(dto.idProyecto());
@@ -360,8 +469,7 @@ public class ProyectosServiceImpl implements ProyectosService {
         entity.setIdCentroCosto(dto.idCentroCosto());
         entity.setIdPrograma(dto.idPrograma());
 
-        TipoActividadComponenteEnum compEnum = resolveComponentEnum(dto.idProyecto());
-        String jsonData = buildJsonData(null, dto.data(), dto.funcion(), dto.nivel(), compEnum);
+        String jsonData = buildJsonData(null, dto.data(), dto.funcion(), dto.nivel(), result.componenteEnum());
         entity.setData(jsonData);
 
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.INSERT));
@@ -380,7 +488,16 @@ public class ProyectosServiceImpl implements ProyectosService {
         PersonaProyectoEntity entity = personaProyectoRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
 
-        validateParticipant(dto, entity);
+        ProyectosEntity proyectoExistente = proyectosRepository.findById(entity.getIdProyecto()).orElse(null);
+        if (proyectoExistente != null) {
+            validateCoordinacionGestionable(proyectoExistente.getIdCoordinacion());
+        }
+
+        ParticipantValidationResult result = validateParticipant(dto, entity);
+        if (!result.proyecto().getId().equals(entity.getIdProyecto())) {
+            validateCoordinacionGestionable(result.proyecto().getIdCoordinacion());
+        }
+
         entity.setIdProyecto(dto.idProyecto());
         entity.setIdPersonaGeneral(dto.idPersonaGeneral());
         entity.setHoras(StringUtils.hasText(dto.horas()) ? dto.horas().trim() : entity.getHoras());
@@ -388,8 +505,7 @@ public class ProyectosServiceImpl implements ProyectosService {
         entity.setIdCentroCosto(dto.idCentroCosto());
         entity.setIdPrograma(dto.idPrograma());
 
-        TipoActividadComponenteEnum compEnum = resolveComponentEnum(dto.idProyecto());
-        String jsonDataUpdate = buildJsonData(entity.getData(), dto.data(), dto.funcion(), dto.nivel(), compEnum);
+        String jsonDataUpdate = buildJsonData(entity.getData(), dto.data(), dto.funcion(), dto.nivel(), result.componenteEnum());
         entity.setData(jsonDataUpdate);
 
         entity.setRegistradoPor(RegistradoPorUtils.value(Accion.UPDATE));
@@ -408,6 +524,11 @@ public class ProyectosServiceImpl implements ProyectosService {
         PersonaProyectoEntity entity = personaProyectoRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Asignación no encontrada"));
 
+        ProyectosEntity proyectoExistente = proyectosRepository.findById(entity.getIdProyecto()).orElse(null);
+        if (proyectoExistente != null) {
+            validateCoordinacionGestionable(proyectoExistente.getIdCoordinacion());
+        }
+
         personaProyectoRepository.delete(entity);
     }
 
@@ -418,11 +539,20 @@ public class ProyectosServiceImpl implements ProyectosService {
             return;
         }
 
-        for (Long id : ids) {
-            if (id != null) {
-                deleteProjectParticipant(id);
+        List<Long> cleanIds = ids.stream().filter(Objects::nonNull).distinct().toList();
+        if (cleanIds.isEmpty()) {
+            return;
+        }
+
+        List<PersonaProyectoEntity> asignaciones = personaProyectoRepository.findAllById(cleanIds);
+        for (PersonaProyectoEntity asig : asignaciones) {
+            ProyectosEntity proy = proyectosRepository.findById(asig.getIdProyecto()).orElse(null);
+            if (proy != null) {
+                validateCoordinacionGestionable(proy.getIdCoordinacion());
             }
         }
+
+        personaProyectoRepository.deleteAllById(cleanIds);
     }
 
     private void validateProject(ProyectosFormularioDTO dto) {
@@ -447,11 +577,11 @@ public class ProyectosServiceImpl implements ProyectosService {
         }
     }
 
-    private void validateParticipant(PersonaProyectoFormularioDTO dto) {
-        validateParticipant(dto, null);
+    private ParticipantValidationResult validateParticipant(PersonaProyectoFormularioDTO dto) {
+        return validateParticipant(dto, null);
     }
 
-    private void validateParticipant(PersonaProyectoFormularioDTO dto, PersonaProyectoEntity existingEntity) {
+    private ParticipantValidationResult validateParticipant(PersonaProyectoFormularioDTO dto, PersonaProyectoEntity existingEntity) {
         if (dto == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La información del participante es requerida");
         }
@@ -471,31 +601,6 @@ public class ProyectosServiceImpl implements ProyectosService {
             if (!centroCostoRepository.existsById(dto.idCentroCosto())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "El centro de costo seleccionado no existe");
             }
-            boolean valid = false;
-            if (proyecto.getIdCoordinacion() != null) {
-                long count = centroCostoRepository.countByCoordinacionIdAndCentroCostoId(
-                        proyecto.getIdCoordinacion(),
-                        dto.idCentroCosto()
-                );
-                if (count > 0) {
-                    valid = true;
-                }
-            }
-            if (!valid && proyecto.getId() != null) {
-                long countEstudiantes = centroCostoRepository.countByProjectStudentsAndCentroCostoId(
-                        proyecto.getId(),
-                        dto.idCentroCosto()
-                );
-                if (countEstudiantes > 0) {
-                    valid = true;
-                }
-            }
-            if (!valid) {
-                throw new ApiException(
-                        HttpStatus.BAD_REQUEST,
-                        "El centro de costo seleccionado no pertenece a la coordinación del proyecto ni a los programas de los estudiantes asociados"
-                );
-            }
         }
 
         TipoActividadesEntity tipoActividad = null;
@@ -505,19 +610,29 @@ public class ProyectosServiceImpl implements ProyectosService {
 
         Integer minHoras = null;
         Integer maxHoras = null;
+        String effectiveComponente = null;
         if (tipoActividad != null) {
-            minHoras = parseInteger(tipoActividad.getMinimoHoras());
-            maxHoras = parseInteger(tipoActividad.getMaximoHoras());
-            if ((minHoras == null || maxHoras == null) && tipoActividad.getIdPadre() != null) {
-                TipoActividadesEntity padre = tipoActividadesRepository.findById(tipoActividad.getIdPadre()).orElse(null);
-                if (padre != null) {
-                    if (minHoras == null) {
-                        minHoras = parseInteger(padre.getMinimoHoras());
-                    }
-                    if (maxHoras == null) {
-                        maxHoras = parseInteger(padre.getMaximoHoras());
+            TipoActividadesEntity current = tipoActividad;
+            java.util.Set<Long> visited = new java.util.HashSet<>();
+            while (current != null && !visited.contains(current.getId())) {
+                visited.add(current.getId());
+                if (minHoras == null) {
+                    Integer m = parseInteger(current.getMinimoHoras());
+                    if (m != null && m > 0) {
+                        minHoras = m;
                     }
                 }
+                Integer max = parseInteger(current.getMaximoHoras());
+                if (max != null && max > 0) {
+                    maxHoras = (maxHoras != null) ? Math.min(maxHoras, max) : max;
+                }
+                if (!StringUtils.hasText(effectiveComponente) && StringUtils.hasText(current.getComponente())) {
+                    effectiveComponente = current.getComponente().trim();
+                }
+                if (current.getIdPadre() == null) {
+                    break;
+                }
+                current = tipoActividadesRepository.findById(current.getIdPadre()).orElse(null);
             }
         }
         int effectiveMin = minHoras != null && minHoras > 0 ? minHoras : MIN_HORAS;
@@ -541,14 +656,8 @@ public class ProyectosServiceImpl implements ProyectosService {
         }
 
         TipoActividadComponenteEnum compEnum = null;
-        if (tipoActividad != null) {
-            String comp = tipoActividad.getComponente();
-            if (!StringUtils.hasText(comp) && tipoActividad.getIdPadre() != null) {
-                comp = tipoActividadesRepository.findById(tipoActividad.getIdPadre())
-                        .map(TipoActividadesEntity::getComponente)
-                        .orElse(null);
-            }
-            compEnum = TipoActividadComponenteEnum.fromComponente(comp);
+        if (StringUtils.hasText(effectiveComponente)) {
+            compEnum = TipoActividadComponenteEnum.fromComponente(effectiveComponente);
         }
 
         if (compEnum != null) {
@@ -562,6 +671,8 @@ public class ProyectosServiceImpl implements ProyectosService {
                 validateScheduleHours(dto, existingEntity);
             }
         }
+
+        return new ParticipantValidationResult(proyecto, compEnum);
     }
 
     private void validateScheduleHours(PersonaProyectoFormularioDTO dto, PersonaProyectoEntity existingEntity) {
@@ -644,25 +755,6 @@ public class ProyectosServiceImpl implements ProyectosService {
             return String.valueOf((long) Math.round(hours));
         }
         return String.format(java.util.Locale.US, "%.1f", hours);
-    }
-
-    private TipoActividadComponenteEnum resolveComponentEnum(Long idProyecto) {
-        if (idProyecto == null) {
-            return null;
-        }
-        return proyectosRepository.findById(idProyecto)
-                .map(ProyectosEntity::getIdTipoActividad)
-                .flatMap(tipoActividadesRepository::findById)
-                .map(ta -> {
-                    String comp = ta.getComponente();
-                    if (!StringUtils.hasText(comp) && ta.getIdPadre() != null) {
-                        comp = tipoActividadesRepository.findById(ta.getIdPadre())
-                                .map(TipoActividadesEntity::getComponente)
-                                .orElse(null);
-                    }
-                    return TipoActividadComponenteEnum.fromComponente(comp);
-                })
-                .orElse(null);
     }
 
     private void mapDtoToEntity(ProyectosFormularioDTO dto, ProyectosEntity entity) {
@@ -788,9 +880,13 @@ public class ProyectosServiceImpl implements ProyectosService {
         if (dto == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La información del estudiante es requerida");
         }
-        if (dto.idProyecto() == null || !proyectosRepository.existsById(dto.idProyecto())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "El proyecto asociado no existe");
+        if (dto.idProyecto() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El proyecto asociado es requerido");
         }
+        ProyectosEntity proyecto = proyectosRepository.findById(dto.idProyecto())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "El proyecto asociado no existe"));
+        validateCoordinacionGestionable(proyecto.getIdCoordinacion());
+
         if (dto.idPersonaGeneral() == null || !personaGeneralRepository.existsById(dto.idPersonaGeneral())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "La persona no existe en el sistema");
         }
@@ -814,9 +910,16 @@ public class ProyectosServiceImpl implements ProyectosService {
         if (id == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El identificador del registro es obligatorio");
         }
-        if (!estudiantesRepository.existsById(id)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "No existe el estudiante asociado con id " + id);
+        EstudiantesEntity est = estudiantesRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe el estudiante asociado con id " + id));
+
+        if (est.getIdProyecto() != null) {
+            ProyectosEntity proy = proyectosRepository.findById(est.getIdProyecto()).orElse(null);
+            if (proy != null) {
+                validateCoordinacionGestionable(proy.getIdCoordinacion());
+            }
         }
+
         estudiantesRepository.deleteById(id);
     }
 
@@ -826,7 +929,42 @@ public class ProyectosServiceImpl implements ProyectosService {
         if (ids == null || ids.isEmpty()) {
             return;
         }
-        estudiantesRepository.deleteAllById(ids);
+        List<Long> cleanIds = ids.stream().filter(Objects::nonNull).distinct().toList();
+        if (cleanIds.isEmpty()) {
+            return;
+        }
+
+        List<EstudiantesEntity> estudiantes = estudiantesRepository.findAllById(cleanIds);
+        for (EstudiantesEntity est : estudiantes) {
+            if (est.getIdProyecto() != null) {
+                ProyectosEntity proy = proyectosRepository.findById(est.getIdProyecto()).orElse(null);
+                if (proy != null) {
+                    validateCoordinacionGestionable(proy.getIdCoordinacion());
+                }
+            }
+        }
+
+        estudiantesRepository.deleteAllById(cleanIds);
+    }
+
+    private void validateCoordinacionGestionable(Long idCoordinacion) {
+        if (idCoordinacion == null) {
+            return;
+        }
+        Long idPersona = SecurityUtils.currentIdPersona().orElse(null);
+        if (idPersona == null) {
+            return;
+        }
+        boolean hasAnyCoordination = personaCoordinacionRepository.existsActiveByPersona(idPersona);
+        if (hasAnyCoordination) {
+            boolean esGestionable = personaCoordinacionRepository.existsActiveByCoordinacionAndPersona(idCoordinacion, idPersona);
+            if (!esGestionable) {
+                throw new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "Solo tiene permisos de supervisión sobre esta coordinación. No puede crear ni modificar proyectos en ella."
+                );
+            }
+        }
     }
 
     private Integer parseInteger(String value) {

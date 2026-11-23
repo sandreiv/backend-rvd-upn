@@ -107,8 +107,6 @@ public class TipoActividadesServiceImpl implements TipoActividadesService {
     @Transactional
     public void updateActivityType(Long id, TipoActividadFormularioDTO dto) {
 
-        validateActivityType(dto);
-
         TipoActividadesEntity entity = tipoActividadesRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("updateActivityType ===> Tipo de actividad no encontrado. id={}", id);
@@ -117,6 +115,8 @@ public class TipoActividadesServiceImpl implements TipoActividadesService {
                             "No existe el tipo de actividad con id " + id
                     );
                 });
+
+        validateActivityType(dto, entity.getIdPadre());
 
         fillActivityType(entity, dto);
         tipoActividadesRepository.save(entity);
@@ -174,7 +174,7 @@ public class TipoActividadesServiceImpl implements TipoActividadesService {
             Long idPadre,
             TipoActividadFormularioDTO dto
     ) {
-        validateActivityType(dto);
+        validateActivityType(dto, idPadre);
 
         TipoActividadesEntity entity = new TipoActividadesEntity();
         entity.setIdPadre(idPadre);
@@ -236,11 +236,11 @@ public class TipoActividadesServiceImpl implements TipoActividadesService {
                         : VALOR_DEFECTO_CERO);
 
         entity.setMinimoHoras(
-                dto.minimoHoras() != null
+                dto.minimoHoras() != null && dto.minimoHoras() > 0
                     ? String.valueOf(dto.minimoHoras())
                     : null);
         entity.setMaximoHoras(
-                dto.maximoHoras() != null
+                dto.maximoHoras() != null && dto.maximoHoras() > 0
                     ? String.valueOf(dto.maximoHoras())
                     : null);
         entity.setEstado(normalizeStatus(dto.estado()));
@@ -254,7 +254,7 @@ public class TipoActividadesServiceImpl implements TipoActividadesService {
         entity.setFechaCambio(new Date());
     }
 
-    private void validateActivityType(TipoActividadFormularioDTO dto) {
+    private void validateActivityType(TipoActividadFormularioDTO dto, Long idPadre) {
         if (dto == null) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -270,11 +270,71 @@ public class TipoActividadesServiceImpl implements TipoActividadesService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El mínimo de horas no puede ser negativo");
         }
 
-        if (dto.minimoHoras() != null && dto.maximoHoras() != null && dto.maximoHoras() < dto.minimoHoras()) {
+        if (dto.maximoHoras() != null && dto.maximoHoras() < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El máximo de horas no puede ser negativo");
+        }
+
+        if (dto.minimoHoras() != null && dto.maximoHoras() != null && dto.minimoHoras() > 0 && dto.maximoHoras() > 0
+                && dto.maximoHoras() < dto.minimoHoras()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "El máximo de horas debe ser mayor o igual al mínimo de horas"
             );
+        }
+
+        if (idPadre != null) {
+            Integer effectiveMax = findEffectiveAncestorMax(idPadre);
+
+            if (effectiveMax != null && effectiveMax > 0) {
+                if (dto.minimoHoras() != null && dto.minimoHoras() > 0 && dto.minimoHoras() > effectiveMax) {
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "El mínimo de horas (" + dto.minimoHoras()
+                                    + ") no puede superar el tope máximo permitido por sus actividades superiores ("
+                                    + effectiveMax + ")"
+                    );
+                }
+                if (dto.maximoHoras() != null && dto.maximoHoras() > 0 && dto.maximoHoras() > effectiveMax) {
+                    throw new ApiException(
+                            HttpStatus.BAD_REQUEST,
+                            "El máximo de horas (" + dto.maximoHoras()
+                                    + ") no puede superar el tope máximo permitido por sus actividades superiores ("
+                                    + effectiveMax + ")"
+                    );
+                }
+            }
+        }
+    }
+
+    private Integer findEffectiveAncestorMax(Long idPadre) {
+        Long currentId = idPadre;
+        Integer minOfMax = null;
+        java.util.Set<Long> visited = new java.util.HashSet<>();
+
+        while (currentId != null && !visited.contains(currentId)) {
+            visited.add(currentId);
+            TipoActividadesEntity ancestor = tipoActividadesRepository.findById(currentId).orElse(null);
+            if (ancestor == null) {
+                break;
+            }
+            Integer max = parseInteger(ancestor.getMaximoHoras());
+            if (max != null && max > 0) {
+                minOfMax = (minOfMax != null) ? Math.min(minOfMax, max) : max;
+            }
+            currentId = ancestor.getIdPadre();
+        }
+        return minOfMax;
+    }
+
+    private Integer parseInteger(String val) {
+        if (!StringUtils.hasText(val)) {
+            return null;
+        }
+        try {
+            int num = Integer.parseInt(val.trim());
+            return num > 0 ? num : null;
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

@@ -138,6 +138,46 @@ public interface ProgramaRepository extends JpaRepository<ProgramaEntity, Long> 
                 AND NVL(PRCO.PRCO_ESTADO, '1') = '1'
             ORDER BY PROG.PROG_NOMBRE, CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
-    List<ProgramaCentroCostoProjection> findCentrosCostoByIdCoordinacion(
-            @Param("idCoordinacion") Long idCoordinacion);
+    List<ProgramaCentroCostoProjection> findCentrosCostoByIdCoordinacion(@Param("idCoordinacion") Long idCoordinacion);
+
+    @Query(value = """
+            SELECT DISTINCT
+                PROG.PROG_ID AS idPrograma,
+                PROG.PROG_NOMBRE AS nombrePrograma,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                NVL(UNID_AREA.UNID_NOMBRE, 'Programas de la coordinación') AS nombreGrupo
+            FROM RVDIES.PROGRAMACOORDINACION PRCO
+            INNER JOIN RVDIES.COORDINACIONES COOR ON COOR.COOR_ID = PRCO.COOR_ID
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
+            INNER JOIN ACADEMICO.PROGRAMA PROG ON PROG.PROG_ID = PRCO.PROG_ID
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO ON CECO.CECO_ID = PRCO.CECO_ID
+            WHERE :idCoordinacion IS NOT NULL
+                AND PRCO.COOR_ID IN (
+                    SELECT C.COOR_ID
+                    FROM RVDIES.COORDINACIONES C
+                    START WITH C.COOR_ID = :idCoordinacion
+                    CONNECT BY PRIOR C.COOR_ID = C.COOR_IDPADRE
+                )
+                AND PRCO.PROG_ID IS NOT NULL
+                AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO IS NULL)
+
+            UNION
+
+            SELECT DISTINCT
+                PROG.PROG_ID AS idPrograma,
+                PROG.PROG_NOMBRE AS nombrePrograma,
+                CECO.CECO_ID AS idCentroCosto,
+                CECO.CECO_DESCRIPCION AS descripcionCentroCosto,
+                'Estudiantes del proyecto' AS nombreGrupo
+            FROM RVDIES.ESTUDIANTES ESTU
+            INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
+            INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR ON UNPR.UNPR_ID = ESTP.UNPR_ID
+            INNER JOIN ACADEMICO.PROGRAMA PROG ON PROG.PROG_ID = UNPR.PROG_ID
+            LEFT JOIN RVDIES.PROGRAMACOORDINACION PRCO ON PRCO.PROG_ID = PROG.PROG_ID AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO IS NULL)
+            LEFT JOIN CONTABLEV3.CENTROCOSTO CECO ON CECO.CECO_ID = PRCO.CECO_ID
+            WHERE :idProyecto IS NOT NULL AND ESTU.PROY_ID = :idProyecto
+            ORDER BY nombreGrupo, nombrePrograma, descripcionCentroCosto
+            """, nativeQuery = true)
+    List<ProgramaCentroCostoProjection> findCentrosCostoByCoordinacionAndProyecto(@Param("idCoordinacion") Long idCoordinacion, @Param("idProyecto") Long idProyecto);
 }

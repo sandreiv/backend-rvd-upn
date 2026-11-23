@@ -9,6 +9,7 @@
  * 16/09/2026 - Andrés Hernández - Manejo relacion de actividad entre persona y proyecto
  * 09/11/2026 - Leonel Antonio Perez Rios - Adaptación de atributos para participantes de proyectos
  * 13/11/2026 - Inclusión de centro de costo, programa y data/funcion
+ * 20/11/2026 - Inclusión de programaNombre
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository.projection;
 
@@ -26,6 +27,7 @@ public interface PersonaProyectoListaProjection {
     String getCentroCostoNombre();
     String getCentroCostoCodigo();
     Long getIdPrograma();
+    String getProgramaNombre();
     Object getData();
     default String getFuncion() {
         return null;

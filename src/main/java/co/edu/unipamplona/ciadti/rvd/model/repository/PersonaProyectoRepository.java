@@ -206,6 +206,7 @@ public interface PersonaProyectoRepository
                 CECO.CECO_DESCRIPCION AS centroCostoNombre,
                 CECO.CECO_CODIGO AS centroCostoCodigo,
                 PEPR.PROG_ID AS idPrograma,
+                PROG.PROG_NOMBRE AS programaNombre,
                 TO_CHAR(PEPR.PEPR_DATA) AS data,
                 '1' AS estado,
                 '1' AS esActivo
@@ -216,6 +217,8 @@ public interface PersonaProyectoRepository
                 ON PENG.PEGE_ID = PEPR.PEGE_ID
             LEFT JOIN CONTABLEV3.CENTROCOSTO CECO
                 ON CECO.CECO_ID = PEPR.CECO_ID
+            LEFT JOIN ACADEMICO.PROGRAMA PROG
+                ON PROG.PROG_ID = PEPR.PROG_ID
             WHERE PEPR.PROY_ID = :idProyecto
             ORDER BY nombreCompleto, PEPR.PEPR_ID
             """, nativeQuery = true)
@@ -225,4 +228,6 @@ public interface PersonaProyectoRepository
     boolean existsByIdAndIdProyecto(Long id, Long idProyecto);
 
     boolean existsByIdProyecto(Long idProyecto);
+
+    boolean existsByIdProyectoIn(List<Long> ids);
 }

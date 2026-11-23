@@ -15,8 +15,11 @@ package co.edu.unipamplona.ciadti.rvd.model.service;
 
 import java.util.List;
 
+import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CentroCostoOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionCentrosCostoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionOpcionDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionSupervisionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DiaSemanaOpcionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.EstudianteBusquedaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.EstudianteProyectoFormularioDTO;
@@ -36,7 +39,13 @@ public interface ProyectosService {
 
     List<ProyectosListaDTO> listProjects();
 
-    List<ProyectosListaDTO> listAllProjects();
+    default List<ProyectosListaDTO> listAllProjects() {
+        return listAllProjects(null);
+    }
+
+    List<ProyectosListaDTO> listAllProjects(Long idCoordinacion);
+
+    List<CoordinacionSupervisionDTO> listSupervisionCoordinations();
 
     List<ProyectosListaDTO> listProducts(Long idProyecto);
 
@@ -46,11 +55,13 @@ public interface ProyectosService {
 
     List<CoordinacionOpcionDTO> searchCoordinations(String term);
 
-    default List<CentroCostoOpcionDTO> listCostCenters() {
+    default CoordinacionCentrosCostoDTO listCostCenters() {
         return listCostCenters(null, null);
     }
 
-    List<CentroCostoOpcionDTO> listCostCenters(Long idProyecto, Long idCoordinacion);
+    CoordinacionCentrosCostoDTO listCostCenters(Long idProyecto, Long idCoordinacion);
+
+    List<CentroCostoDTO> searchCostCenters(String term);
 
     List<ProyectoGrupoOpcionDTO> listProjectGroupOptions();
 

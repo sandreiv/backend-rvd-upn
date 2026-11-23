@@ -61,6 +61,7 @@ public interface PersonaProyectoMapper {
                 projection.getCentroCostoNombre(),
                 projection.getCentroCostoCodigo(),
                 projection.getIdPrograma(),
+                projection.getProgramaNombre(),
                 funcion,
                 nivel,
                 data,

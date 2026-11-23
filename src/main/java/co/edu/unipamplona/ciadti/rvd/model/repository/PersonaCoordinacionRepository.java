@@ -104,6 +104,14 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
     boolean existsActiveByCoordinacionAndPersona(
             @Param("idCoordinacion") Long idCoordinacion,
             @Param("idPersona") Long idPersona);
+
+    @Query("""
+            SELECT COUNT(peco) > 0
+            FROM PersonaCoordinacionEntity peco
+            WHERE peco.idPersonaGeneral = :idPersona
+                AND (peco.estado IS NULL OR peco.estado = '1')
+            """)
+    boolean existsActiveByPersona(@Param("idPersona") Long idPersona);
 }
 
 /* 17/07/2026 @:Daniel Arias */

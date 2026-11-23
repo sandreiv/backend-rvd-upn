@@ -9,6 +9,7 @@
  * 17/11/2026 - Consulta de centros de costo por coordinación y validación de pertenencia
  * 18/11/2026 - Consulta de centros de costo asociados a programas de estudiantes del proyecto por PEGE_ID / ESTP_ID
  * 19/11/2026 - Listado de todos los centros de costo.
+ * 19/11/2026 - Consulta y validación de centros de costo para proyectos incluyendo coordinación, programas y subcoordinaciones.
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -43,6 +44,7 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             WHERE UPPER(CECO.CECO_DESCRIPCION) LIKE UPPER('%' || :texto || '%')
                 OR UPPER(CECO.CECO_CODIGO) LIKE UPPER('%' || :texto || '%')
             ORDER BY CECO.CECO_DESCRIPCION, CECO.CECO_ID
+            FETCH FIRST 25 ROWS ONLY
             """, nativeQuery = true)
     List<CatalogoAdministracionProjection> findByTexto(@Param("texto") String texto);
 
@@ -54,22 +56,31 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
             FROM CONTABLEV3.CENTROCOSTO CECO
             INNER JOIN RVDIES.CENTROCOSTOCOORDINACION CCCO ON CCCO.CECO_ID = CECO.CECO_ID
             WHERE CCCO.COOR_ID = :idCoordinacion
-              AND (CCCO.CCCO_ESTADO IN ('1', 'S', 'A') OR CCCO.CCCO_ESTADO IS NULL)
+              AND (CCCO.CCCO_ESTADO = '1' OR CCCO.CCCO_ESTADO IS NULL)
               AND CECO.CECO_DESCRIPCION IS NOT NULL
             ORDER BY CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
     List<CatalogoAdministracionProjection> findByCoordinacionId(@Param("idCoordinacion") Long idCoordinacion);
 
     @Query(value = """
-            SELECT COUNT(CCCO.CCCO_ID)
-            FROM RVDIES.CENTROCOSTOCOORDINACION CCCO
-            WHERE CCCO.COOR_ID = :idCoordinacion
-              AND CCCO.CECO_ID = :idCentroCosto
+            SELECT DISTINCT
+                CECO.CECO_ID AS id,
+                CECO.CECO_DESCRIPCION AS label,
+                CECO.CECO_CODIGO AS codigo
+            FROM CONTABLEV3.CENTROCOSTO CECO
+            INNER JOIN RVDIES.CENTROCOSTOCOORDINACION CCCO ON CCCO.CECO_ID = CECO.CECO_ID
+            WHERE CCCO.COOR_ID IN (
+                SELECT C.COOR_ID
+                FROM RVDIES.COORDINACIONES C
+                START WITH C.COOR_ID = :idCoordinacion
+                CONNECT BY PRIOR C.COOR_ID = C.COOR_IDPADRE
+            )
               AND (CCCO.CCCO_ESTADO IN ('1', 'S', 'A') OR CCCO.CCCO_ESTADO IS NULL)
+              AND CECO.CECO_DESCRIPCION IS NOT NULL
+            ORDER BY CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
-    long countByCoordinacionIdAndCentroCostoId(
-            @Param("idCoordinacion") Long idCoordinacion,
-            @Param("idCentroCosto") Long idCentroCosto
+    List<CatalogoAdministracionProjection> findCentrosCostoByCoordinacionIdIncludingChildren(
+            @Param("idCoordinacion") Long idCoordinacion
     );
 
     @Query(value = """
@@ -77,39 +88,82 @@ public interface CentroCostoRepository extends JpaRepository<CentroCostoEntity, 
                 CECO.CECO_ID AS id,
                 CECO.CECO_DESCRIPCION AS label,
                 CECO.CECO_CODIGO AS codigo
-            FROM RVDIES.ESTUDIANTES ESTU
-            INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP
-                ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
-            INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
-                ON UNPR.UNPR_ID = ESTP.UNPR_ID
-            INNER JOIN RVDIES.PROGRAMACOORDINACION PRCO
-                ON PRCO.PROG_ID = UNPR.PROG_ID
-            INNER JOIN CONTABLEV3.CENTROCOSTO CECO
-                ON CECO.CECO_ID = PRCO.CECO_ID
-            WHERE ESTU.PROY_ID = :idProyecto
-              AND (PRCO.PRCO_ESTADO IN ('1', 'S', 'A') OR PRCO.PRCO_ESTADO IS NULL)
-              AND CECO.CECO_DESCRIPCION IS NOT NULL
+            FROM CONTABLEV3.CENTROCOSTO CECO
+            WHERE CECO.CECO_DESCRIPCION IS NOT NULL
+              AND (
+                (:idCoordinacion IS NOT NULL AND (
+                    CECO.CECO_ID IN (
+                        SELECT CCCO.CECO_ID
+                        FROM RVDIES.CENTROCOSTOCOORDINACION CCCO
+                        WHERE (CCCO.COOR_ID = :idCoordinacion
+                               OR CCCO.COOR_ID IN (SELECT C.COOR_ID FROM RVDIES.COORDINACIONES C WHERE C.COOR_IDPADRE = :idCoordinacion))
+                          AND (CCCO.CCCO_ESTADO = '1' OR CCCO.CCCO_ESTADO IS NULL)
+                    )
+                    OR
+                    CECO.CECO_ID IN (
+                        SELECT PRCO.CECO_ID
+                        FROM RVDIES.PROGRAMACOORDINACION PRCO
+                        WHERE (PRCO.COOR_ID = :idCoordinacion
+                               OR PRCO.COOR_ID IN (SELECT C.COOR_ID FROM RVDIES.COORDINACIONES C WHERE C.COOR_IDPADRE = :idCoordinacion))
+                          AND PRCO.CECO_ID IS NOT NULL
+                          AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO IS NULL)
+                    )
+                ))
+                OR
+                (:idProyecto IS NOT NULL AND CECO.CECO_ID IN (
+                    SELECT PRCO.CECO_ID
+                    FROM RVDIES.ESTUDIANTES ESTU
+                    INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP
+                        ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
+                    INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
+                        ON UNPR.UNPR_ID = ESTP.UNPR_ID
+                    INNER JOIN RVDIES.PROGRAMACOORDINACION PRCO
+                        ON PRCO.PROG_ID = UNPR.PROG_ID
+                    WHERE ESTU.PROY_ID = :idProyecto
+                      AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO IS NULL)
+                ))
+              )
             ORDER BY CECO.CECO_DESCRIPCION
             """, nativeQuery = true)
-    List<CatalogoAdministracionProjection> findCostCentersByProjectStudents(@Param("idProyecto") Long idProyecto);
+    List<CatalogoAdministracionProjection> findCostCentersByCoordinacionAndProject(@Param("idCoordinacion") Long idCoordinacion, @Param("idProyecto") Long idProyecto);
 
     @Query(value = """
-            SELECT COUNT(DISTINCT CECO.CECO_ID)
-            FROM RVDIES.ESTUDIANTES ESTU
-            INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP
-                ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
-            INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
-                ON UNPR.UNPR_ID = ESTP.UNPR_ID
-            INNER JOIN RVDIES.PROGRAMACOORDINACION PRCO
-                ON PRCO.PROG_ID = UNPR.PROG_ID
-            INNER JOIN CONTABLEV3.CENTROCOSTO CECO
-                ON CECO.CECO_ID = PRCO.CECO_ID
-            WHERE ESTU.PROY_ID = :idProyecto
-              AND CECO.CECO_ID = :idCentroCosto
-              AND (PRCO.PRCO_ESTADO IN ('1', 'S', 'A') OR PRCO.PRCO_ESTADO IS NULL)
+            SELECT COUNT(1)
+            FROM CONTABLEV3.CENTROCOSTO CECO
+            WHERE CECO.CECO_ID = :idCentroCosto
+              AND (
+                (:idCoordinacion IS NOT NULL AND (
+                    CECO.CECO_ID IN (
+                        SELECT CCCO.CECO_ID
+                        FROM RVDIES.CENTROCOSTOCOORDINACION CCCO
+                        WHERE (CCCO.COOR_ID = :idCoordinacion
+                               OR CCCO.COOR_ID IN (SELECT C.COOR_ID FROM RVDIES.COORDINACIONES C WHERE C.COOR_IDPADRE = :idCoordinacion))
+                          AND (CCCO.CCCO_ESTADO = '1' OR CCCO.CCCO_ESTADO IS NULL)
+                    )
+                    OR
+                    CECO.CECO_ID IN (
+                        SELECT PRCO.CECO_ID
+                        FROM RVDIES.PROGRAMACOORDINACION PRCO
+                        WHERE (PRCO.COOR_ID = :idCoordinacion
+                               OR PRCO.COOR_ID IN (SELECT C.COOR_ID FROM RVDIES.COORDINACIONES C WHERE C.COOR_IDPADRE = :idCoordinacion))
+                          AND PRCO.CECO_ID IS NOT NULL
+                          AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO IS NULL)
+                    )
+                ))
+                OR
+                (:idProyecto IS NOT NULL AND CECO.CECO_ID IN (
+                    SELECT PRCO.CECO_ID
+                    FROM RVDIES.ESTUDIANTES ESTU
+                    INNER JOIN ACADEMICO.ESTUDIANTEPENSUM ESTP
+                        ON (ESTP.ESTP_ID = ESTU.ESTP_ID OR (ESTU.ESTP_ID IS NULL AND ESTP.PEGE_ID = ESTU.PEGE_ID))
+                    INNER JOIN ACADEMICO.UNIDADPROGRAMA UNPR
+                        ON UNPR.UNPR_ID = ESTP.UNPR_ID
+                    INNER JOIN RVDIES.PROGRAMACOORDINACION PRCO
+                        ON PRCO.PROG_ID = UNPR.PROG_ID
+                    WHERE ESTU.PROY_ID = :idProyecto
+                      AND (PRCO.PRCO_ESTADO = '1' OR PRCO.PRCO_ESTADO IS NULL)
+                ))
+              )
             """, nativeQuery = true)
-    long countByProjectStudentsAndCentroCostoId(
-            @Param("idProyecto") Long idProyecto,
-            @Param("idCentroCosto") Long idCentroCosto
-    );
+    long countValidCostCenterForProject(@Param("idCoordinacion") Long idCoordinacion, @Param("idProyecto") Long idProyecto, @Param("idCentroCosto") Long idCentroCosto);
 }

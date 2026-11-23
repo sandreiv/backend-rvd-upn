@@ -9,6 +9,7 @@
  * 09/11/2026 - Leonel Antonio Perez Rios - Adaptación de consultas para gestión de proyectos sin campos de estado inexistentes
  * 10/11/2026 - Leonel Antonio Perez Rios - Adición de consulta para árbol completo de proyectos y productos
  * 17/11/2026 - Inclusión de idProyectoGrupo y nombreProyectoGrupo
+ * 19/11/2026 - Optimización de consultas de conteo con LEFT JOIN agrupados para evitar N+1 y soporte de borrado masivo
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -42,8 +43,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.PROY_NUMEROACTA AS numeroActa,
                 PROY.PROY_FECHAACTA AS fechaActa,
                 PROY.PROY_ACTIVO AS activo,
-                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes,
-                (SELECT COUNT(1) FROM RVDIES.ESTUDIANTES ESTU WHERE ESTU.PROY_ID = PROY.PROY_ID) AS totalEstudiantes
+                COALESCE(DOC_AGG.totalDocentes, 0) AS totalDocentes,
+                COALESCE(EST_AGG.totalEstudiantes, 0) AS totalEstudiantes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
                 ON TIAC.TIAC_ID = PROY.TIAC_ID
@@ -53,6 +54,16 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
             LEFT JOIN RVDIES.PROYECTOGRUPO PRGR
                 ON PRGR.PRGR_ID = PROY.PRGR_ID
+            LEFT JOIN (
+                SELECT PROY_ID, COUNT(1) AS totalDocentes
+                FROM RVDIES.PERSONAPROYECTO
+                GROUP BY PROY_ID
+            ) DOC_AGG ON DOC_AGG.PROY_ID = PROY.PROY_ID
+            LEFT JOIN (
+                SELECT PROY_ID, COUNT(1) AS totalEstudiantes
+                FROM RVDIES.ESTUDIANTES
+                GROUP BY PROY_ID
+            ) EST_AGG ON EST_AGG.PROY_ID = PROY.PROY_ID
             WHERE PROY.PROY_IDPROYECTO IS NULL
             ORDER BY PROY.PROY_NOMBRE
             """, nativeQuery = true)
@@ -76,8 +87,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.PROY_NUMEROACTA AS numeroActa,
                 PROY.PROY_FECHAACTA AS fechaActa,
                 PROY.PROY_ACTIVO AS activo,
-                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes,
-                (SELECT COUNT(1) FROM RVDIES.ESTUDIANTES ESTU WHERE ESTU.PROY_ID = PROY.PROY_ID) AS totalEstudiantes
+                COALESCE(DOC_AGG.totalDocentes, 0) AS totalDocentes,
+                COALESCE(EST_AGG.totalEstudiantes, 0) AS totalEstudiantes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
                 ON TIAC.TIAC_ID = PROY.TIAC_ID
@@ -87,12 +98,27 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
             LEFT JOIN RVDIES.PROYECTOGRUPO PRGR
                 ON PRGR.PRGR_ID = PROY.PRGR_ID
+            LEFT JOIN (
+                SELECT PROY_ID, COUNT(1) AS totalDocentes
+                FROM RVDIES.PERSONAPROYECTO
+                GROUP BY PROY_ID
+            ) DOC_AGG ON DOC_AGG.PROY_ID = PROY.PROY_ID
+            LEFT JOIN (
+                SELECT PROY_ID, COUNT(1) AS totalEstudiantes
+                FROM RVDIES.ESTUDIANTES
+                GROUP BY PROY_ID
+            ) EST_AGG ON EST_AGG.PROY_ID = PROY.PROY_ID
+            WHERE (:idCoordinacion IS NULL
+                   OR PROY.COOR_ID = :idCoordinacion
+                   OR PROY.PROY_IDPROYECTO IN (
+                       SELECT P_PADRE.PROY_ID FROM RVDIES.PROYECTOS P_PADRE WHERE P_PADRE.COOR_ID = :idCoordinacion
+                   ))
             ORDER BY
                 NVL(PROY.PROY_IDPROYECTO, PROY.PROY_ID),
                 PROY.PROY_IDPROYECTO NULLS FIRST,
                 PROY.PROY_NOMBRE
             """, nativeQuery = true)
-    List<ProyectosListaProjection> findAllProjectsList();
+    List<ProyectosListaProjection> findAllProjectsList(@Param("idCoordinacion") Long idCoordinacion);
 
     @Query(value = """
             SELECT
@@ -112,8 +138,8 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 PROY.PROY_NUMEROACTA AS numeroActa,
                 PROY.PROY_FECHAACTA AS fechaActa,
                 PROY.PROY_ACTIVO AS activo,
-                (SELECT COUNT(1) FROM RVDIES.PERSONAPROYECTO PEPR WHERE PEPR.PROY_ID = PROY.PROY_ID) AS totalDocentes,
-                (SELECT COUNT(1) FROM RVDIES.ESTUDIANTES ESTU WHERE ESTU.PROY_ID = PROY.PROY_ID) AS totalEstudiantes
+                COALESCE(DOC_AGG.totalDocentes, 0) AS totalDocentes,
+                COALESCE(EST_AGG.totalEstudiantes, 0) AS totalEstudiantes
             FROM RVDIES.PROYECTOS PROY
             LEFT JOIN RVDIES.TIPOACTIVIDADES TIAC
                 ON TIAC.TIAC_ID = PROY.TIAC_ID
@@ -123,12 +149,24 @@ public interface ProyectosRepository extends JpaRepository<ProyectosEntity, Long
                 ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
             LEFT JOIN RVDIES.PROYECTOGRUPO PRGR
                 ON PRGR.PRGR_ID = PROY.PRGR_ID
+            LEFT JOIN (
+                SELECT PROY_ID, COUNT(1) AS totalDocentes
+                FROM RVDIES.PERSONAPROYECTO
+                GROUP BY PROY_ID
+            ) DOC_AGG ON DOC_AGG.PROY_ID = PROY.PROY_ID
+            LEFT JOIN (
+                SELECT PROY_ID, COUNT(1) AS totalEstudiantes
+                FROM RVDIES.ESTUDIANTES
+                GROUP BY PROY_ID
+            ) EST_AGG ON EST_AGG.PROY_ID = PROY.PROY_ID
             WHERE PROY.PROY_IDPROYECTO = :idProyecto
             ORDER BY PROY.PROY_NOMBRE
             """, nativeQuery = true)
     List<ProyectosListaProjection> findProductsByParentProjectId(@Param("idProyecto") Long idProyecto);
 
     boolean existsByIdProyectoPadre(Long idProyectoPadre);
+
+    boolean existsByIdProyectoPadreIn(List<Long> ids);
 
     @Query(value = """
             SELECT

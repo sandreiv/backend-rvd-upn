@@ -70,6 +70,8 @@ public interface EstudiantesRepository extends JpaRepository<EstudiantesEntity, 
             @Param("idPersonaGeneral") Long idPersonaGeneral
     );
 
+    boolean existsByIdProyectoIn(List<Long> ids);
+
     @Query(value = """
             SELECT
                 T.idPersonaGeneral,
