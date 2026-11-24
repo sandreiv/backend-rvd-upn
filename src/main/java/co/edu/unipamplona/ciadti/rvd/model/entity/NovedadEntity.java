@@ -6,13 +6,11 @@
  * Fecha de creación: 10/06/2026
  * Modificaciones:
  * 03/11/2026 - Alineación con RVDIES.NOVEDADES
- * 24/11/2026 - Juan Diego Florez Vera - Alineación a RVD.NOVEDADES (NOVE_ACCION,
- *              NOVE_COMPONENTE, NOVE_FORPLANTA) y eliminación por RVD.PR_RVD_D_NOVEDADES
+ * 24/11/2026 - Catálogo administrable sobre RVDIES.NOVEDADES
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.util.Date;
 
 import jakarta.persistence.Column;
@@ -20,65 +18,41 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.NamedStoredProcedureQuery;
-import jakarta.persistence.ParameterMode;
-import jakarta.persistence.StoredProcedureParameter;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Catálogo de novedades (RVD.NOVEDADES).
+ * Catálogo de novedades de carga docente (RVDIES.NOVEDADES).
  *
- * NOVE_COMPONENTE es el contrato con el frontend: identifica la novedad que
- * consume cada modal (por ejemplo add-professor / delete-professor).
+ * La tabla no tiene columna identity ni trigger, por eso la PK se toma de
+ * SEQ_NOVEDADES con allocationSize = 1 (sin pooling de secuencias).
  */
-@NamedStoredProcedureQuery(
-    name = "NovedadEntity.deleteByProcedure",
-    procedureName = "RVD.PR_RVD_D_NOVEDADES",
-    parameters = {
-        @StoredProcedureParameter(
-            name = "P_NOVE_ID",
-            mode = ParameterMode.IN,
-            type = Long.class
-        ),
-        @StoredProcedureParameter(
-            name = "P_NOVE_REGISTRADOPOR",
-            mode = ParameterMode.IN,
-            type = String.class
-        ),
-        @StoredProcedureParameter(
-            name = "P_EXITO",
-            mode = ParameterMode.OUT,
-            type = BigDecimal.class
-        )
-    }
-)
 @Getter
 @Setter
 @Entity
-@Table(name = "NOVEDADES", schema = "RVD")
+@Table(name = "NOVEDADES", schema = "RVDIES")
 public class NovedadEntity implements Serializable, Cloneable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "novedades_seq"
+    )
+    @SequenceGenerator(
+        name = "novedades_seq",
+        sequenceName = "RVDIES.SEQ_NOVEDADES",
+        allocationSize = 1
+    )
     @Column(name = "NOVE_ID", nullable = false)
     private Long id;
 
-    @Column(name = "NOVE_TIPO", length = 150)
+    @Column(name = "NOVE_TIPO", nullable = false, length = 30)
     private String tipo;
 
-    @Column(name = "NOVE_DESCRIPCION", length = 250)
+    @Column(name = "NOVE_DESCRIPCION", nullable = false, length = 30)
     private String descripcion;
-
-    @Column(name = "NOVE_ACCION", length = 30)
-    private String accion;
-
-    @Column(name = "NOVE_COMPONENTE", length = 100)
-    private String componente;
-
-    @Column(name = "NOVE_FORPLANTA", length = 1)
-    private String forPlanta;
 
     @Column(name = "NOVE_REGISTRADOPOR", length = 150)
     private String registradoPor;
@@ -96,9 +70,7 @@ public class NovedadEntity implements Serializable, Cloneable {
         return "NovedadEntity{"
                 + "id=" + id
                 + ", tipo='" + tipo + '\''
-                + ", accion='" + accion + '\''
-                + ", componente='" + componente + '\''
-                + ", forPlanta='" + forPlanta + '\''
+                + ", descripcion='" + descripcion + '\''
                 + '}';
     }
 }

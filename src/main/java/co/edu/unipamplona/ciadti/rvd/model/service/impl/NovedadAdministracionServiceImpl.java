@@ -6,14 +6,13 @@
  * Fecha de creación: 24/11/2026
  * Modificaciones:
  * 24/11/2026 - Creación inicial para administración de tablas básicas (NOVEDADES)
+ * 24/11/2026 - Ajuste a RVDIES.NOVEDADES: solo tipo y descripción; el borrado
+ *              es directo porque el esquema no tiene procedimiento PR_RVD_D_*
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,13 +38,9 @@ import lombok.extern.slf4j.Slf4j;
 public class NovedadAdministracionServiceImpl
         implements NovedadAdministracionService {
 
-    private static final Set<String> ACCIONES_VALIDAS =
-            Set.of("ACTUALIZAR", "GUARDAR", "ELIMINAR");
-
-    private static final int MAX_TIPO = 150;
-    private static final int MAX_DESCRIPCION = 250;
-    private static final int MAX_ACCION = 30;
-    private static final int MAX_COMPONENTE = 100;
+    /** Longitudes reales de RVDIES.NOVEDADES.NOVE_TIPO y NOVE_DESCRIPCION. */
+    private static final int MAX_TIPO = 30;
+    private static final int MAX_DESCRIPCION = 30;
 
     private final NovedadRepository novedadRepository;
 
@@ -77,21 +72,16 @@ public class NovedadAdministracionServiceImpl
         validate(dto);
 
         String tipo = normalize(dto.tipo());
-        String accion = normalizeAccion(dto.accion());
 
         log.info(
-                "saveNovedad ===> Guardando novedad. tipo={}, accion={}",
-                tipo,
-                accion
+                "saveNovedad ===> Guardando novedad. tipo={}",
+                tipo
         );
 
-        if (
-            novedadRepository
-                    .countByTipoAndAccion(tipo, accion) > 0
-        ) {
+        if (novedadRepository.countByTipo(tipo) > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Ya existe una novedad con el tipo y la acción indicados"
+                    "Ya existe una novedad con el tipo indicado"
             );
         }
 
@@ -117,13 +107,11 @@ public class NovedadAdministracionServiceImpl
         validate(dto);
 
         String tipo = normalize(dto.tipo());
-        String accion = normalizeAccion(dto.accion());
 
         log.info(
-                "updateNovedad ===> Actualizando novedad. id={}, tipo={}, accion={}",
+                "updateNovedad ===> Actualizando novedad. id={}, tipo={}",
                 id,
-                tipo,
-                accion
+                tipo
         );
 
         NovedadEntity entity =
@@ -138,11 +126,11 @@ public class NovedadAdministracionServiceImpl
 
         if (
             novedadRepository
-                    .countByTipoAndAccionAndIdNot(tipo, accion, id) > 0
+                    .countByTipoAndIdNot(tipo, id) > 0
         ) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Ya existe una novedad con el tipo y la acción indicados"
+                    "Ya existe una novedad con el tipo indicado"
             );
         }
 
@@ -167,15 +155,15 @@ public class NovedadAdministracionServiceImpl
                 id
         );
 
-        if (
-            id == null ||
-            !novedadRepository.existsById(id)
-        ) {
-            throw new ApiException(
-                    HttpStatus.NOT_FOUND,
-                    "No existe la novedad con id " + id
-            );
-        }
+        NovedadEntity entity =
+                novedadRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () -> new ApiException(
+                                        HttpStatus.NOT_FOUND,
+                                        "No existe la novedad con id " + id
+                                )
+                        );
 
         long usos = novedadRepository.countUsosNovedad(id);
 
@@ -187,22 +175,8 @@ public class NovedadAdministracionServiceImpl
             );
         }
 
-        BigDecimal result =
-                novedadRepository
-                        .deleteByProcedure(
-                                id,
-                                RegistradoPorUtils.value(Accion.DELETE)
-                        );
-
-        if (
-            result == null ||
-            BigDecimal.ONE.compareTo(result) != 0
-        ) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "No se pudo eliminar la novedad"
-            );
-        }
+        novedadRepository.delete(entity);
+        novedadRepository.flush();
 
         log.info(
                 "deleteNovedad ===> Novedad eliminada. id={}",
@@ -246,18 +220,6 @@ public class NovedadAdministracionServiceImpl
                 normalize(dto.descripcion())
         );
 
-        entity.setAccion(
-                normalizeAccion(dto.accion())
-        );
-
-        entity.setComponente(
-                normalize(dto.componente())
-        );
-
-        entity.setForPlanta(
-                normalizeFlag(dto.forPlanta())
-        );
-
         entity.setRegistradoPor(
                 RegistradoPorUtils.value(
                         entity.getId() == null
@@ -295,24 +257,6 @@ public class NovedadAdministracionServiceImpl
                 MAX_DESCRIPCION,
                 "La descripción no puede superar " + MAX_DESCRIPCION + " caracteres"
         );
-
-        validateText(
-                dto.accion(),
-                "La acción es obligatoria",
-                MAX_ACCION,
-                "La acción no puede superar " + MAX_ACCION + " caracteres"
-        );
-
-        normalizeAccion(dto.accion());
-
-        validateText(
-                dto.componente(),
-                "El componente es obligatorio: es el identificador que consume el frontend",
-                MAX_COMPONENTE,
-                "El componente no puede superar " + MAX_COMPONENTE + " caracteres"
-        );
-
-        normalizeFlag(dto.forPlanta());
     }
 
     private void validateText(
@@ -341,46 +285,5 @@ public class NovedadAdministracionServiceImpl
             String value
     ) {
         return value == null ? null : value.trim();
-    }
-
-    private String normalizeAccion(
-            String value
-    ) {
-
-        String accion =
-                value == null
-                        ? ""
-                        : value
-                                .trim()
-                                .toUpperCase(Locale.ROOT);
-
-        if (!ACCIONES_VALIDAS.contains(accion)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "La acción debe ser ACTUALIZAR, GUARDAR o ELIMINAR"
-            );
-        }
-
-        return accion;
-    }
-
-    private String normalizeFlag(
-            String value
-    ) {
-
-        if (!StringUtils.hasText(value)) {
-            return "0";
-        }
-
-        String flag = value.trim();
-
-        if (!"1".equals(flag) && !"0".equals(flag)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "El indicador de planta debe ser '1' o '0'"
-            );
-        }
-
-        return flag;
     }
 }

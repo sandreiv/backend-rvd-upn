@@ -44,7 +44,7 @@ public class BasicTablesController {
 
     @Operation(
             summary = "Lista las novedades",
-            description = "Lista las novedades registradas en RVD.NOVEDADES"
+            description = "Lista las novedades registradas en RVDIES.NOVEDADES"
     )
     @GetMapping("/list")
     public ResponseEntity<List<NovedadListadoDTO>> listNovedades() {
@@ -80,7 +80,7 @@ public class BasicTablesController {
 
     @Operation(
             summary = "Elimina una novedad",
-            description = "Elimina una novedad a través del procedimiento RVD.PR_RVD_D_NOVEDADES"
+            description = "Elimina una novedad del catálogo tras validar que no esté en uso"
     )
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Void> deleteNovedad(
