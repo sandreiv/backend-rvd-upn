@@ -25,6 +25,7 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
 
     @Query(value = """
             SELECT
+                PECO.PECO_ID AS id,            
                 PECO.PEGE_ID AS idPersonaGeneral,
                 COALESCE(
                     NULLIF(TRIM(
@@ -37,18 +38,27 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
                 ) AS persona,
                 PEGE.PEGE_DOCUMENTOIDENTIDAD AS documentoIdentidad,
                 COOR.COOR_ID AS idCoordinacion,
-                COALESCE(COOR.COOR_NOMBRE, COOR.COOR_DESCRIPCION) AS coordinacion,
+                UNID_AREA.UNID_NOMBRE AS coordinacion,
                 TO_CHAR(PECO.PECO_ESTADO) AS estado
-            FROM RVD.PERSONACOORDINACION PECO
+            FROM RVDIES.PERSONACOORDINACION PECO
             LEFT JOIN GENERAL.PERSONAGENERAL PEGE
                 ON PEGE.PEGE_ID = PECO.PEGE_ID
             LEFT JOIN GENERAL.PERSONANATURALGENERAL PENG
                 ON PENG.PEGE_ID = PECO.PEGE_ID
-            LEFT JOIN RVD.COORDINACIONES COOR
+            LEFT JOIN RVDIES.COORDINACIONES COOR
                 ON COOR.COOR_ID = PECO.COOR_ID
+            LEFT JOIN ACADEMICO.UNIDAD UNID_AREA
+                ON UNID_AREA.UNID_ID = COOR.UNID_IDAREA
             ORDER BY PECO.PEGE_ID, COOR.COOR_ID
             """, nativeQuery = true)
     List<PersonaCoordinacionListadoProjection> findAdministrationList();
+
+    @Query(value = """
+            SELECT PECO.PECO_ID
+            FROM RVDIES.PERSONACOORDINACION PECO
+            WHERE PECO.COOR_ID = :idCoordinacion
+            """, nativeQuery = true)
+    List<Long> findIdsByIdCoordinacion(@Param("idCoordinacion") Long idCoordinacion);
 
     @Query(value = """
             SELECT

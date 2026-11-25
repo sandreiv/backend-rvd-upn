@@ -7,10 +7,10 @@
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
  */
-
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
 public record PersonaCoordinacionFormularioDTO(
+        Long id,
         Long idPersonaGeneral,
         Long idCoordinacion,
         String estado
