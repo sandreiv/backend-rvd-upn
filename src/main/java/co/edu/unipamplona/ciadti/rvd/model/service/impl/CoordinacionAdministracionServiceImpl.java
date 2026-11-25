@@ -11,7 +11,6 @@ package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
 import java.util.Date;
 import java.util.List;
-import java.math.BigDecimal;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,10 +22,10 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.CatalogoAdministracionDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionAdministracionFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CoordinacionAdministracionListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.CoordinacionesEntity;
-import co.edu.unipamplona.ciadti.rvd.model.repository.CentroCostoRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.CentroCostoCoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.CoordinacionRepository;
-import co.edu.unipamplona.ciadti.rvd.model.repository.MetodologiaRepository;
-import co.edu.unipamplona.ciadti.rvd.model.repository.ModalidadRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.PersonaCoordinacionRepository;
+import co.edu.unipamplona.ciadti.rvd.model.repository.ProgramaCoordinacionRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.UnidadRepository;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CatalogoAdministracionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionAdministracionListadoProjection;
@@ -41,13 +40,13 @@ import co.edu.unipamplona.ciadti.rvd.util.RegistradoPorUtils.Accion;
 @RequiredArgsConstructor
 public class CoordinacionAdministracionServiceImpl implements CoordinacionAdministracionService {
 
-    private static final String REGISTRADO_POR = "REGISTRO_WEB";
-
     private final CoordinacionRepository coordinacionRepository;
     private final UnidadRepository unidadRepository;
-    private final ModalidadRepository modalidadRepository;
-    private final MetodologiaRepository metodologiaRepository;
-    private final CentroCostoRepository centroCostoRepository;
+    private final CentroCostoCoordinacionRepository centroCostoCoordinacionRepository;
+    private final ProgramaCoordinacionRepository programaCoordinacionRepository;
+    private final PersonaCoordinacionRepository personaCoordinacionRepository;
+
+    private final AdministracionServiceImpl administracionServiceImpl;
 
     @Override
     @Transactional(readOnly = true)
@@ -162,84 +161,66 @@ public class CoordinacionAdministracionServiceImpl implements CoordinacionAdmini
     @Override
     @Transactional
     public void deleteCoordination(Long id) {
-        /*
         log.info("deleteCoordination ===> Eliminando coordinación. id={}", id);
 
         CoordinacionesEntity entity = coordinacionRepository.findById(id)
-                .orElseThrow(() -> {
-                    log.warn("deleteCoordination ===> Coordinación no encontrada. id={}", id);
-                    return new ApiException(
-                            HttpStatus.NOT_FOUND,
-                            "No existe la coordinación con id " + id
-                    );
-                });
+            .orElseThrow(() -> {
+                log.warn("deleteCoordination ===> Coordinación no encontrada. id={}", id);
+                return new ApiException(HttpStatus.NOT_FOUND, "No existe la coordinación con id " + id);
+            });
 
         if (coordinacionRepository.existsByIdCoordinacionPadre(entity.getId())) {
-            log.warn("deleteCoordination ===> Eliminación bloqueada. La coordinación tiene hijas asociadas. id={}",
-                    entity.getId());
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "No se puede eliminar la coordinación porque tiene coordinaciones hijas asociadas"
-            );
+            log.warn("deleteCoordination ===> Eliminación bloqueada. La coordinación tiene hijas asociadas. id={}", entity.getId());
+            throw new ApiException(HttpStatus.BAD_REQUEST, "No se puede eliminar la coordinación porque tiene coordinaciones hijas asociadas");
         }
-        */
 
-        /*
-        * Primero eliminamos por procedimiento las asignaciones de centro de costo
-        * asociadas a esta coordinación.
-        */
+        // Eliminar los programas asociados
+        List<Long> programsAssignmentIds = programaCoordinacionRepository.findIdsByIdCoordinacion(id);
+        log.debug("deleteCoordination ===> Asignaciones de programas encontradas para eliminar. idCoordinacion={}, total={}",
+            id, programsAssignmentIds.size());
 
-        /*
-        List<Long> costCenterAssignmentIds = asignarCentroCostoRepository.findIdsByIdCoordinacion(id);
+        for (Long assignmentId : programsAssignmentIds) {
+            administracionServiceImpl.deleteCoordinationAssociation(id);
 
+            log.info("deleteCoordination ===> Programa asignado eliminado. idCoordinacion={}, idAsignacion={}",
+                id, assignmentId);
+        }
+
+        // Eliminar las personas asociadas
+        List<Long> peopleAssignmentIds = personaCoordinacionRepository.findIdsByIdCoordinacion(id);
+        log.debug("deleteCoordination ===> Asignaciones de personas encontradas para eliminar. idCoordinacion={}, total={}",
+            id, peopleAssignmentIds.size());
+
+        for (Long assignmentId : peopleAssignmentIds) {
+            administracionServiceImpl.deletePeopleCoordination(id);
+
+            log.info("deleteCoordination ===> Persona asignada eliminada. idCoordinacion={}, idAsignacion={}",
+                id, assignmentId);
+        }
+        
+        // Eliminar los centros de costo asociados
+        List<Long> costCenterAssignmentIds = centroCostoCoordinacionRepository.findIdsByIdCoordinacion(id);
         log.debug("deleteCoordination ===> Asignaciones de centro de costo encontradas para eliminar. idCoordinacion={}, total={}",
-                id, costCenterAssignmentIds.size());
+            id, costCenterAssignmentIds.size());
 
         for (Long assignmentId : costCenterAssignmentIds) {
-            BigDecimal assignmentResult = asignarCentroCostoRepository.deleteByProcedure(
-                    assignmentId,
-                    REGISTRADO_POR
-            );
-
-            if (assignmentResult == null || BigDecimal.ONE.compareTo(assignmentResult) != 0) {
-                log.warn("deleteCoordination ===> Procedimiento de eliminación de centro costo falló. idCoordinacion={}, idAsignacion={}, resultado={}",
-                        id, assignmentId, assignmentResult);
-            }
-
-            validateProcedureResult(
-                    assignmentResult,
-                    "No se pudo eliminar el centro de costo asignado a la coordinación"
-            );
+            administracionServiceImpl.deleteCostCenterAssignment(id);
 
             log.info("deleteCoordination ===> Centro de costo asignado eliminado. idCoordinacion={}, idAsignacion={}",
-                    id, assignmentId);
-        }
-        */
-
-        /*
-        * Luego eliminamos la coordinación por procedimiento.
-        */
-
-        /*
-        BigDecimal result = coordinacionRepository.deleteByProcedure(id, REGISTRADO_POR);
-
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            log.warn("deleteCoordination ===> Procedimiento de eliminación de coordinación falló. id={}, resultado={}",
-                    id, result);
+                id, assignmentId);
         }
 
-        validateProcedureResult(result, "No se pudo eliminar la coordinación");
+        // Eliminar la coordinación
+        coordinacionRepository.delete(entity);
 
         log.info("deleteCoordination ===> Coordinación eliminada. id={}", id);
-        */
     }
 
     @Override
     @Transactional
     public void deleteBulkCoordinations(List<Long> ids) {
-        /*
         log.info("deleteBulkCoordinations ===> Eliminación masiva de coordinaciones. total={}",
-                ids != null ? ids.size() : 0);
+            ids != null ? ids.size() : 0);
 
         if (ids == null || ids.isEmpty()) {
             log.debug("deleteBulkCoordinations ===> Lista vacía. No se realiza eliminación");
@@ -251,8 +232,7 @@ public class CoordinacionAdministracionServiceImpl implements CoordinacionAdmini
         }
 
         log.info("deleteBulkCoordinations ===> Eliminación masiva de coordinaciones finalizada. total={}",
-                ids.size());
-        */
+            ids.size());
     }
 
     
@@ -343,19 +323,11 @@ public class CoordinacionAdministracionServiceImpl implements CoordinacionAdmini
         String normalized = value.trim().toUpperCase();
 
         return "1".equals(normalized)
-                || "ACTIVO".equals(normalized)
-                || "TRUE".equals(normalized)
-                || "SI".equals(normalized)
-                || "S".equals(normalized)
-                ? "1"
-                : "0";
+            || "ACTIVO".equals(normalized)
+            || "TRUE".equals(normalized)
+            || "SI".equals(normalized)
+            || "S".equals(normalized)
+            ? "1"
+            : "0";
     }
-
-    /*
-    private void validateProcedureResult(BigDecimal result, String message) {
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, message);
-        }
-    }
-    */
 }

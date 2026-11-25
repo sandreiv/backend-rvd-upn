@@ -22,6 +22,8 @@ public interface CoordinacionRepository extends JpaRepository<CoordinacionesEnti
 
     boolean existsByIdAndIdUnidadRegional(Long id, Long idUnidadRegional);
 
+    boolean existsByIdCoordinacionPadre(Long idCoordinacionPadre);
+
     @Query(value = """
             SELECT
                 COOR.COOR_ID AS id,

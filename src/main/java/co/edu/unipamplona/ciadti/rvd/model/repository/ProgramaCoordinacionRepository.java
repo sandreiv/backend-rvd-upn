@@ -50,6 +50,13 @@ public interface ProgramaCoordinacionRepository extends JpaRepository<ProgramaCo
     List<AsociacionCoordinacionListadoProjection> findAdministrationList();
 
     @Query(value = """
+            SELECT PRCO.PRCO_ID
+            FROM RVDIES.PROGRAMACOORDINACION PRCO
+            WHERE PRCO.COOR_ID = :idCoordinacion
+            """, nativeQuery = true)
+    List<Long> findIdsByIdCoordinacion(@Param("idCoordinacion") Long idCoordinacion);
+
+    @Query(value = """
             SELECT COUNT(*)
             FROM RVD.ASOCIACIONCOORDINACION asco
             WHERE asco.COOR_ID = :idCoordinacion

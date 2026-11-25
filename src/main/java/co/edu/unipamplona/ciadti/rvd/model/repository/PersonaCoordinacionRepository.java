@@ -54,6 +54,13 @@ public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoor
     List<PersonaCoordinacionListadoProjection> findAdministrationList();
 
     @Query(value = """
+            SELECT PECO.PECO_ID
+            FROM RVDIES.PERSONACOORDINACION PECO
+            WHERE PECO.COOR_ID = :idCoordinacion
+            """, nativeQuery = true)
+    List<Long> findIdsByIdCoordinacion(@Param("idCoordinacion") Long idCoordinacion);
+
+    @Query(value = """
             SELECT
                 COOR.COOR_ID AS id,
                 UNID_REG.UNID_ID AS idUnidadRegional,

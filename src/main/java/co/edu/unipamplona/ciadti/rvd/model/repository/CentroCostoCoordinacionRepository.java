@@ -45,9 +45,9 @@ public interface CentroCostoCoordinacionRepository extends JpaRepository<CentroC
     List<CentroCostoAsignadoListadoProjection> findAdministrationList();
 
     @Query(value = """
-            SELECT ASCC.ASCC_ID
-            FROM RVD.ASIGNARCENTROCOSTO ASCC
-            WHERE ASCC.COOR_ID = :idCoordinacion
+            SELECT CCCO.CCCO_ID
+            FROM RVDIES.CENTROCOSTOCOORDINACION CCCO
+            WHERE CCCO.COOR_ID = :idCoordinacion
             """, nativeQuery = true)
     List<Long> findIdsByIdCoordinacion(@Param("idCoordinacion") Long idCoordinacion);
 

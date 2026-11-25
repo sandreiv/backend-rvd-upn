@@ -49,7 +49,7 @@ public interface AdministracionService {
 
     void updatePeopleCoordination(Long id, PersonaCoordinacionFormularioDTO dto);
 
-    void deletePeopleCoordination(Long idPersonaGeneral, Long idCoordinacion);
+    void deletePeopleCoordination(Long id);
 
     void deleteBulkPeopleCoordinations(List<Long> ids);
 }

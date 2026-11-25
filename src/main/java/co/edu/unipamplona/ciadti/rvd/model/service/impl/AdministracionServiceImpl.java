@@ -138,36 +138,25 @@ public class AdministracionServiceImpl implements AdministracionService {
     @Override
     @Transactional
     public void deleteCoordinationAssociation(Long id) {
-        /*
+        // Cuando se implemente RestriccionProgramas se deben eliminar sus relaciones
         log.info("deleteCoordinationAssociation ===> Eliminando asociación de coordinación. id={}", id);
-
-        if (!programaCoordinacionRepository.existsById(id)) {
-            log.warn("deleteCoordinationAssociation ===> Asociación de coordinación no encontrada. id={}", id);
-            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la asociación con id " + id);
+        if (id == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El identificador de asociación es obligatorio");
         }
 
-        BigDecimal result = programaCoordinacionRepository.deleteByProcedure(
-                id,
-                RegistradoPorUtils.value(Accion.DELETE)
-        );
+        ProgramaCoordinacionEntity entity = programaCoordinacionRepository.findById(id)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la asociación con id " + id));
 
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            log.warn("deleteCoordinationAssociation ===> Procedimiento de eliminación falló. id={}, resultado={}",
-                    id, result);
-        }
-
-        validateProcedureResult(result, "No se pudo eliminar la asociación coordinación");
+        programaCoordinacionRepository.delete(entity);
 
         log.info("deleteCoordinationAssociation ===> Asociación de coordinación eliminada. id={}", id);
-        */
     }
 
     @Override
     @Transactional
     public void deleteBulkCoordinationAssociations(List<Long> ids) {
-        /*
         log.info("deleteBulkCoordinationAssociations ===> Eliminación masiva de asociaciones de coordinación. total={}",
-                ids != null ? ids.size() : 0);
+            ids != null ? ids.size() : 0);
 
         if (ids == null || ids.isEmpty()) {
             log.debug("deleteBulkCoordinationAssociations ===> Lista vacía. No se realiza eliminación");
@@ -179,8 +168,7 @@ public class AdministracionServiceImpl implements AdministracionService {
         }
 
         log.info("deleteBulkCoordinationAssociations ===> Eliminación masiva de asociaciones finalizada. total={}",
-                ids.size());
-        */
+            ids.size());
     }
 
     private void fillAssociation(ProgramaCoordinacionEntity association, ProgramaCoordinacionFormularioDTO dto) {
@@ -304,36 +292,24 @@ public class AdministracionServiceImpl implements AdministracionService {
     @Override
     @Transactional
     public void deleteCostCenterAssignment(Long id) {
-        /*
         log.info("deleteCostCenterAssignment ===> Eliminando centro de costo asignado. id={}", id);
-
-        if (!asignarCentroCostoRepository.existsById(id)) {
-            log.warn("deleteCostCenterAssignment ===> Centro de costo asignado no encontrado. id={}", id);
-            throw new ApiException(HttpStatus.NOT_FOUND, "No existe el centro de costo asignado con id " + id);
+        if (id == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El identificador de asociación es obligatorio");
         }
 
-        BigDecimal result = asignarCentroCostoRepository.deleteByProcedure(
-                id,
-                RegistradoPorUtils.value(Accion.DELETE)
-        );
-
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            log.warn("deleteCostCenterAssignment ===> Procedimiento de eliminación falló. id={}, resultado={}",
-                    id, result);
-        }
-
-        validateProcedureResult(result, "No se pudo eliminar el centro de costo asignado");
+        CentroCostoCoordinacionEntity entity = centroCostoCoordinacionRepository.findById(id)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la asociación de centro de costo con id " + id));
+        
+        centroCostoCoordinacionRepository.delete(entity);
 
         log.info("deleteCostCenterAssignment ===> Centro de costo asignado eliminado. id={}", id);
-        */
     }
 
     @Override
     @Transactional
     public void deleteBulkCostCenterAssignments(List<Long> ids) {
-        /*
         log.info("deleteBulkCostCenterAssignments ===> Eliminación masiva de centros de costo asignados. total={}",
-                ids != null ? ids.size() : 0);
+            ids != null ? ids.size() : 0);
 
         if (ids == null || ids.isEmpty()) {
             log.debug("deleteBulkCostCenterAssignments ===> Lista vacía. No se realiza eliminación");
@@ -345,8 +321,7 @@ public class AdministracionServiceImpl implements AdministracionService {
         }
 
         log.info("deleteBulkCostCenterAssignments ===> Eliminación masiva de centros de costo finalizada. total={}",
-                ids.size());
-        */
+            ids.size());
     }
 
     private void fillCostCenterAssignment(CentroCostoCoordinacionEntity entity, CentroCostoAsignadoFormularioDTO dto) {
@@ -449,56 +424,38 @@ public class AdministracionServiceImpl implements AdministracionService {
 
     @Override
     @Transactional
-    public void deletePeopleCoordination(Long idPersonaGeneral, Long idCoordinacion) {
-        /*
-        log.info("deletePeopleCoordination ===> Eliminando persona asociada a coordinación. idPersonaGeneral={}, idCoordinacion={}",
-                idPersonaGeneral, idCoordinacion);
-
-        PersonaCoordinacionEntityId id = personaCoordinationId(idPersonaGeneral, idCoordinacion);
-
-        if (!personaCoordinacionRepository.existsById(id)) {
-            log.warn("deletePeopleCoordination ===> Persona asociada a coordinación no encontrada. idPersonaGeneral={}, idCoordinacion={}",
-                    idPersonaGeneral, idCoordinacion);
-            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la persona asociada a la coordinación");
+    public void deletePeopleCoordination(Long id) {
+        // Cuando se implemente RestriccionProgramas se deben eliminar sus relaciones
+        log.info("deletePeopleCoordination ===> Eliminando persona asignada. id={}", id);
+        if (id == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El identificador de asociación es obligatorio");
         }
 
-        BigDecimal result = personaCoordinacionRepository.deleteByProcedure(
-                idPersonaGeneral,
-                idCoordinacion,
-                RegistradoPorUtils.value(Accion.DELETE)
-        );
+        PersonaCoordinacionEntity entity = personaCoordinacionRepository. findById(id)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la asociación de persona con id " + id));
+        
+        personaCoordinacionRepository.delete(entity);
 
-        if (result == null || BigDecimal.ONE.compareTo(result) != 0) {
-            log.warn("deletePeopleCoordination ===> Procedimiento de eliminación falló. idPersonaGeneral={}, idCoordinacion={}, resultado={}",
-                    idPersonaGeneral, idCoordinacion, result);
-        }
-
-        validateProcedureResult(result, "No se pudo eliminar la persona asociada a la coordinación");
-
-        log.info("deletePeopleCoordination ===> Persona asociada a coordinación eliminada. idPersonaGeneral={}, idCoordinacion={}",
-                idPersonaGeneral, idCoordinacion);
-        */
+        log.info("deletePeopleCoordination ===> Persona asignada eliminada. id={}", id);
     }
 
     @Override
     @Transactional
     public void deleteBulkPeopleCoordinations(List<Long> ids) {
-        /*
         log.info("deleteBulkPeopleCoordinations ===> Eliminación masiva de personas asociadas a coordinación. total={}",
-                registros != null ? registros.size() : 0);
+            ids != null ? ids.size() : 0);
 
-        if (registros == null || registros.isEmpty()) {
+        if (ids == null || ids.isEmpty()) {
             log.debug("deleteBulkPeopleCoordinations ===> Lista vacía. No se realiza eliminación");
             return;
         }
 
-        for (PersonaCoordinacionClaveDTO item : registros) {
-            deletePeopleCoordination(item.idPersonaGeneral(), item.idCoordinacion());
+        for (Long id : ids) {
+            deletePeopleCoordination(id);
         }
 
         log.info("deleteBulkPeopleCoordinations ===> Eliminación masiva de personas asociadas finalizada. total={}",
-                registros.size());
-        */
+            ids.size());
     }
 
     private void fillPeopleCoordination(PersonaCoordinacionEntity entity, PersonaCoordinacionFormularioDTO dto) {

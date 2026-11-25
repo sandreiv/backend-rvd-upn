@@ -170,9 +170,9 @@ public class CoordinationManagementController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/people/delete/{idPersonaGeneral}/{idCoordinacion}")
-    public ResponseEntity<Void> deletePeopleCoordination(@PathVariable Long idPersonaGeneral, @PathVariable Long idCoordinacion) {
-        administracionService.deletePeopleCoordination(idPersonaGeneral, idCoordinacion);
+    @DeleteMapping("/people/delete/{id}")
+    public ResponseEntity<Void> deletePeopleCoordination(@PathVariable Long id) {
+        administracionService.deletePeopleCoordination(id);
         return ResponseEntity.ok().build();
     }
 
