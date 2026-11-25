@@ -7,10 +7,10 @@
  * Modificaciones:
  * 17/07/2026 - Daniel Arias - Creación inicial
  */
-
 package co.edu.unipamplona.ciadti.rvd.model.dto;
 
 public record PersonaCoordinacionListadoDTO(
+        Long id,
         Long idPersonaGeneral,
         String persona,
         String documentoIdentidad,
