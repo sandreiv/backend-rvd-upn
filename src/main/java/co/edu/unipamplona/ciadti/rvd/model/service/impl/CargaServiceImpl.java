@@ -25,6 +25,8 @@
  * 17/11/2026 - Proyectos de la persona de la carga docente.
  * 19/11/2026 - Centros de costo de la coordinación y de sus programas.
  * 19/11/2026 - Listado de todos los centros de costo.
+ * 26/11/2026 - Totales de la coordinación en una convocatoria.
+ * 26/11/2026 - Horas de la carga en árbol padre-hijo.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -69,6 +71,7 @@ import co.edu.unipamplona.ciadti.rvd.mapper.CoordinacionMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.DetalleCargaDocenteMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.TipoActividadListadoMapper;
 import co.edu.unipamplona.ciadti.rvd.mapper.TipoVinculacionMapper;
+import co.edu.unipamplona.ciadti.rvd.mapper.TotalCargaMapper;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.CargaDocenteFormularioDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.DetalleCargaDocenteDTO;
@@ -90,6 +93,8 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.PersonaProyectoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.PensumListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TotalCargaDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TotalHorasCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosPrecargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
@@ -128,6 +133,7 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.projection.CoordinacionPer
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TitularGrupoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TipoActividadArbolProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TotalCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocentePreasignacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.service.CargaService;
 import co.edu.unipamplona.ciadti.rvd.util.FechasConvocatoriaCalculator;
@@ -148,6 +154,7 @@ public class CargaServiceImpl implements CargaService {
     private static final String TIPO_DOCENTE = "tipoDocente";
     private static final String TITULAR = "TITULAR";
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final int ESCALA_MONETARIA = 2;
 
 
     private final CoordinacionRepository coordinacionRepository;
@@ -191,6 +198,7 @@ public class CargaServiceImpl implements CargaService {
     private final CentroCostoRepository centroCostoRepository;
     private final CoordinacionCentrosCostoMapper coordinacionCentrosCostoMapper;
     private final CentroCostoMapper centroCostoMapper;
+    private final TotalCargaMapper totalCargaMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -714,6 +722,53 @@ public class CargaServiceImpl implements CargaService {
         }
         log.info("listCostCenters ===> Buscando centros de costo. texto={}", textoParam);
         return centroCostoMapper.toDtoList(centroCostoRepository.findByTexto(textoParam));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TotalCargaDTO getCoordinationLoadTotal(Long idCoordinacion, Long idConvocatoria) {
+        if (idCoordinacion == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La coordinación es obligatoria.");
+        }
+        if (idConvocatoria == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La convocatoria es obligatoria.");
+        }
+        if (!coordinacionRepository.existsById(idCoordinacion)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la coordinación con id " + idCoordinacion);
+        }
+        if (!convocatoriaRepository.existsById(idConvocatoria)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "No existe la convocatoria con id " + idConvocatoria);
+        }
+
+        log.info(
+                "getCoordinationLoadTotal ===> Totalizando carga. idCoordinacion={}, idConvocatoria={}",
+                idCoordinacion,
+                idConvocatoria);
+
+        TotalCargaProjection totales = cargaDocenteRepository.findTotalsByCoordinacionAndConvocatoria(
+                idCoordinacion, idConvocatoria);
+        List<TotalHorasCargaDTO> horasPorTipo = totalCargaMapper.toArbol(
+                detalleCargaDocenteRepository.findTotalHorasByCoordinacionAndConvocatoria(
+                        idCoordinacion, idConvocatoria));
+        BigDecimal sumaHoras = horasPorTipo.stream()
+                .map(item -> item.horas() != null ? item.horas() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return new TotalCargaDTO(
+                toLong(totales == null ? null : totales.getTotalDocentes()),
+                money(totales == null ? null : totales.getTotalPrestaciones()),
+                money(totales == null ? null : totales.getTotalContratos()),
+                money(totales == null ? null : totales.getTotalPreasignacion()),
+                horasPorTipo,
+                sumaHoras);
+    }
+
+    private static Long toLong(BigDecimal value) {
+        return value == null ? 0L : value.longValue();
+    }
+
+    private static BigDecimal money(BigDecimal value) {
+        return (value == null ? BigDecimal.ZERO : value).setScale(ESCALA_MONETARIA, RoundingMode.HALF_UP);
     }
 
     @Override

@@ -22,6 +22,7 @@
  * 07/10/2026 - Sebastian Jaimes - Información del docente para contratación
  * 08/10/2026 - Andrés Hernández - Uso de docentes aprobados para generar el CDP
  * 09/11/2026 - Listado de docentes de RVDIES.CARGADOCENTE por TIVC_ID.
+ * 26/11/2026 - Totales de docentes y dinero por coordinación y convocatoria.
  */
 package co.edu.unipamplona.ciadti.rvd.model.repository;
 
@@ -37,6 +38,7 @@ import org.springframework.data.jpa.repository.Modifying;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteCargaCoordinacionProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TotalCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DocenteEfectivoCoordinacionProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.InformacionDocenteContratacionProjection;
@@ -1479,5 +1481,22 @@ public interface CargaDocenteRepository extends JpaRepository<CargaDocenteEntity
             Long idPersonaGeneral
     );
 
+    @Query(value = """
+            SELECT
+                COUNT(*) AS totalDocentes,
+                NVL(SUM(CADO.CADO_VALORPRESTACIONES), 0) AS totalPrestaciones,
+                NVL(SUM(CADO.CADO_VALORCONTRATO), 0) AS totalContratos,
+                NVL(SUM(CADO.CADO_TOTALCONTRATO), 0) AS totalPreasignacion
+            FROM RVDIES.CARGADOCENTE CADO
+            INNER JOIN RVDIES.TIPOVINCULACIONCONVOCATORIA TIVC
+                ON TIVC.TIVC_ID = CADO.TIVC_ID
+            WHERE CADO.COOR_ID = :idCoordinacion
+                AND TIVC.CONV_ID = :idConvocatoria
+                AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+                AND NVL(CADO.CADO_ESNOVEDAD, '0') <> '1'
+            """, nativeQuery = true)
+    TotalCargaProjection findTotalsByCoordinacionAndConvocatoria(
+            @Param("idCoordinacion") Long idCoordinacion,
+            @Param("idConvocatoria") Long idConvocatoria);
 
 }
