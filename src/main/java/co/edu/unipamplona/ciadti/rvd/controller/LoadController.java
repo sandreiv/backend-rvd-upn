@@ -27,6 +27,8 @@
  * 17/11/2026 - Proyectos de la persona de la carga docente.
  * 19/11/2026 - Centros de costo de la coordinación y de sus programas.
  * 19/11/2026 - Listado de todos los centros de costo.
+ * 26/11/2026 - Totales de la coordinación en una convocatoria.
+ * 26/11/2026 - Horas de la carga en árbol padre-hijo.
  */
 package co.edu.unipamplona.ciadti.rvd.controller;
 
@@ -66,6 +68,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.ProgramaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TotalCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.ValorPuntosCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.service.ContratoCargaService;
@@ -539,5 +542,27 @@ public class LoadController {
     public ResponseEntity<List<CentroCostoDTO>> listCostCenters(
             @RequestParam(required = false) String texto) {
         return ResponseEntity.ok(cargaService.listCostCenters(texto));
+    }
+
+    @Operation(
+        summary = "Obtiene el total de la carga de una coordinación en una convocatoria",
+        description = """
+            Recibe idCoordinacion e idConvocatoria.
+            Suma las cargas vigentes de RVDIES.CARGADOCENTE de esa coordinación
+            cuyo tipo de vinculación pertenece a la convocatoria.
+            Excluye las marcadas como novedad.
+            Retorna la cantidad de cargas, prestaciones, contratos y total,
+            además de las horas en árbol según el padre de RVDIES.TIPOACTIVIDADES.
+            Cada nodo trae sus hijos. Las horas del nodo suman las de su subárbol.
+            totalHoras es la suma de las raíces.
+            Si la coordinación o la convocatoria no existen, responde 404.
+            Si no hay cargas, los totales van en cero y la lista de horas vacía.
+            """
+    )
+    @GetMapping("/total-coordination")
+    public ResponseEntity<TotalCargaDTO> getCoordinationLoadTotal(
+            @RequestParam Long idCoordinacion,
+            @RequestParam Long idConvocatoria) {
+        return ResponseEntity.ok(cargaService.getCoordinationLoadTotal(idCoordinacion, idConvocatoria));
     }
 }
