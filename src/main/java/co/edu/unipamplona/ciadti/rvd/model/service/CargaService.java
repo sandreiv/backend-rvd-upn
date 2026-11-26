@@ -23,6 +23,7 @@
  * 17/11/2026 - Proyectos de la persona de la carga docente.
  * 19/11/2026 - Centros de costo de la coordinación y de sus programas.
  * 19/11/2026 - Listado de todos los centros de costo.
+ * 26/11/2026 - Totales de la coordinación en una convocatoria.
  */
 package co.edu.unipamplona.ciadti.rvd.model.service;
 
@@ -41,6 +42,7 @@ import co.edu.unipamplona.ciadti.rvd.model.dto.HorarioClaseDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.RestriccionActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoActividadListadoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.TipoVinculacionListadoDTO;
+import co.edu.unipamplona.ciadti.rvd.model.dto.TotalCargaDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.BusquedaDocenteDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaComponenteBancoDTO;
 import co.edu.unipamplona.ciadti.rvd.model.dto.MateriaDTO;
@@ -98,6 +100,8 @@ public interface CargaService {
     void deleteDetailProfessorLoadBulk(List<Long> ids);
 
     void addProfessor(CargaDocenteFormularioDTO dto);
+
+    TotalCargaDTO getCoordinationLoadTotal(Long idCoordinacion, Long idConvocatoria);
 
     ValorPuntosCargaDTO getValuePointsPreload(
             Long anio,

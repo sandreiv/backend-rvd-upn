@@ -17,6 +17,8 @@
  * 17/11/2026 - Carga titular por grupo dentro de la convocatoria.
  * 17/11/2026 - Materias de la carga con programa y centro de costo del programa.
  * 17/11/2026 - Borrado de los detalles de una carga docente.
+ * 26/11/2026 - Horas por tipo de actividad de la coordinación en una convocatoria.
+ * 26/11/2026 - La consulta de horas incluye los padres para armar el árbol.
  */
 
 package co.edu.unipamplona.ciadti.rvd.model.repository;
@@ -34,6 +36,7 @@ import co.edu.unipamplona.ciadti.rvd.model.entity.DetalleCargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.MateriaProgramaCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TitularGrupoProjection;
+import co.edu.unipamplona.ciadti.rvd.model.repository.projection.TotalHorasCargaProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.DetalleCargaDocenteListadoProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.GrupoCuposReporteProjection;
 import co.edu.unipamplona.ciadti.rvd.model.repository.projection.HorasActividadPadreProjection;
@@ -766,6 +769,83 @@ public interface DetalleCargaDocenteRepository
             """, nativeQuery = true)
     List<DetalleCargaDocenteListadoProjection> findVigenteDetailsByIdCargaDocente(
             @Param("idCargaDocente") Long idCargaDocente);
+
+    @Query(value = """
+            WITH HORAS AS (
+                SELECT
+                    DECD.TIAC_ID AS idTipoActividad,
+                    SUM(
+                        NVL(
+                            TO_NUMBER(
+                                REPLACE(TRIM(DECD.DECD_HORAS), ',', '.')
+                                DEFAULT NULL ON CONVERSION ERROR
+                            ),
+                            0
+                        )
+                    ) AS horas
+                FROM RVDIES.CARGADOCENTE CADO
+                INNER JOIN RVDIES.TIPOVINCULACIONCONVOCATORIA TIVC
+                    ON TIVC.TIVC_ID = CADO.TIVC_ID
+                INNER JOIN RVDIES.DETALLECARGADOCENTE DECD
+                    ON DECD.CADO_ID = CADO.CADO_ID
+                WHERE CADO.COOR_ID = :idCoordinacion
+                    AND TIVC.CONV_ID = :idConvocatoria
+                    AND NVL(CADO.CADO_VIGENTE, '1') = '1'
+                    AND NVL(CADO.CADO_ESNOVEDAD, '0') <> '1'
+                    AND DECD.TIAC_ID IS NOT NULL
+                GROUP BY
+                    DECD.TIAC_ID
+            ),
+            CADENA (
+                idTipoActividad,
+                idPadre,
+                nombre,
+                orden,
+                horas,
+                nivel
+            ) AS (
+                SELECT
+                    TA.TIAC_ID,
+                    TA.TIAC_IDPADRE,
+                    TA.TIAC_NOMBRE,
+                    TA.TIAC_ORDEN,
+                    H.horas,
+                    1
+                FROM HORAS H
+                INNER JOIN RVDIES.TIPOACTIVIDADES TA
+                    ON TA.TIAC_ID = H.idTipoActividad
+                UNION ALL
+                SELECT
+                    PADRE.TIAC_ID,
+                    PADRE.TIAC_IDPADRE,
+                    PADRE.TIAC_NOMBRE,
+                    PADRE.TIAC_ORDEN,
+                    0,
+                    C.nivel + 1
+                FROM CADENA C
+                INNER JOIN RVDIES.TIPOACTIVIDADES PADRE
+                    ON PADRE.TIAC_ID = C.idPadre
+                WHERE C.nivel < 20
+                    AND C.idPadre IS NOT NULL
+            )
+            SELECT
+                idTipoActividad,
+                idPadre,
+                nombre,
+                MIN(orden) AS orden,
+                SUM(horas) AS horas
+            FROM CADENA
+            GROUP BY
+                idTipoActividad,
+                idPadre,
+                nombre
+            ORDER BY
+                orden NULLS LAST,
+                nombre
+            """, nativeQuery = true)
+    List<TotalHorasCargaProjection> findTotalHorasByCoordinacionAndConvocatoria(
+            @Param("idCoordinacion") Long idCoordinacion,
+            @Param("idConvocatoria") Long idConvocatoria);
 }
 
 /* 17/07/2026 @:Daniel Arias */
