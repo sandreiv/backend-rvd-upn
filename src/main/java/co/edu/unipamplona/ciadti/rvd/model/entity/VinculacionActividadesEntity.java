@@ -6,6 +6,8 @@
  * Fecha de creación: 03/11/2026
  * Modificaciones:
  * 03/11/2026 - Creación según RVDIES.VINCULACIONACTIVIDADES
+ * 25/11/2026 - La PK se toma de RVDIES.SEQ_VINCULACIONACTIVIDADES: la tabla no
+ *              tiene columna identity ni trigger
  */
 package co.edu.unipamplona.ciadti.rvd.model.entity;
 
@@ -20,6 +22,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,7 +34,15 @@ import lombok.Setter;
 public class VinculacionActividadesEntity implements Serializable, Cloneable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "vinculacionactividades_seq"
+    )
+    @SequenceGenerator(
+        name = "vinculacionactividades_seq",
+        sequenceName = "RVDIES.SEQ_VINCULACIONACTIVIDADES",
+        allocationSize = 1
+    )
     @Column(name = "VIAC_ID", nullable = false)
     private Long id;
 
