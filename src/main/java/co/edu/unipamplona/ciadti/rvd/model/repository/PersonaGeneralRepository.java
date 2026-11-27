@@ -18,6 +18,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import co.edu.unipamplona.ciadti.rvd.model.entity.CargaDocenteEntity;
 import co.edu.unipamplona.ciadti.rvd.model.entity.PersonaGeneralEntity;
@@ -361,5 +362,73 @@ public interface PersonaGeneralRepository
     );
 
 
+    @Query("""
+            SELECT DISTINCT pege
+            FROM PersonaGeneralEntity pege
+            INNER JOIN FETCH pege.personaNaturalGeneral peng
+            WHERE
+                UPPER(pege.documentoIdentidad)
+                    LIKE UPPER(CONCAT('%', :term, '%'))
+
+                OR UPPER(peng.primerNombre)
+                    LIKE UPPER(CONCAT('%', :term, '%'))
+
+                OR UPPER(peng.segundoNombre)
+                    LIKE UPPER(CONCAT('%', :term, '%'))
+
+                OR UPPER(peng.primerApellido)
+                    LIKE UPPER(CONCAT('%', :term, '%'))
+
+                OR UPPER(peng.segundoApellido)
+                    LIKE UPPER(CONCAT('%', :term, '%'))
+
+                OR UPPER(
+                    CONCAT(
+                        peng.primerNombre,
+                        ' ',
+                        peng.primerApellido
+                    )
+                ) LIKE UPPER(CONCAT('%', :term, '%'))
+
+                OR UPPER(
+                    CONCAT(
+                        peng.primerNombre,
+                        ' ',
+                        COALESCE(peng.segundoNombre, ''),
+                        ' ',
+                        peng.primerApellido,
+                        ' ',
+                        COALESCE(peng.segundoApellido, '')
+                    )
+                ) LIKE UPPER(CONCAT('%', :term, '%'))
+
+            ORDER BY
+                peng.primerApellido,
+                peng.primerNombre,
+                pege.id
+            """)
+    List<PersonaGeneralEntity> searchPersonsForProfiles(
+
+            @Param("term") String term,
+
+            Pageable pageable
+
+    );
+
+    @Query("""
+            SELECT DISTINCT pege
+            FROM PersonaGeneralEntity pege
+            INNER JOIN FETCH pege.personaNaturalGeneral peng
+            WHERE pege.id IN :ids
+            ORDER BY
+                peng.primerApellido,
+                peng.primerNombre,
+                pege.id
+            """)
+    List<PersonaGeneralEntity> findPersonsForProfilesByIds(
+
+            @Param("ids") List<Long> ids
+
+    );
 
 }

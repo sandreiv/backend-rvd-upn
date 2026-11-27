@@ -271,7 +271,7 @@ public class EstadosServiceImpl implements EstadosService {
     @Transactional
     public void deleteState(Long id) {
 
-        EstadosEntity entity = findState(id);
+        EstadosEntity entity = findStateForUpdate(id);
 
         validateDeletion(entity);
 
@@ -307,9 +307,10 @@ public class EstadosServiceImpl implements EstadosService {
         }
 
         List<EstadosEntity> entities = ids.stream()
-                .distinct()
-                .map(this::findState)
-                .toList();
+            .distinct()
+            .sorted()
+            .map(this::findStateForUpdate)
+            .toList();
 
         // Validar todos antes de eliminar.
         entities.forEach(this::validateDeletion);
@@ -340,6 +341,23 @@ public class EstadosServiceImpl implements EstadosService {
         }
 
         return estadosRepository.findById(id)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Estado no encontrado."
+                ));
+    }
+
+    private EstadosEntity findStateForUpdate(Long id) {
+
+        if (id == null || id <= 0) {
+
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "El identificador del estado no es válido."
+            );
+        }
+
+        return estadosRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Estado no encontrado."
