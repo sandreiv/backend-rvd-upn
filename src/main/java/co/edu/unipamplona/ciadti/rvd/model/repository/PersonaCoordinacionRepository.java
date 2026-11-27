@@ -23,6 +23,8 @@ import co.edu.unipamplona.ciadti.rvd.model.repository.projection.PersonaCoordina
 
 public interface PersonaCoordinacionRepository extends JpaRepository<PersonaCoordinacionEntity, Long> {
 
+    boolean existsByIdCoordinacionAndIdPersonaGeneral(Long idCoordinacion, Long idPersonaGeneral);
+
     @Query(value = """
             SELECT
                 PECO.PECO_ID AS id,            

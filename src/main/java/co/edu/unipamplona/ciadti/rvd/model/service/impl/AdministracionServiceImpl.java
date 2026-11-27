@@ -6,6 +6,7 @@
  * Fecha de creación: 25/11/2026
  * Modificaciones:
  * 25/11/2026 - Andrés Hernández - Creación inicial
+ * 27/11/2026 - Andrés Hernández - Ajuste al guardar relaciones internas de una coordinación
  */
 package co.edu.unipamplona.ciadti.rvd.model.service.impl;
 
@@ -104,6 +105,10 @@ public class AdministracionServiceImpl implements AdministracionService {
             dto != null ? dto.idCentroCosto() : null);
 
         validateAssociation(dto);
+
+        if (programaCoordinacionRepository.existsByIdCoordinacionAndIdPrograma(dto.idCoordinacion(), dto.idPrograma())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Ya existe la misma asociación entre el programa y la coordinación");
+        }
 
         ProgramaCoordinacionEntity association = new ProgramaCoordinacionEntity();
         fillAssociation(association, dto);
@@ -260,6 +265,10 @@ public class AdministracionServiceImpl implements AdministracionService {
 
         validateCostCenterAssignment(dto);
 
+        if (centroCostoCoordinacionRepository.existsByIdCoordinacionAndIdCentroCosto(dto.idCoordinacion(), dto.idCentroCosto())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Ya existe la misma asociación entre el centro de costo y la coordinación");
+        }
+
         CentroCostoCoordinacionEntity entity = new CentroCostoCoordinacionEntity();
         fillCostCenterAssignment(entity, dto);
         CentroCostoCoordinacionEntity saved = centroCostoCoordinacionRepository.save(entity);
@@ -393,6 +402,10 @@ public class AdministracionServiceImpl implements AdministracionService {
 
         validatePersonCoordination(dto);
 
+        if (personaCoordinacionRepository.existsByIdCoordinacionAndIdPersonaGeneral(dto.idCoordinacion(), dto.idPersonaGeneral())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Ya existe la misma asociación entre la persona general y la coordinación");
+        }
+
         PersonaCoordinacionEntity entity = new PersonaCoordinacionEntity();
         fillPeopleCoordination(entity, dto);
         PersonaCoordinacionEntity saved = personaCoordinacionRepository.save(entity);
@@ -431,7 +444,7 @@ public class AdministracionServiceImpl implements AdministracionService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El identificador de asociación es obligatorio");
         }
 
-        PersonaCoordinacionEntity entity = personaCoordinacionRepository. findById(id)
+        PersonaCoordinacionEntity entity = personaCoordinacionRepository.findById(id)
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe la asociación de persona con id " + id));
         
         personaCoordinacionRepository.delete(entity);

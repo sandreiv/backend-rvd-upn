@@ -25,6 +25,8 @@ public interface CentroCostoCoordinacionRepository extends JpaRepository<CentroC
 
     void deleteByIdCoordinacion(Long idCoordinacion);
 
+    boolean existsByIdCoordinacionAndIdCentroCosto(Long idCoordinacion, Long idCentroCosto);
+
     @Query(value = """
             SELECT
                 CCCO.CCCO_ID AS id,
