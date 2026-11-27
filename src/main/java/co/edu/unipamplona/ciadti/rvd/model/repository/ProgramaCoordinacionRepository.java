@@ -23,6 +23,8 @@ public interface ProgramaCoordinacionRepository extends JpaRepository<ProgramaCo
 
     boolean existsByIdCoordinacion(Long idCoordinacion);
 
+    boolean existsByIdCoordinacionAndIdPrograma(Long idCoordinacion, Long idPrograma);
+
     @Query(value = """
             SELECT
                 PRCO.PRCO_ID AS id,
